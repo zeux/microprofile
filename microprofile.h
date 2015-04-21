@@ -88,6 +88,10 @@
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_GL
 // 			call MicroProfileGpuInitGL() on startup
+//      Opengl on Apple / OSX:
+// 			in .c file where MICROPROFILE_IMPL is defined:
+//   		#define MICROPROFILE_GPU_TIMERS_GL_APPLE
+// 			call MicroProfileGpuInitGL() on startup
 //		D3D11:
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_D3D11
@@ -403,7 +407,10 @@ MICROPROFILE_API void MicroProfileGpuInitD3D11(void* pDevice, void* pDeviceConte
 MICROPROFILE_API void MicroProfileGpuInitGL();
 #endif
 
-
+#if MICROPROFILE_GPU_TIMERS_GL_APPLE
+#define MICROPROFILE_GL_MAX_QUERIES (8<<8)
+MICROPROFILE_API void MicroProfileGpuInitGL();
+#endif
 
 #if MICROPROFILE_USE_THREAD_NAME_CALLBACK
 MICROPROFILE_API const char* MicroProfileGetThreadName();
@@ -649,6 +656,16 @@ struct MicroProfileGpuTimerState
 {
 	uint32_t GLTimers[MICROPROFILE_GL_MAX_QUERIES];
 	uint32_t GLTimerPos;
+};
+#elif MICROPROFILE_GPU_TIMERS_GL_APPLE
+struct MicroProfileGpuTimerState
+{
+    uint32_t GLTimers[MICROPROFILE_GL_MAX_QUERIES];
+    uint64_t GLTimestamp[MICROPROFILE_GL_MAX_QUERIES];
+    uint64_t GLElapsed[MICROPROFILE_GL_MAX_QUERIES];
+    char     GLHasValue[MICROPROFILE_GL_MAX_QUERIES];
+    uint32_t GLTimerPos;
+    char     GLFirst;
 };
 #else
 struct MicroProfileGpuTimerState{};
@@ -3330,7 +3347,48 @@ uint64_t MicroProfileTicksPerSecondGpu()
 {
 	return 1000000000ll;
 }
-
+#elif MICROPROFILE_GPU_TIMERS_GL_APPLE
+void MicroProfileGpuInitGL()
+{
+    glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.GLTimers[0]);
+    memset(S.GPU.GLTimestamp, 0, sizeof(S.GPU.GLTimestamp));
+    memset(S.GPU.GLElapsed, 0, sizeof(S.GPU.GLElapsed));
+    memset(S.GPU.GLHasValue, 0, sizeof(S.GPU.GLHasValue));
+    S.GPU.GLHasValue[0] = 1;
+    S.GPU.GLTimerPos = 0;
+    S.GPU.GLFirst = 1;
+}
+uint32_t MicroProfileGpuInsertTimeStamp()
+{
+    uint32_t nIndex = (S.GPU.GLTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
+    if ( S.GPU.GLFirst )
+        S.GPU.GLFirst = 0;
+    else
+        glEndQuery(GL_TIME_ELAPSED);
+    glBeginQuery(GL_TIME_ELAPSED, S.GPU.GLTimers[nIndex]);
+    S.GPU.GLHasValue[nIndex] = 0;
+    S.GPU.GLTimerPos = nIndex;
+    return nIndex;
+}
+uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
+{
+    if ( S.GPU.GLHasValue[nKey] )
+        return S.GPU.GLTimestamp[nKey];
+    int nPrevKey = (nKey - 1 + MICROPROFILE_GL_MAX_QUERIES) % MICROPROFILE_GL_MAX_QUERIES;
+    uint64_t prevResult = MicroProfileGpuGetTimeStamp(nPrevKey);
+    GLint available; do {
+        available = 0;
+        glGetQueryObjectiv ( S.GPU.GLTimers[nKey], GL_QUERY_RESULT_AVAILABLE, &available );
+    } while(!available);
+    glGetQueryObjectui64v(S.GPU.GLTimers[nKey], GL_QUERY_RESULT, &S.GPU.GLElapsed[nKey]);
+    S.GPU.GLTimestamp[nKey] = S.GPU.GLElapsed[nPrevKey] + prevResult;
+    S.GPU.GLHasValue[nKey] = true;
+    return S.GPU.GLTimestamp[nKey];
+}
+uint64_t MicroProfileTicksPerSecondGpu()
+{
+    return 1000000000ll;
+}
 #endif
 
 #undef S
@@ -3350,3 +3408,4 @@ uint64_t MicroProfileTicksPerSecondGpu()
 #ifdef MICROPROFILE_EMBED_HTML
 #include "microprofilehtml.h"
 #endif //MICROPROFILE_EMBED_HTML
+
