@@ -3067,18 +3067,17 @@ void* MicroProfileTraceThread(void* unused)
 		if(nProcessed - nProcessedLast > 10<<10)
 		{
 			nProcessedLast = nProcessed;
-			printf("processed %llukb %llukb\n", (nProcessed-nProcessedLast)>>10,nProcessed >>10);
+			// printf("processed %llukb %llukb\n", (nProcessed-nProcessedLast)>>10,nProcessed >>10);
 		}
 
 		char* pX = strchr(pLine, 'X');
 		if(pX)
 		{
-			int cpu = atoi(pX+1);
-			char* pX2 = strchr(pX + 1, 'X');
-			char* pX3 = strchr(pX2 + 1, 'X');
-			int thread = atoi(pX2+1);
-			char* lala;
-			int64_t timestamp = strtoll(pX3 + 1, &lala, 10);
+			char* pos = pX;
+			int cpu = strtoll(pos + 1, &pos, 10);
+			int64_t thread = strtoll(pos + 1, &pos, 10);
+			int64_t timestamp = strtoll(pos + 1, &pos, 10);
+
 			MicroProfileContextSwitch Switch;
 
 			//convert to ticks.
