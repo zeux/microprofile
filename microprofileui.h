@@ -722,7 +722,18 @@ void MicroProfileDrawDetailedContextSwitchBars(uint32_t nY, uint32_t nThreadId, 
 					{
 						nColor = UI.nHoverColorShared;
 					}
-					MicroProfileDrawBox(fXStart, fYStart, fXEnd, fYEnd, nColor|UI.nOpacityForeground, MicroProfileBoxTypeFlat);
+
+					uint32_t nIntegerWidth = (uint32_t)(fXEnd - fXStart);
+					if(nIntegerWidth)
+					{
+						MicroProfileDrawBox(fXStart, fYStart, fXEnd, fYEnd, nColor|UI.nOpacityForeground, MicroProfileBoxTypeFlat);
+					}
+					else
+					{
+						float fXAvg = 0.5f * (fXStart + fXEnd);
+						int nLineX = (int)floor(fXAvg+0.5f);
+						MicroProfileDrawLineVertical(nLineX, fYStart + 0.5f, fYEnd + 0.5f, nColor|UI.nOpacityForeground);
+					}
 				}
 				nTickIn = -1;
 			}
