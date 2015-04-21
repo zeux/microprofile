@@ -1316,6 +1316,30 @@ MicroProfileToken MicroProfileGetToken(const char* pGroup, const char* pName, ui
 	if(nLen > MICROPROFILE_NAME_MAX_LEN-1)
 		nLen = MICROPROFILE_NAME_MAX_LEN-1;
 	memcpy(&S.TimerInfo[nTimerIndex].pName, pName, nLen);
+
+	if(nColor == 0xffffffff)
+	{
+		// http://www.two4u.com/color/small-txt.html with some omissions
+		static const int kDebugColors[] =
+		{
+			0x70DB93, 0xB5A642, 0x5F9F9F, 0xB87333, 0x2F4F2F, 0x9932CD,
+			0x871F78, 0x855E42, 0x545454, 0x8E2323, 0x238E23, 0xCD7F32,
+			0xDBDB70, 0x527F76, 0x9F9F5F, 0x8E236B, 0x2F2F4F, 0xCFB53B,
+			0xFF7F00, 0xDB70DB, 0x5959AB, 0x8C1717, 0x238E68, 0x6B4226,
+			0x8E6B23, 0x007FFF, 0x00FF7F, 0x236B8E, 0x38B0DE, 0xDB9370,
+			0xCC3299, 0x99CC32,
+		};
+
+		// djb2
+		unsigned int result = 5381;
+		for (const char* i = pGroup; *i; ++i)
+			result = result * 33 ^ *i;
+		for (const char* i = pName; *i; ++i)
+			result = result * 33 ^ *i;
+
+		nColor = kDebugColors[result % (sizeof(kDebugColors) / sizeof(kDebugColors[0]))];
+	}
+
 	S.TimerInfo[nTimerIndex].pName[nLen] = '\0';
 	S.TimerInfo[nTimerIndex].nNameLen = nLen;
 	S.TimerInfo[nTimerIndex].nColor = nColor&0xffffff;
@@ -3067,18 +3091,17 @@ void* MicroProfileTraceThread(void* unused)
 		if(nProcessed - nProcessedLast > 10<<10)
 		{
 			nProcessedLast = nProcessed;
-			printf("processed %llukb %llukb\n", (nProcessed-nProcessedLast)>>10,nProcessed >>10);
+			// printf("processed %llukb %llukb\n", (nProcessed-nProcessedLast)>>10,nProcessed >>10);
 		}
 
 		char* pX = strchr(pLine, 'X');
 		if(pX)
 		{
-			int cpu = atoi(pX+1);
-			char* pX2 = strchr(pX + 1, 'X');
-			char* pX3 = strchr(pX2 + 1, 'X');
-			int thread = atoi(pX2+1);
-			char* lala;
-			int64_t timestamp = strtoll(pX3 + 1, &lala, 10);
+			char* pos = pX;
+			int cpu = strtoll(pos + 1, &pos, 10);
+			int64_t thread = strtoll(pos + 1, &pos, 10);
+			int64_t timestamp = strtoll(pos + 1, &pos, 10);
+
 			MicroProfileContextSwitch Switch;
 
 			//convert to ticks.
@@ -3322,7 +3345,6 @@ uint64_t MicroProfileTicksPerSecondGpu()
 
 #endif
 #endif
-
 
 
 ///start embedded file from microprofile.html
