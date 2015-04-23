@@ -1958,7 +1958,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 			else
 			{
 				index = index-1;
-				if(index < UI.GroupMenuCount)
+				if(index < int(UI.GroupMenuCount))
 				{
 					MicroProfileGroupMenuItem& Item = UI.GroupMenu[index];
 					static char buffer[MICROPROFILE_NAME_MAX_LEN+32];
@@ -2123,7 +2123,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 			else
 			{
 				nIndex -= 1;
-				if(nIndex < UI.GroupMenuCount)
+				if(nIndex < int(UI.GroupMenuCount))
 				{
 					MicroProfileGroupMenuItem& Item = UI.GroupMenu[nIndex];
 					if(Item.nIsCategory)

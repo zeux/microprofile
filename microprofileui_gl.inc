@@ -473,16 +473,16 @@ void MicroProfileShow(int WIDTH, int HEIGHT, float rsf)
     float right = WIDTH / rsf;
     float bottom = HEIGHT / rsf;
     float top = 0.f;
-    float near = -1.f;
-    float far = 1.f;
+    float near_plane = -1.f;
+    float far_plane = 1.f;
     memset(&projection[0], 0, sizeof(projection));
 
     projection[0] = 2.0f / (right - left);
     projection[5] = 2.0f / (top - bottom);
-    projection[10] = -2.0f / (far - near);
+    projection[10] = -2.0f / (far_plane - near_plane);
     projection[12] = - (right + left) / (right - left);
     projection[13] = - (top + bottom) / (top - bottom);
-    projection[14] = - (far + near) / (far - near);
+    projection[14] = - (far_plane + near_plane) / (far_plane - near_plane);
     projection[15] = 1.f;
 
     glEnable(GL_BLEND);
