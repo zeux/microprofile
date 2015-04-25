@@ -2805,7 +2805,7 @@ void MicroProfileWebServerStart()
 	for(int i = 0; i < 20; ++i)
 	{
 		Addr.sin_port = htons(MICROPROFILE_WEBSERVER_PORT+i); 
-		if(0 == bind(S.ListenerSocket, (sockaddr*)&Addr, sizeof(Addr)))
+		if(0 == ::bind(S.ListenerSocket, (sockaddr*)&Addr, sizeof(Addr)))
 		{
 			S.nWebServerPort = MICROPROFILE_WEBSERVER_PORT+i;
 			break;
