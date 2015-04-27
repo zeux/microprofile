@@ -676,6 +676,7 @@ void MicroProfileDrawDetailedContextSwitchBars(uint32_t nY, uint32_t nThreadId, 
 	float fMouseX = (float)UI.nMouseX;
 	float fMouseY = (float)UI.nMouseY;
 
+	int nLineDrawn = -1;
 
 	for(uint32_t j = nContextSwitchStart; j != nContextSwitchEnd; j = (j+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
 	{
@@ -732,7 +733,12 @@ void MicroProfileDrawDetailedContextSwitchBars(uint32_t nY, uint32_t nThreadId, 
 					{
 						float fXAvg = 0.5f * (fXStart + fXEnd);
 						int nLineX = (int)floor(fXAvg+0.5f);
-						MicroProfileDrawLineVertical(nLineX, fYStart + 0.5f, fYEnd + 0.5f, nColor|UI.nOpacityForeground);
+
+						if(nLineDrawn != nLineX)
+						{
+							nLineDrawn = nLineX;
+							MicroProfileDrawLineVertical(nLineX, fYStart + 0.5f, fYEnd + 0.5f, nColor|UI.nOpacityForeground);
+						}
 					}
 				}
 				nTickIn = -1;
