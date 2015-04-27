@@ -1,0 +1,4 @@
+#!/bin/sh
+mkfifo mypipe
+dtrace -q -n fbt::thread_dispatch:return'{printf("MPTD %x %x %x\n", cpu, tid, machtimestamp)}' -o mypipe
+rm mypipe

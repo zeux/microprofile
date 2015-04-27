@@ -1,4 +1,0 @@
-#!/bin/sh
-mkfifo mypipe
-sudo dtrace -n fbt::thread_dispatch:return'{printf("X%d_%d_%d", cpu, tid, walltimestamp)}' -o mypipe
-rm mypipe

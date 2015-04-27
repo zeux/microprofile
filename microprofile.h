@@ -491,7 +491,7 @@ struct MicroProfileScopeGpuHandler
 #if defined(_WIN32) 
 #define MICROPROFILE_CONTEXT_SWITCH_TRACE 1
 #elif defined(__APPLE__)
-#define MICROPROFILE_CONTEXT_SWITCH_TRACE 0 //disabled until dtrace script is working.
+#define MICROPROFILE_CONTEXT_SWITCH_TRACE 1
 #else
 #define MICROPROFILE_CONTEXT_SWITCH_TRACE 0
 #endif
@@ -3089,51 +3089,31 @@ void* MicroProfileTraceThread(void* unused)
 	char* pLine = 0;
 	size_t cap = 0;
 	size_t len = 0;
-	struct timeval tv;
 
-	gettimeofday(&tv, NULL);
-
-	uint64_t nsSinceEpoch = ((uint64_t)(tv.tv_sec) * 1000000 + (uint64_t)(tv.tv_usec)) * 1000;
-	uint64_t nTickEpoch = MP_TICK();
 	uint32_t nLastThread[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS] = {0};
-	mach_timebase_info_data_t sTimebaseInfo;	
-	mach_timebase_info(&sTimebaseInfo);
+
 	S.bContextSwitchRunning = true;
 
-	uint64_t nProcessed = 0;
-	uint64_t nProcessedLast = 0;
 	while((len = getline(&pLine, &cap, pFile))>0 && !S.bContextSwitchStop)
 	{
-		nProcessed += len;
-		if(nProcessed - nProcessedLast > 10<<10)
+		if (strncmp(pLine, "MPTD ", 5) != 0)
+			continue;
+
+		char* pos = pLine + 4;
+		int cpu = strtol(pos + 1, &pos, 16);
+		int64_t thread = strtoll(pos + 1, &pos, 16);
+		int64_t timestamp = strtoll(pos + 1, &pos, 16);
+
+		MicroProfileContextSwitch Switch;
+
+		if(cpu < MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
 		{
-			nProcessedLast = nProcessed;
-			// printf("processed %llukb %llukb\n", (nProcessed-nProcessedLast)>>10,nProcessed >>10);
-		}
-
-		char* pX = strchr(pLine, 'X');
-		if(pX)
-		{
-			char* pos = pX;
-			int cpu = strtoll(pos + 1, &pos, 10);
-			int64_t thread = strtoll(pos + 1, &pos, 10);
-			int64_t timestamp = strtoll(pos + 1, &pos, 10);
-
-			MicroProfileContextSwitch Switch;
-
-			//convert to ticks.
-			uint64_t nDeltaNsSinceEpoch = timestamp - nsSinceEpoch;
-			uint64_t nDeltaTickSinceEpoch = sTimebaseInfo.numer * nDeltaNsSinceEpoch / sTimebaseInfo.denom;
-			uint64_t nTicks = nDeltaTickSinceEpoch + nTickEpoch;
-			if(cpu < MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
-			{
-				Switch.nThreadOut = nLastThread[cpu];
-				Switch.nThreadIn = thread;
-				nLastThread[cpu] = thread;
-				Switch.nCpu = cpu;
-				Switch.nTicks = nTicks;
-				MicroProfileContextSwitchPut(&Switch);
-			}
+			Switch.nThreadOut = nLastThread[cpu];
+			Switch.nThreadIn = thread;
+			nLastThread[cpu] = thread;
+			Switch.nCpu = cpu;
+			Switch.nTicks = timestamp;
+			MicroProfileContextSwitchPut(&Switch);
 		}
 	}
 	printf("EXITING TRACE THREAD\n");
