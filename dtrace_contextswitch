@@ -1,4 +1,9 @@
 #!/bin/sh
-mkfifo mypipe
-dtrace -q -n fbt::thread_dispatch:return'{printf("MPTD %x %x %x\n", cpu, tid, machtimestamp)}' -o mypipe
-rm mypipe
+while true;
+do
+	echo "DTrace run; output file: "`pwd`"/.microprofilepipe"
+	mkfifo .microprofilepipe
+	dtrace -q -n fbt::thread_dispatch:return'{printf("MPTD %x %x %x\n", cpu, tid, machtimestamp)}' -o .microprofilepipe
+	rm .microprofilepipe
+	read -p "DTrace run finished, press Enter to restart..."
+done
