@@ -2930,6 +2930,7 @@ void MicroProfileStopContextSwitchTrace()
 
 #ifdef _WIN32
 #define INITGUID
+#include <wmistr.h>
 #include <evntrace.h>
 #include <evntcons.h>
 #include <strsafe.h>
