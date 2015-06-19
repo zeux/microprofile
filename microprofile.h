@@ -239,7 +239,10 @@ typedef uint32_t ThreadIdType;
 #endif
 
 
+#ifndef MP_ASSERT
 #define MP_ASSERT(a) do{if(!(a)){MP_BREAK();} }while(0)
+#endif
+
 #define MICROPROFILE_DECLARE(var) extern MicroProfileToken g_mp_##var
 #define MICROPROFILE_DEFINE(var, group, name, color) MicroProfileToken g_mp_##var = MicroProfileGetToken(group, name, color, MicroProfileTokenTypeCpu)
 #define MICROPROFILE_REGISTER_GROUP(group, category, color) MicroProfileRegisterGroup(group, category, color)
