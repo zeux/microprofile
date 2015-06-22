@@ -914,21 +914,7 @@ int64_t MicroProfileGetTick()
 
 #endif
 
-#if MICROPROFILE_WEBSERVER
-
-#ifdef _WIN32
-#define MP_INVALID_SOCKET(f) (f == INVALID_SOCKET)
-#endif
-
-#if defined(__APPLE__)
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#define MP_INVALID_SOCKET(f) (f < 0)
-#endif
-
-
-
+#if MICROPROFILE_WEBSERVER || MICROPROFILE_CONTEXT_SWITCH_TRACE
 typedef void* (*MicroProfileThreadFunc)(void*);
 
 #if defined(__APPLE__) || defined(__linux__)
@@ -975,6 +961,23 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 	delete *pThread;
 }
 #endif
+#endif
+
+#if MICROPROFILE_WEBSERVER
+
+#ifdef _WIN32
+#define MP_INVALID_SOCKET(f) (f == INVALID_SOCKET)
+#endif
+
+#if defined(__APPLE__)
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <fcntl.h>
+#define MP_INVALID_SOCKET(f) (f < 0)
+#endif
+
+
+
 void MicroProfileWebServerStart();
 void MicroProfileWebServerStop();
 bool MicroProfileWebServerUpdate();
