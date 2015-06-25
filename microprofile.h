@@ -331,7 +331,11 @@ enum MicroProfileBoxType
 	MicroProfileBoxTypeFlat,
 };
 
-
+#ifdef __GNUC__
+#define MICROPROFILE_FORMAT(a, b) __attribute__((format(printf, a, b)))
+#else
+#define MICROPROFILE_FORMAT(a, b)
+#endif
 
 struct MicroProfile;
 
@@ -2171,7 +2175,7 @@ void MicroProfileDumpFile(const char* pHtml, const char* pCsv)
 	}
 }
 
-void MicroProfilePrintf(MicroProfileWriteCallback CB, void* Handle, const char* pFmt, ...)
+MICROPROFILE_FORMAT(3, 4) void MicroProfilePrintf(MicroProfileWriteCallback CB, void* Handle, const char* pFmt, ...)
 {
 	char buffer[32*1024];
 	va_list args;
@@ -2185,15 +2189,14 @@ void MicroProfilePrintf(MicroProfileWriteCallback CB, void* Handle, const char* 
 	va_end (args);
 }
 
-#define printf(...) MicroProfilePrintf(CB, Handle, __VA_ARGS__)
 void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFrames)
 {
 	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
 	float fToMsCPU = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu());
 	float fToMsGPU = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondGpu());
 
-	printf("frames,%d\n", nAggregateFrames);
-	printf("group,name,average,max,callaverage\n");
+	MicroProfilePrintf(CB, Handle, "frames,%d\n", nAggregateFrames);
+	MicroProfilePrintf(CB, Handle, "group,name,average,max,callaverage\n");
 
 	uint32_t nNumTimers = S.nTotalTimers;
 	uint32_t nBlockSize = 2 * nNumTimers;
@@ -2211,24 +2214,24 @@ void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFra
 	for(uint32_t i = 0; i < S.nTotalTimers; ++i)
 	{
 		uint32_t nIdx = i * 2;
-		printf("\"%s\",\"%s\",%f,%f,%f\n", S.TimerInfo[i].pName, S.GroupInfo[S.TimerInfo[i].nGroupIndex].pName, pAverage[nIdx], pMax[nIdx], pCallAverage[nIdx]);
+		MicroProfilePrintf(CB, Handle, "\"%s\",\"%s\",%f,%f,%f\n", S.TimerInfo[i].pName, S.GroupInfo[S.TimerInfo[i].nGroupIndex].pName, pAverage[nIdx], pMax[nIdx], pCallAverage[nIdx]);
 	}
 
-	printf("\n\n");
+	MicroProfilePrintf(CB, Handle, "\n\n");
 
-	printf("group,average,max,total\n");
+	MicroProfilePrintf(CB, Handle, "group,average,max,total\n");
 	for(uint32_t j = 0; j < MICROPROFILE_MAX_GROUPS; ++j)
 	{
 		const char* pGroupName = S.GroupInfo[j].pName;
 		float fToMs =  S.GroupInfo[j].Type == MicroProfileTokenTypeGpu ? fToMsGPU : fToMsCPU;
 		if(pGroupName[0] != '\0')
 		{
-			printf("\"%s\",%.3f,%.3f,%.3f\n", pGroupName, fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j]);
+			MicroProfilePrintf(CB, Handle, "\"%s\",%.3f,%.3f,%.3f\n", pGroupName, fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j] / nAggregateFrames, fToMs * S.AggregateGroup[j]);
 		}
 	}
 
-	printf("\n\n");
-	printf("group,thread,average,total\n");
+	MicroProfilePrintf(CB, Handle, "\n\n");
+	MicroProfilePrintf(CB, Handle, "group,thread,average,total\n");
 	for(uint32_t j = 0; j < MICROPROFILE_MAX_GROUPS; ++j)
 	{
 		for(uint32_t i = 0; i < S.nNumLogs; ++i)
@@ -2245,15 +2248,15 @@ void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFra
 					if(fTimeTotal > 0.01f)
 					{
 						const char* pGroupName = S.GroupInfo[j].pName;
-						printf("\"%s\",\"%s\",%.3f,%.3f\n", pGroupName, pThreadName, fTime, fTimeTotal);
+						MicroProfilePrintf(CB, Handle, "\"%s\",\"%s\",%.3f,%.3f\n", pGroupName, pThreadName, fTime, fTimeTotal);
 					}
 				}
 			}
 		}
 	}
 
-	printf("\n\n");
-	printf("frametimecpu\n");
+	MicroProfilePrintf(CB, Handle, "\n\n");
+	MicroProfilePrintf(CB, Handle, "frametimecpu\n");
 
 	const uint32_t nCount = MICROPROFILE_MAX_FRAME_HISTORY - MICROPROFILE_GPU_FRAME_DELAY - 3;
 	const uint32_t nStart = S.nFrameCurrent;
@@ -2262,32 +2265,31 @@ void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFra
 		uint32_t nFrame = (nStart + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
 		uint32_t nFrameNext = (nStart + MICROPROFILE_MAX_FRAME_HISTORY - i + 1) % MICROPROFILE_MAX_FRAME_HISTORY;
 		uint64_t nTicks = S.Frames[nFrameNext].nFrameStartCpu - S.Frames[nFrame].nFrameStartCpu;
-		printf("%f,", nTicks * fToMsCPU);
+		MicroProfilePrintf(CB, Handle, "%f,", nTicks * fToMsCPU);
 	}
-	printf("\n");
+	MicroProfilePrintf(CB, Handle, "\n");
 
-	printf("\n\n");
-	printf("frametimegpu\n");
+	MicroProfilePrintf(CB, Handle, "\n\n");
+	MicroProfilePrintf(CB, Handle, "frametimegpu\n");
 
 	for(uint32_t i = nCount; i > 0; i--)
 	{
 		uint32_t nFrame = (nStart + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
 		uint32_t nFrameNext = (nStart + MICROPROFILE_MAX_FRAME_HISTORY - i + 1) % MICROPROFILE_MAX_FRAME_HISTORY;
 		uint64_t nTicks = S.Frames[nFrameNext].nFrameStartGpu - S.Frames[nFrame].nFrameStartGpu;
-		printf("%f,", nTicks * fToMsGPU);
+		MicroProfilePrintf(CB, Handle, "%f,", nTicks * fToMsGPU);
 	}
-	printf("\n\n");
-	printf("Meta\n");//only single frame snapshot
-	printf("name,average,max,total\n");
+	MicroProfilePrintf(CB, Handle, "\n\n");
+	MicroProfilePrintf(CB, Handle, "Meta\n");//only single frame snapshot
+	MicroProfilePrintf(CB, Handle, "name,average,max,total\n");
 	for(int j = 0; j < MICROPROFILE_META_MAX; ++j)
 	{
 		if(S.MetaCounters[j].pName)
 		{
-			printf("\"%s\",%f,%lld,%lld\n",S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, S.MetaCounters[j].nSumAggregateMax,S.MetaCounters[j].nSumAggregate);
+			MicroProfilePrintf(CB, Handle, "\"%s\",%f,%lld,%lld\n",S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, S.MetaCounters[j].nSumAggregateMax,S.MetaCounters[j].nSumAggregate);
 		}
 	}
 }
-#undef printf
 
 void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost)
 {
@@ -2364,36 +2366,30 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		uint32_t nIdx = i * 2;
 		MP_ASSERT(i == S.TimerInfo[i].nTimerIndex);
 		MicroProfilePrintf(CB, Handle, "var Meta%d = [", i);
-		bool bOnce = true;
 		for(int j = 0; j < MICROPROFILE_META_MAX; ++j)
 		{
 			if(S.MetaCounters[j].pName)
 			{
 				uint32_t lala = S.MetaCounters[j].nCounters[i];
-				MicroProfilePrintf(CB, Handle, bOnce ? "%d" : ",%d", lala);
-				bOnce = false;
+				MicroProfilePrintf(CB, Handle, "%d,", lala);
 			}
 		}
 		MicroProfilePrintf(CB, Handle, "];\n");
 		MicroProfilePrintf(CB, Handle, "var MetaAvg%d = [", i);
-		bOnce = true;
 		for(int j = 0; j < MICROPROFILE_META_MAX; ++j)
 		{
 			if(S.MetaCounters[j].pName)
 			{
-				MicroProfilePrintf(CB, Handle, bOnce ? "%f" : ",%f", fRcpAggregateFrames * S.MetaCounters[j].nAggregate[i]);
-				bOnce = false;
+				MicroProfilePrintf(CB, Handle, "%f,", fRcpAggregateFrames * S.MetaCounters[j].nAggregate[i]);
 			}
 		}
 		MicroProfilePrintf(CB, Handle, "];\n");
 		MicroProfilePrintf(CB, Handle, "var MetaMax%d = [", i);
-		bOnce = true;
 		for(int j = 0; j < MICROPROFILE_META_MAX; ++j)
 		{
 			if(S.MetaCounters[j].pName)
 			{
-				MicroProfilePrintf(CB, Handle, bOnce ? "%d" : ",%d", S.MetaCounters[j].nAggregateMax[i]);
-				bOnce = false;
+				MicroProfilePrintf(CB, Handle, "%llu,", S.MetaCounters[j].nAggregateMax[i]);
 			}
 		}
 		MicroProfilePrintf(CB, Handle, "];\n");
@@ -2490,11 +2486,11 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			{
 				ThreadId = (ThreadIdType)-1;
 			}
-			MicroProfilePrintf(CB, Handle, "%d,", ThreadId);
+			MicroProfilePrintf(CB, Handle, "%d,", int(ThreadId));
 		}
 		else
 		{
-			MicroProfilePrintf(CB, Handle, "-1,", i);
+			MicroProfilePrintf(CB, Handle, "-1,");
 		}
 	}
 	MicroProfilePrintf(CB, Handle, "];\n\n");
@@ -2549,49 +2545,32 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 
 			float fToMs = MicroProfileTickToMsMultiplier(pLog->nGpu ? MicroProfileTicksPerSecondGpu() : MicroProfileTicksPerSecondCpu());
 			MicroProfilePrintf(CB, Handle, "var ts_%d_%d = [", i, j);
-			if(nLogStart != nLogEnd)
+			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
-				uint32_t k = nLogStart;
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				float fTime = nLogType == MP_LOG_META ? 0.f : MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) * fToMs;
-				MicroProfilePrintf(CB, Handle, "%f", fTime);
-				for(k = (k+1) % MICROPROFILE_BUFFER_SIZE; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
-				{
-					uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-					float fTime = nLogType == MP_LOG_META ? 0.f : MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) * fToMs;
-					MicroProfilePrintf(CB, Handle, ",%f", fTime);
-				}
+				MicroProfilePrintf(CB, Handle, "%f,", fTime);
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 			MicroProfilePrintf(CB, Handle, "var tt_%d_%d = [", i, j);
-			if(nLogStart != nLogEnd)
+			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
-				uint32_t k = nLogStart;
-				MicroProfilePrintf(CB, Handle, "%d", MicroProfileLogType(pLog->Log[k]));
-				for(k = (k+1) % MICROPROFILE_BUFFER_SIZE; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
+				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
+				if(nLogType == MP_LOG_META)
 				{
-					uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-					if(nLogType == MP_LOG_META)
-					{
-						//for meta, store the count + 2, which is the tick part
-						nLogType = 2 + MicroProfileLogGetTick(pLog->Log[k]);
-					}
-					MicroProfilePrintf(CB, Handle, ",%d", nLogType);
+					//for meta, store the count + 2, which is the tick part
+					nLogType = 2 + MicroProfileLogGetTick(pLog->Log[k]);
 				}
+				MicroProfilePrintf(CB, Handle, "%d,", nLogType);
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 
 			MicroProfilePrintf(CB, Handle, "var ti_%d_%d = [", i, j);
-			if(nLogStart != nLogEnd)
+			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
-				uint32_t k = nLogStart;
-				MicroProfilePrintf(CB, Handle, "%d", (uint32_t)MicroProfileLogTimerIndex(pLog->Log[k]));
-				for(k = (k+1) % MICROPROFILE_BUFFER_SIZE; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
-				{
-					uint32_t nTimerIndex = (uint32_t)MicroProfileLogTimerIndex(pLog->Log[k]);
-					MicroProfilePrintf(CB, Handle, ",%d", nTimerIndex);
-					nTimerCounter[nTimerIndex]++;
-				}
+				uint32_t nTimerIndex = (uint32_t)MicroProfileLogTimerIndex(pLog->Log[k]);
+				MicroProfilePrintf(CB, Handle, "%d,", nTimerIndex);
+				nTimerCounter[nTimerIndex]++;
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 
@@ -2637,7 +2616,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	{
 		MicroProfileContextSwitch CS = S.ContextSwitch[j];
 		int nCpu = CS.nCpu;
-		MicroProfilePrintf(CB, Handle, "%d,%d,%d,", CS.nThreadIn, CS.nThreadOut, nCpu);
+		MicroProfilePrintf(CB, Handle, "%d,%d,%d,", int(CS.nThreadIn), int(CS.nThreadOut), nCpu);
 	}
 	MicroProfilePrintf(CB, Handle, "];\n");
 	MicroProfilePrintf(CB, Handle, "var CSwitchTime = [");

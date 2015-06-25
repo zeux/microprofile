@@ -318,7 +318,7 @@ void MicroProfileStringArrayAddLiteral(MicroProfileStringArray* pArray, const ch
 	pArray->ppStrings[pArray->nNumStrings++] = pLiteral;
 }
 
-void MicroProfileStringArrayFormat(MicroProfileStringArray* pArray, const char* fmt, ...)
+MICROPROFILE_FORMAT(2, 3) void MicroProfileStringArrayFormat(MicroProfileStringArray* pArray, const char* fmt, ...)
 {
 	MP_ASSERT(pArray->nNumStrings < MICROPROFILE_TOOLTIP_MAX_STRINGS);
 	pArray->ppStrings[pArray->nNumStrings++] = pArray->pBufferPos;
@@ -489,9 +489,9 @@ void MicroProfileToolTipMeta(MicroProfileStringArray* pToolTip)
 					MicroProfileStringArrayAddLiteral(pToolTip, "");					
 				}
 				MicroProfileStringArrayFormat(pToolTip, "%s excl", S.MetaCounters[i].pName);
-				MicroProfileStringArrayFormat(pToolTip, "%5d", nMetaSum[i]);
+				MicroProfileStringArrayFormat(pToolTip, "%5llu", nMetaSum[i]);
 				MicroProfileStringArrayFormat(pToolTip, "%s incl", S.MetaCounters[i].pName);
-				MicroProfileStringArrayFormat(pToolTip, "%5d", nMetaSum[i] + nMetaSumInclusive[i]);
+				MicroProfileStringArrayFormat(pToolTip, "%5llu", nMetaSum[i] + nMetaSumInclusive[i]);
 			}
 		}
 	}
