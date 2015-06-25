@@ -36,7 +36,8 @@ ul li ul{ display:block;float:none;width:100%;}
 ul li ul li{ display:block;float:none;width:100%;}
 li li a{ display:block;float:none;width:100%;text-align:left;}
 #nav li:hover div {margin-left:0;}
-.help {position:absolute;z-index:5;text-align:left;padding:2px;margin-left:-999em;background-color: #313131;}
+.help {position:absolute;z-index:5;text-align:left;padding:2px;margin-left:-999em;background-color: #313131;width:300px;}
+.helpstart {position:absolute;z-index:5;text-align:left;padding:2px;background-color: #313131;width:300px;display:none}
 .root {z-index:1;position:absolute;top:0px;left:0px;}
 </style>
 </head>
@@ -45,16 +46,28 @@ li li a{ display:block;float:none;width:100%;text-align:left;}
 <div id="root" class="root">
 <ul id="nav">
 <li><a href="javascript:void(0)" onclick="ToggleDebugMode();">?</a>
-<div class="help" style="left:20px;top:20px;width:220px;">
-Use Cursor to Inspect<br>
-Shift-Drag to Pan view<br>
-Ctrl-Drag to Zoom view<br>
-Click to Zoom to selected range<br>
+<div class="helpstart" id="helpwindow" style="left:20px;top:20px">
+History View:<br>
+Click + Drag: Pan View<br>
+Right Click + Drag : Zoom on region<br>
+Click Frame : Center on frame<br>
+<hr>
+Main View:<br>
+Ctrl + Mouse up/down: Zoom<br>
+Mousewheel : Zoom<br>
+Right Click + Drag: Zoom to region<br>
+Ctrl + Drag: Pan<br>
+Click + Drag: Pan<br>
+<hr>
+<table style="width:100%">
+<tr>
+<td width="50%" align="left"><a href='javascript:void(0)' onclick="ShowHelp(0, 0);">Close</a></td>
+<td width="50%" align="right"><a href='javascript:void(0)' onclick="ShowHelp(0, 1);">Close, Never Show</a></td>
+</tr>
+</table>
 </div>
-
 <div class="help" id="divFrameInfo" style="left:20px;top:300px;width:auto;">
 </div>
-
 </li>
 <li><a id='ModeSubMenuText'>Mode</a>
     <ul id='ModeSubMenu'>
@@ -97,6 +110,7 @@ Click to Zoom to selected range<br>
 		<li><a href="javascript:void(0)" onclick="ToggleDisableLod();">LodDisable</a></li>
 		<li id='GroupColors'><a href="javascript:void(0)" onclick="ToggleGroupColors();">Group Colors</a></li>
         <li id='TimersMeta'><a href="javascript:void(0)" onclick="ToggleTimersMeta();">Meta</a></li>
+        <li id='ShowHelp'><a href="javascript:void(0)" onclick="ShowHelp(1,1);">Help</a></li>
 <!--      	<li><a href="javascript:void(0)" onclick="ToggleDebug();">DEBUG</a></li> -->
     </ul>
 </li>
@@ -224,7 +238,7 @@ var nHoverCounterDelta = 8;
 var nHoverTokenNext = -1;
 var nHoverTokenLogIndexNext = -1;
 var nHoverTokenIndexNext = -1;
-
+var nHideHelp = 0;
 
 
 var fFrameScale = 33.33;
@@ -772,6 +786,23 @@ function ToggleTimersMeta()
 	RequestRedraw();
 }
 
+function ShowHelp(Show, Forever)
+{
+	var HelpWindow = document.getElementById('helpwindow');
+	if(Show)
+	{
+		HelpWindow.style['display'] = 'block';
+	}
+	else
+	{
+		HelpWindow.style['display'] = 'none';
+	}
+	if(Forever)
+	{
+		nHideHelp = Show ? 0 : 1;
+		WriteCookie();
+	}
+}
 function SetMode(NewMode, Groups)
 {
 	var buttonTimers = document.getElementById('buttonTimers');
@@ -936,7 +967,74 @@ function GatherHoverMetaCounters(TimerIndex, StartIndex, nLog, nFrameLast)
 			}
 		}
 	}
+}
+function CalculateAllTimers(fBegin, fEnd)
+{
+	var Sum = [];
+	var Count = [];
+	var Sorted = [];
+	for(var i = 0; i < TimerInfo.length; ++i)
+	{
+		Sum.push(0.0);
+		Count.push(0);
+		Sorted.push(i);
+	}
+	var nFrameFirst = 0;
+	var nFrameLast = Frames.length;
 
+	var nNumLogs = Frames[0].ts.length;
+	var StackPosArray = Array(nNumLogs);
+	var StackArray = Array(nNumLogs);
+	for(var i = 0; i < nNumLogs; ++i)
+	{
+		StackPosArray[i] = 0;
+		StackArray[i] = Array(20);
+	}
+
+	for(var i = nFrameFirst; i < nFrameLast; i++)
+	{
+		var fr = Frames[i];
+		for(nLog = 0; nLog < nNumLogs; nLog++)
+		{
+			var StackPos = StackPosArray[nLog];
+			var Stack = StackArray[nLog];
+			var ts = fr.ts[nLog];
+			var ti = fr.ti[nLog];
+			var tt = fr.tt[nLog];
+			var count = ts.length;
+			for(j = 0; j < count; j++)
+			{
+				var type = tt[j];
+				var index = ti[j];
+				var time = ts[j];
+				if(type == 1 && time < fEnd) //enter
+				{
+					Stack[StackPos] = time < fBegin ? fBegin : time;
+					if(StackArray[nLog][StackPos] != time)
+					{
+						console.log('fail fail fail');
+					}
+					StackPos++;
+				}
+				else if(type == 0) // leave
+				{
+					if(StackPos>0)
+					{
+						var timeend = time;
+						StackPos--;
+						timestart = Stack[StackPos];
+						var TimeDelta = timeend - timestart;
+						Sum[index] += TimeDelta;
+						Count[index]++;
+					}
+				}
+			}
+			StackPosArray[nLog] = StackPos;
+		}
+	}
+	Sorted.sort(function(a,b){ return Sum[b] - Sum[a]; } );
+	var Result = {"Sorted" : Sorted, "Sum" : Sum, "Count" : Count};
+	return Result;
 }
 function CalculateTimers(Result, TimerIndex, nFrameFirst, nFrameLast)
 {
@@ -1032,7 +1130,124 @@ function CalculateTimers(Result, TimerIndex, nFrameFirst, nFrameLast)
 	Result.FrameCallAverage = (CallCount / FrameCount).toFixed(3);
 	Result.FrameMax = FrameMax.toFixed(3);
 	return Result;
+}
 
+function PreprocessCalculateAllTimers()
+{
+	ProfileEnter("CalculateAllTimers");
+	var nFrameFirst = 0;
+	var nFrameLast = Frames.length;
+	var FrameCount = nFrameLast - nFrameFirst;
+	if(0 == FrameCount)
+		return;
+	for(var j = 0; j < TimerInfo.length; j++)
+	{
+		TimerInfo[j].CallCount = 0;
+		TimerInfo[j].Sum = 0;
+		TimerInfo[j].Max = 0;
+		TimerInfo[j].FrameMax = 0;
+	}
+
+
+	var nNumLogs = Frames[0].ts.length;
+	var StackPosArray = Array(nNumLogs);
+	var StackArray = Array(nNumLogs);
+	for(var i = 0; i < nNumLogs; ++i)
+	{
+		StackPosArray[i] = 0;
+		StackArray[i] = Array(20);
+	}
+
+	for(var i = nFrameFirst; i < nFrameLast; i++)
+	{
+		for(var j = 0; j < TimerInfo.length; j++)
+		{
+			TimerInfo[j].FrameSum = 0;
+		}
+
+		var fr = Frames[i];
+		for(nLog = 0; nLog < nNumLogs; nLog++)
+		{
+			var StackPos = StackPosArray[nLog];
+			var Stack = StackArray[nLog];
+			var ts = fr.ts[nLog];
+			var ti = fr.ti[nLog];
+			var tt = fr.tt[nLog];
+			var count = ts.length;
+			for(j = 0; j < count; j++)
+			{
+				var type = tt[j];
+				var index = ti[j];
+				var time = ts[j];
+				if(type == 1) //enter
+				{
+					//push
+					Stack[StackPos] = time;
+					if(StackArray[nLog][StackPos] != time)
+					{
+						console.log('fail fail fail');
+					}
+					StackPos++;
+				}
+				else if(type == 0) // leave
+				{
+					var timestart;
+					var timeend = time;
+					if(StackPos>0)
+					{
+						StackPos--;
+						timestart = Stack[StackPos];
+					}
+					else
+					{
+						timestart = Frames[nFrameFirst].framestart;
+					}
+					// if(index == TimerIndex)
+					{
+						var TimeDelta = timeend - timestart;
+						TimerInfo[index].CallCount++;
+						TimerInfo[index].FrameSum += TimeDelta;
+						TimerInfo[index].Sum += TimeDelta;
+						if(TimeDelta > TimerInfo[index].Max)
+							TimerInfo[index].Max = TimeDelta;
+					}
+				}
+				else
+				{
+					//meta
+				}
+			}
+			for(var j = 0; j < TimerInfo.length; j++)
+			{
+				if(TimerInfo[j].FrameSum > TimerInfo[j].FrameMax)
+				{
+					TimerInfo[j].FrameMax = TimerInfo[j].FrameSum;
+				}
+			}
+			StackPosArray[nLog] = StackPos;
+		}
+
+
+	}
+
+	for(var j = 0; j < TimerInfo.length; j++)
+	{
+		var CallCount = TimerInfo[j].CallCount;
+		var Sum = TimerInfo[j].Sum.toFixed(3);
+		var Max = TimerInfo[j].Max.toFixed(3);
+		var Average = (TimerInfo[j].Sum / TimerInfo[j].CallCount).toFixed(3);
+		var FrameAverage = (TimerInfo[j].Sum / FrameCount).toFixed(3);
+		var FrameCallAverage = (TimerInfo[j].CallCount / FrameCount).toFixed(3);
+		var FrameMax = TimerInfo[j].FrameMax.toFixed(3);
+		TimerInfo[j].CallCount = CallCount;
+		TimerInfo[j].Sum = Sum;
+		TimerInfo[j].Max  = Max ;
+		TimerInfo[j].Average = Average;
+		TimerInfo[j].FrameAverage = FrameAverage;
+		TimerInfo[j].FrameCallAverage = FrameCallAverage;
+		TimerInfo[j].FrameMax = FrameMax;
+	}
+	ProfileLeave();
 }
 
 var FlashFrames = 10;
@@ -1058,7 +1273,7 @@ function ShowFlashMessage(Message, FrameCount)
 	FlashMessage = Message;
 	FlashFrameCounter = FrameCount;
 }
-function FlashOldMessage()
+function OnPageReady()
 {
 	var DumpDate = DumpUtcCaptureTime;
 	var CurrentDate = Date.now() / 1000;
@@ -1068,7 +1283,10 @@ function FlashOldMessage()
 	{
 		ShowFlashMessage("Captured " + TimeString(Diff) + " ago", 100);
 	}
-
+	if(!nHideHelp)
+	{
+		ShowHelp(1,0);
+	}
 }
 
 function DrawFlashMessage(context)
@@ -1200,6 +1418,25 @@ function DrawDetailedFrameHistory()
 	}
 	ProfileLeave();
 }
+function TimeToString(Time)
+{
+	if(Time > 1000)
+	{
+		return (Time/1000.0).toFixed(0) +"s";
+	}
+	else if(Time > 0.9)
+	{
+		return Time.toFixed(0) + "ms";
+	}
+	else if(Time > 0.0009)
+	{
+		return (Time*1000).toFixed(0) + "us";
+	}
+	else
+	{
+		return (Time*1000000).toFixed(0) + "ns";
+	}
+}
 
 function DrawDetailedBackground(context)
 {
@@ -1215,6 +1452,8 @@ function DrawDetailedBackground(context)
 	var fStart = Math.floor(fDetailedOffset * fRcpStep) * fStep;
 	var fHeight = CanvasDetailedView.height;
 	var fScaleX = nWidth / fDetailedRange; 
+	var HeaderString = TimeToString(fStep);
+	context.textAlign = 'center';
 	for(f = fStart; f < fMsEnd; )
 	{
 		var fNext = f + fStep;
@@ -1223,8 +1462,12 @@ function DrawDetailedBackground(context)
 		context.fillStyle = nBackColors[nColorIndex];
 		context.fillRect(X, 0, W+2, fHeight);
 		nColorIndex = 1 - nColorIndex;
+		context.fillStyle = '#777777'
+		context.fillText(HeaderString, X + W * 0.5, 10);
+		context.fillText(HeaderString, X + W * 0.5, nHeight - 10);
 		f = fNext;
 	}
+	context.textAlign = 'left';
 	var fScaleX = nWidth / fDetailedRange; 
 	context.globalAlpha = 0.5;
 	context.strokeStyle = '#bbbbbb';
@@ -2936,6 +3179,10 @@ function ReadCookie()
 		{
 			GroupColors = 0;
 		}
+		if(Obj.nHideHelp)
+		{
+			nHideHelp = 1;
+		}
 		TimersGroups = Obj.TimersGroups?Obj.TimersGroups:0;
 		TimersMeta = Obj.TimersMeta?0:1;
 	}
@@ -2958,6 +3205,10 @@ function WriteCookie()
 	Obj.TimersGroups = TimersGroups?TimersGroups:0;
 	Obj.TimersMeta = TimersMeta?0:1;
 	Obj.GroupColors = GroupColors;
+	if(nHideHelp)
+	{
+		Obj.nHideHelp = 1;
+	}
 	var date = new Date();
 	date.setFullYear(2099);
 	var cookie = 'fisk=' + JSON.stringify(Obj) + ';expires=' + date;
@@ -3183,7 +3434,6 @@ function PreprocessLods()
 {
 	ProfileEnter("PreprocessLods");
 	var nNumLogs = Frames[0].ts.length;
-	// debugger;
 	var SplitArrays = PreprocessBuildSplitArray();
 	var DurationArrays = PreprocessBuildDurationArray();
 	var Source = LodData[0];
@@ -3192,16 +3442,11 @@ function PreprocessLods()
 
 	for(var i = 0; i < NumLodSplits-1; ++i)
 	{
-		// debugger;
-		// console.log("doing lod split " + i);
-		// var LodObject = new Object();
 		var DestLogStart = Array(SourceLogStart.length);
 		for(var j = 0; j < DestLogStart.length; ++j)
 		{
 			DestLogStart[j] = Array(nNumLogs);
-			// console.log("destlogstart " + j + " " + DestLogStart[j].length);
 		}
-		//LodObject.LogStart = DestLogStart;
 		var MinDelta = Array(nNumLogs);
 		var TimeArray = Array(nNumLogs);
 		var IndexArray = Array(nNumLogs);
@@ -3431,10 +3676,7 @@ function Preprocess()
 	ProfileMode = 1;
 	ProfileModeClear();
 	ProfileEnter("Preprocess");
-	for(var i = 0; i < TimerInfo.length; i++)
-	{
-		var v = CalculateTimers(TimerInfo[i], i);
-	}
+	PreprocessCalculateAllTimers();
 	PreprocessFindFirstFrames();
 	PreprocessGlobalArray();
 	PreprocessLods();
@@ -3455,7 +3697,7 @@ InitFrameInfo();
 UpdateThreadMenu();
 ResizeCanvas();
 Preprocess();
-FlashOldMessage();
+OnPageReady();
 Draw(1);
 AutoRedraw();
 
