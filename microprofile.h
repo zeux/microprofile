@@ -3031,6 +3031,8 @@ bool MicroProfileWebServerUpdate()
 
 #if MICROPROFILE_DEBUG
 				printf("\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
+#else
+				(void)nCompressedKb;
 #endif
 			}
 		}
