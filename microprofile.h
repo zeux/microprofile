@@ -2558,8 +2558,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				if(nLogType == MP_LOG_META)
 				{
-					//for meta, store the count + 2, which is the tick part
-					nLogType = 2 + MicroProfileLogGetTick(pLog->Log[k]);
+					//for meta, store the count + 4, which is the tick part
+					nLogType = 4 + MicroProfileLogGetTick(pLog->Log[k]);
 				}
 				MicroProfilePrintf(CB, Handle, "%d,", nLogType);
 			}

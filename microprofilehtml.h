@@ -964,9 +964,9 @@ const char g_MicroProfileHtml_end_0[] =
 "			{\n"
 "				StackPos++;\n"
 "			}\n"
-"			else\n"
+"			else if (type >= 4)\n"
 "			{\n"
-"				var nMetaCount = type - 2;\n"
+"				var nMetaCount = type - 4;\n"
 "				var nMetaIndex = MetaNames[index];\n"
 "				if(nMetaIndex in HoverInfo)\n"
 "				{\n"
@@ -1621,11 +1621,11 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3));\n"
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
-"			StringArray.push(\"Total\");\n"
-"";
+"			StringArray.";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
+"push(\"Total\");\n"
 "			StringArray.push(\"\" + TimerInfo[nHoverToken].Sum);\n"
 "			StringArray.push(\"Max\");\n"
 "			StringArray.push(\"\" + TimerInfo[nHoverToken].Max);\n"
@@ -2361,7 +2361,7 @@ const char g_MicroProfileHtml_end_1[] =
 "									nHoverTokenNext = index;\n"
 "									nHoverTokenIndexNext = j;\n"
 "									nHoverTokenLogIndexNext = nLog;\n"
-"									bHasSetHover = 1;\n"
+"									HasSetHover = 1;\n"
 "								}\n"
 "							}\n"
 "							if(StackPos == 0 && time > fTimeEnd)\n"
@@ -2373,7 +2373,7 @@ const char g_MicroProfileHtml_end_1[] =
 "\n"
 "				if(HasSetHover)\n"
 "				{\n"
-"					for(var i = 0; i < Frames.length-1; ++i)\n"
+"					for(var i = 0; i < Frames.length; ++i)\n"
 "					{\n"
 "						var IndexStart = Lod.LogStart[i][nLog];\n"
 "						if(nHoverTokenNext >= IndexStart)\n"
@@ -2905,11 +2905,11 @@ const char g_MicroProfileHtml_end_1[] =
 "		else if(MouseDragPan())\n"
 "		{\n"
 "			var Time = HistoryFrameTime(MouseDragX);\n"
-"			fDetailedOffset = Time - fDeta";
+"			fDetailedOffset = ";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"iledRange / 2.0;\n"
+"Time - fDetailedRange / 2.0;\n"
 "		}\n"
 "	}\n"
 "}\n"
