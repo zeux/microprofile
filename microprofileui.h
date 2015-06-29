@@ -1057,6 +1057,20 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 							}
 						}
 
+						const char* pName = S.TimerInfo[nTimerIndex].pName;
+						uint32_t nNameLen = S.TimerInfo[nTimerIndex].nNameLen;
+
+						if (pName[0] == '$' && pEntryEnter < pEntry && MicroProfileLogType(pEntryEnter[1]) == MP_LOG_LABEL)
+						{
+							const char* pLabel = MicroProfileGetLabel(MicroProfileLogGetTick(pEntryEnter[1]));
+
+							if (pLabel)
+							{
+								pName = pLabel;
+								nNameLen = strlen(pLabel);
+							}
+						}
+
 						nMaxStackDepth = MicroProfileMax(nMaxStackDepth, nStackPos);
 						float fMsStart = fToMs * MicroProfileLogTickDifference(nBaseTicks, nTickStart);
 						float fMsEnd = fToMs * MicroProfileLogTickDifference(nBaseTicks, nTickEnd);
@@ -1089,7 +1103,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 								int nCharacters = (nTextWidth - 2*MICROPROFILE_TEXT_WIDTH) / MICROPROFILE_TEXT_WIDTH;
 								if(nCharacters>0)
 								{
-									MicroProfileDrawText(fXStartText+1, fYStart+1, -1, S.TimerInfo[nTimerIndex].pName, MicroProfileMin<uint32_t>(S.TimerInfo[nTimerIndex].nNameLen, nCharacters));
+									MicroProfileDrawText(fXStartText+1, fYStart+1, -1, pName, MicroProfileMin<uint32_t>(nNameLen, nCharacters));
 								}
 							}
 #endif
