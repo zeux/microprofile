@@ -497,6 +497,67 @@ void MicroProfileToolTipMeta(MicroProfileStringArray* pToolTip)
 	}
 }
 
+void MicroProfileToolTipLabel(MicroProfileStringArray* pToolTip)
+{
+	if(UI.nRangeBeginIndex != UI.nRangeEndIndex && UI.pRangeLog)
+	{
+		bool bSpaced = false;
+		int nStackDepth = 0;
+		uint32_t nRange[2][2];
+		MicroProfileThreadLog* pLog = UI.pRangeLog;
+
+		MicroProfileGetRange(UI.nRangeEndIndex, UI.nRangeBeginIndex, nRange);
+		for(uint32_t i = 0; i < 2; ++i)
+		{
+			uint32_t nStart = nRange[i][0];
+			uint32_t nEnd = nRange[i][1];
+			for(uint32_t j = nStart; j < nEnd; ++j)
+			{
+				MicroProfileLogEntry LE = pLog->Log[j];
+				int nType = MicroProfileLogType(LE);
+				switch(nType)
+				{
+				case MP_LOG_LABEL:
+					{
+						if(nStackDepth == 1)
+						{
+							uint64_t nLabel = MicroProfileLogGetTick(LE);
+							const char* pLabelName = MicroProfileGetLabel(nLabel);
+
+							if (pLabelName)
+							{
+								if (!bSpaced)
+								{
+									bSpaced = true;
+									MicroProfileStringArrayAddLiteral(pToolTip, "");
+									MicroProfileStringArrayAddLiteral(pToolTip, "");
+								}
+
+								if (pToolTip->nNumStrings + 2 <= MICROPROFILE_TOOLTIP_MAX_STRINGS)
+								{
+									MicroProfileStringArrayAddLiteral(pToolTip, "Label:");
+									MicroProfileStringArrayAddLiteral(pToolTip, pLabelName);
+								}
+							}
+						}
+					}
+					break;
+				case MP_LOG_LEAVE:
+					if(nStackDepth)
+					{
+						nStackDepth--;
+					}
+					break;
+				case MP_LOG_ENTER:
+					nStackDepth++;
+					break;
+				}
+
+			}
+		}
+	}
+}
+
 void MicroProfileDrawFloatTooltip(uint32_t nX, uint32_t nY, uint32_t nToken, uint64_t nTime)
 {
 	MicroProfile& S = *MicroProfileGet();
@@ -592,6 +653,7 @@ void MicroProfileDrawFloatTooltip(uint32_t nX, uint32_t nY, uint32_t nToken, uin
 
 
 	MicroProfileToolTipMeta(&ToolTip);
+	MicroProfileToolTipLabel(&ToolTip);
 
 
 	MicroProfileDrawFloatWindow(nX, nY+20, &ToolTip.ppStrings[0], ToolTip.nNumStrings, S.TimerInfo[nTimerId].nColor);
