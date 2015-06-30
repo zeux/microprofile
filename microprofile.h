@@ -553,6 +553,8 @@ enum MicroProfileDrawMask
 	MP_DRAW_BARS		= 0x1,
 	MP_DRAW_DETAILED	= 0x2,
 	MP_DRAW_HIDDEN		= 0x3,
+	MP_DRAW_FRAME		= 0x4,
+	MP_DRAW__COUNT
 };
 
 enum MicroProfileDrawBarsMask

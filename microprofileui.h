@@ -293,7 +293,7 @@ void MicroProfileInitUI()
 void MicroProfileSetDisplayMode(int nValue)
 {
 	MicroProfile& S = *MicroProfileGet();
-	nValue = nValue >= 0 && nValue < 4 ? nValue : S.nDisplay;
+	nValue = nValue >= 0 && nValue < MP_DRAW__COUNT ? nValue : S.nDisplay;
 	S.nDisplay = nValue;
 	UI.nOffsetY = 0;
 }
@@ -301,7 +301,7 @@ void MicroProfileSetDisplayMode(int nValue)
 void MicroProfileToggleDisplayMode()
 {
 	MicroProfile& S = *MicroProfileGet();
-	S.nDisplay = (S.nDisplay + 1) % 4;
+	S.nDisplay = (S.nDisplay + 1) % MP_DRAW__COUNT;
 	UI.nOffsetY = 0;
 }
 
@@ -1324,7 +1324,7 @@ void MicroProfileDrawDetailedFrameHistory(uint32_t nWidth, uint32_t nHeight, uin
 	}
 	MicroProfileDrawBox(fSelectionStart, nBaseY, fSelectionEnd, nBaseY+MICROPROFILE_FRAME_HISTORY_HEIGHT, MICROPROFILE_FRAME_HISTORY_COLOR_HIGHTLIGHT, MicroProfileBoxTypeFlat);
 }
-void MicroProfileDrawDetailedView(uint32_t nWidth, uint32_t nHeight)
+void MicroProfileDrawDetailedView(uint32_t nWidth, uint32_t nHeight, bool bDrawBars)
 {
 	MicroProfile& S = *MicroProfileGet();
 
@@ -1357,10 +1357,13 @@ void MicroProfileDrawDetailedView(uint32_t nWidth, uint32_t nHeight)
 		UI.nHoverFrame = -1;
 	}
 
-	MicroProfileDrawDetailedBars(nWidth, nHeight, nBaseY + MICROPROFILE_FRAME_HISTORY_HEIGHT, nSelectedFrame);
+	if (bDrawBars)
+	{
+		MicroProfileDrawDetailedBars(nWidth, nHeight, nBaseY + MICROPROFILE_FRAME_HISTORY_HEIGHT, nSelectedFrame);
+	}
+
 	MicroProfileDrawDetailedFrameHistory(nWidth, nHeight, nBaseY, nSelectedFrame);
 }
-
 void MicroProfileDrawTextRight(uint32_t nX, uint32_t nY, uint32_t nColor, const char* pStr, uint32_t nStrLen)
 {
 	MicroProfileDrawText(nX - nStrLen * (MICROPROFILE_TEXT_WIDTH+1), nY, nColor, pStr, nStrLen);
@@ -2014,15 +2017,18 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 					bSelected = S.nDisplay == MP_DRAW_BARS; 
 					return "Timers";
 				case 2:
+					bSelected = S.nDisplay == MP_DRAW_FRAME;
+					return "Frame";
+				case 3:
 					bSelected = S.nDisplay == MP_DRAW_HIDDEN; 
 					return "Hidden";
-				case 3:
+				case 4:
 					bSelected = false; 
 					return "Off";
-				case 4:
+				case 5:
 					bSelected = false;
 					return "------";
-				case 5:
+				case 6:
 					bSelected = S.nForceEnable != 0;
 					return "Force Enable";
 
@@ -2185,14 +2191,17 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 					S.nDisplay = MP_DRAW_BARS;
 					break;
 				case 2:
-					S.nDisplay = MP_DRAW_HIDDEN;
+					S.nDisplay = MP_DRAW_FRAME;
 					break;
 				case 3:
-					S.nDisplay = 0;
+					S.nDisplay = MP_DRAW_HIDDEN;
 					break;
 				case 4:
+					S.nDisplay = 0;
 					break;
 				case 5:
+					break;
+				case 6:
 					S.nForceEnable = !S.nForceEnable;
 					break;
 			}
@@ -2479,9 +2488,9 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 		MicroProfileMoveGraph();
 
 
-		if(S.nDisplay == MP_DRAW_DETAILED)
+		if(S.nDisplay == MP_DRAW_DETAILED || S.nDisplay == MP_DRAW_FRAME)
 		{
-			MicroProfileDrawDetailedView(nWidth, nHeight);
+			MicroProfileDrawDetailedView(nWidth, nHeight, /* bDrawBars= */ S.nDisplay == MP_DRAW_DETAILED);
 		}
 		else if(S.nDisplay == MP_DRAW_BARS && S.nBars)
 		{
