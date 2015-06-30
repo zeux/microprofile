@@ -376,7 +376,6 @@ MICROPROFILE_API float MicroProfileGetTime(const char* pGroup, const char* pName
 MICROPROFILE_API void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu);
 MICROPROFILE_API void MicroProfileOnThreadCreate(const char* pThreadName); //should be called from newly created threads
 MICROPROFILE_API void MicroProfileOnThreadExit(); //call on exit to reuse log
-MICROPROFILE_API void MicroProfileInitThreadLog();
 MICROPROFILE_API void MicroProfileSetForceEnable(bool bForceEnable);
 MICROPROFILE_API bool MicroProfileGetForceEnable();
 MICROPROFILE_API void MicroProfileSetEnableAllGroups(bool bEnable); 
@@ -1191,6 +1190,10 @@ MicroProfileThreadLog* MicroProfileCreateThreadLog(const char* pName)
 		MP_ASSERT(pLog->nGet.load() == 0);
 		S.nFreeListHead = S.Pool[S.nFreeListHead]->nFreeListNext;
 	}
+	else if(S.nNumLogs == MICROPROFILE_MAX_THREADS)
+	{
+		return nullptr;
+	}
 	else
 	{
 		pLog = new MicroProfileThreadLog;
@@ -1250,11 +1253,18 @@ void MicroProfileOnThreadExit()
 	}
 }
 
-void MicroProfileInitThreadLog()
+MicroProfileThreadLog* MicroProfileGetOrCreateThreadLog()
 {
-	MicroProfileOnThreadCreate(nullptr);
-}
+	MicroProfileThreadLog* pLog = MicroProfileGetThreadLog();
 
+	if (!pLog)
+	{
+		MicroProfileOnThreadCreate(nullptr);
+		pLog = MicroProfileGetThreadLog();
+	}
+
+	return pLog;
+}
 
 struct MicroProfileScopeLock
 {
@@ -1455,13 +1465,12 @@ uint64_t MicroProfileEnter(MicroProfileToken nToken_)
 {
 	if(MicroProfileGetGroupMask(nToken_) & S.nActiveGroup)
 	{
-		if(!MicroProfileGetThreadLog())
+		if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
 		{
-			MicroProfileInitThreadLog();
+			uint64_t nTick = MP_TICK();
+			MicroProfileLogPut(nToken_, nTick, MP_LOG_ENTER, pLog);
+			return nTick;
 		}
-		uint64_t nTick = MP_TICK();
-		MicroProfileLogPut(nToken_, nTick, MP_LOG_ENTER, MicroProfileGetThreadLog());
-		return nTick;
 	}
 	return MICROPROFILE_INVALID_TICK;
 }
@@ -1482,18 +1491,14 @@ uint64_t MicroProfileAllocateLabel(const char* pName)
 	return nLabel;
 }
 
-uint64_t MicroProfilePutLabel(MicroProfileToken nToken_, const char* pName)
+void MicroProfilePutLabel(MicroProfileToken nToken_, const char* pName)
 {
-	if(!MicroProfileGetThreadLog())
+	if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
 	{
-		MicroProfileInitThreadLog();
+		uint64_t nLabel = MicroProfileAllocateLabel(pName);
+
+		MicroProfileLogPut(nToken_, nLabel, MP_LOG_LABEL, pLog);
 	}
-
-	uint64_t nLabel = MicroProfileAllocateLabel(pName);
-
-	MicroProfileLogPut(nToken_, nLabel, MP_LOG_LABEL, MicroProfileGetThreadLog());
-
-	return nLabel;
 }
 
 const char* MicroProfileGetLabel(uint64_t nLabel)
@@ -1555,13 +1560,11 @@ void MicroProfileLeave(MicroProfileToken nToken_, uint64_t nTickStart)
 {
 	if(MICROPROFILE_INVALID_TICK != nTickStart)
 	{
-		if(!MicroProfileGetThreadLog())
+		if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
 		{
-			MicroProfileInitThreadLog();
+			uint64_t nTick = MP_TICK();
+			MicroProfileLogPut(nToken_, nTick, MP_LOG_LEAVE, pLog);
 		}
-		uint64_t nTick = MP_TICK();
-		MicroProfileThreadLog* pLog = MicroProfileGetThreadLog();
-		MicroProfileLogPut(nToken_, nTick, MP_LOG_LEAVE, pLog);
 	}
 }
 
