@@ -139,7 +139,6 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileGetCurrentAggregateFrames() 0
 #define MicroProfileTogglePause() do{}while(0)
 #define MicroProfileToggleAllGroups() do{} while(0)
-#define MicroProfileDumpTimers() do{}while(0)
 #define MicroProfileShutdown() do{}while(0)
 #define MicroProfileSetForceEnable(a) do{} while(0)
 #define MicroProfileGetForceEnable() false
