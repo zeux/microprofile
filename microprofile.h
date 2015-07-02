@@ -994,6 +994,7 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 #if MICROPROFILE_WEBSERVER
 
 #ifdef _WIN32
+#include <WinSock2.h>
 #define MP_INVALID_SOCKET(f) (f == INVALID_SOCKET)
 #endif
 
