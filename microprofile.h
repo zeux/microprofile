@@ -825,8 +825,9 @@ struct MicroProfile
 	uint32_t					nContextSwitchPut;	
 	MicroProfileContextSwitch 	ContextSwitch[MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE];
 
+	MicroProfileThread			WebServerThread;
 
-	MpSocket 					ListenerSocket;
+	MpSocket 					WebServerSocket;
 	uint32_t					nWebServerPort;
 
 	char						WebServerBuffer[MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE];
@@ -1008,14 +1009,12 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 
 void MicroProfileWebServerStart();
 void MicroProfileWebServerStop();
-bool MicroProfileWebServerUpdate();
 void MicroProfileDumpToFile();
 
 #else
 
 #define MicroProfileWebServerStart() do{}while(0)
 #define MicroProfileWebServerStop() do{}while(0)
-#define MicroProfileWebServerUpdate() false
 #define MicroProfileDumpToFile() do{} while(0)
 #endif 
 
@@ -1064,6 +1063,7 @@ MICROPROFILE_DEFINE(g_MicroProfileThreadLoop, "MicroProfile", "ThreadLoop", 0x33
 MICROPROFILE_DEFINE(g_MicroProfileClear, "MicroProfile", "Clear", 0x3355ee);
 MICROPROFILE_DEFINE(g_MicroProfileAccumulate, "MicroProfile", "Accumulate", 0x3355ee);
 MICROPROFILE_DEFINE(g_MicroProfileContextSwitchSearch,"MicroProfile", "ContextSwitchSearch", 0xDD7300);
+MICROPROFILE_DEFINE(g_MicroProfileWebServerUpdate,"MicroProfile", "WebServerUpdate", 0xDD7300);
 
 inline std::recursive_mutex& MicroProfileMutex()
 {
@@ -1662,11 +1662,6 @@ void MicroProfileFlip()
 	{
 		MicroProfileWebServerStart();
 		S.nWebServerDataSent = 0;
-	}
-
-	if(MicroProfileWebServerUpdate())
-	{	
-		S.nAutoClearFrames = MICROPROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
 	}
 
 	if(S.nAutoClearFrames)
@@ -2972,26 +2967,7 @@ void MicroProfileCompressedWriteSocket(void* Handle, size_t nSize, const char* p
 }
 #endif
 
-
-#ifndef MicroProfileSetNonBlocking //fcntl doesnt work on a some unix like platforms..
-void MicroProfileSetNonBlocking(MpSocket Socket, int NonBlocking)
-{
-#ifdef _WIN32
-	u_long nonBlocking = NonBlocking ? 1 : 0; 
-	ioctlsocket(Socket, FIONBIO, &nonBlocking);
-#else
-	int Options = fcntl(Socket, F_GETFL);
-	if(NonBlocking)
-	{
-		fcntl(Socket, F_SETFL, Options|O_NONBLOCK);
-	}
-	else
-	{
-		fcntl(Socket, F_SETFL, Options&(~O_NONBLOCK));
-	}
-#endif
-}
-#endif
+void* MicroProfileWebServerUpdate(void*);
 
 void MicroProfileWebServerStart()
 {
@@ -2999,14 +2975,13 @@ void MicroProfileWebServerStart()
 	WSADATA wsa;
 	if(WSAStartup(MAKEWORD(2, 2), &wsa))
 	{
-		S.ListenerSocket = -1;
+		S.WebServerSocket = -1;
 		return;
 	}
 #endif
 
-	S.ListenerSocket = socket(PF_INET, SOCK_STREAM, 6);
-	MP_ASSERT(!MP_INVALID_SOCKET(S.ListenerSocket));
-	MicroProfileSetNonBlocking(S.ListenerSocket, 1);
+	S.WebServerSocket = socket(PF_INET, SOCK_STREAM, 6);
+	MP_ASSERT(!MP_INVALID_SOCKET(S.WebServerSocket));
 
 	S.nWebServerPort = (uint32_t)-1;
 	struct sockaddr_in Addr; 
@@ -3015,37 +2990,44 @@ void MicroProfileWebServerStart()
 	for(int i = 0; i < 20; ++i)
 	{
 		Addr.sin_port = htons(MICROPROFILE_WEBSERVER_PORT+i); 
-		if(0 == ::bind(S.ListenerSocket, (sockaddr*)&Addr, sizeof(Addr)))
+		if(0 == ::bind(S.WebServerSocket, (sockaddr*)&Addr, sizeof(Addr)))
 		{
 			S.nWebServerPort = MICROPROFILE_WEBSERVER_PORT+i;
 			break;
 		}
 	}
-	listen(S.ListenerSocket, 8);
+	listen(S.WebServerSocket, 8);
+
+	MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
 }
 
 void MicroProfileWebServerStop()
 {
 #ifdef _WIN32
-	closesocket(S.ListenerSocket);
+	closesocket(S.WebServerSocket);
 	WSACleanup();
 #else
-	close(S.ListenerSocket);
+	close(S.WebServerSocket);
 #endif
+
+	MicroProfileThreadJoin(&S.WebServerThread);
 }
-bool MicroProfileWebServerUpdate()
+
+void* MicroProfileWebServerUpdate(void*)
 {
-	MICROPROFILE_SCOPEI("MicroProfile", "Webserver-update", -1);
-	MpSocket Connection = accept(S.ListenerSocket, 0, 0);
-	bool bServed = false;
-	if(!MP_INVALID_SOCKET(Connection))
+	for (;;)
 	{
-		std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
+		MpSocket Connection = accept(S.WebServerSocket, 0, 0);
+		if(MP_INVALID_SOCKET(Connection)) break;
+
 		char Req[8192];
-		MicroProfileSetNonBlocking(Connection, 0);
 		int nReceived = recv(Connection, Req, sizeof(Req)-1, 0);
 		if(nReceived > 0)
 		{
+			std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
+
+			MICROPROFILE_SCOPE(g_MicroProfileWebServerUpdate);
+
 			Req[nReceived] = '\0';
 #if MICROPROFILE_MINIZ
 #define MICROPROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Encoding: deflate\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
@@ -3128,7 +3110,8 @@ bool MicroProfileWebServerUpdate()
 		close(Connection);
 #endif
 	}
-	return bServed;
+
+	return 0;
 }
 #endif
 
