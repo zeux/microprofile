@@ -1616,7 +1616,7 @@ bool MicroProfileDrawGraph(uint32_t nScreenWidth, uint32_t nScreenHeight)
 				pGraphData[(j*2)+1] = fY - fDY * fWeigth;
 				fX += fDX;
 			}
-			MicroProfileDrawLine2D(MICROPROFILE_GRAPH_HISTORY, pGraphData, S.TimerInfo[MicroProfileGetTimerIndex(S.Graph[i].nToken)].nColor);
+			MicroProfileDrawLine2D(MICROPROFILE_GRAPH_HISTORY, pGraphData, UI.nOpacityForeground|S.TimerInfo[MicroProfileGetTimerIndex(S.Graph[i].nToken)].nColor);
 		}
 	}
 	{
