@@ -1100,7 +1100,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 							{
 								float fXStartText = MicroProfileMax(fXStart, 0.f);
 								int nTextWidth = (int)(fXEnd - fXStartText);
-								int nCharacters = (nTextWidth - 2*MICROPROFILE_TEXT_WIDTH) / MICROPROFILE_TEXT_WIDTH;
+								int nCharacters = (nTextWidth - MICROPROFILE_TEXT_WIDTH) / (MICROPROFILE_TEXT_WIDTH+1);
 								if(nCharacters>0)
 								{
 									MicroProfileDrawText(fXStartText+1, fYStart+1, -1, pName, MicroProfileMin<uint32_t>(nNameLen, nCharacters));
