@@ -2686,10 +2686,10 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 		{
 			float fCursor[8] = 
 			{
-				MicroProfileMax(0, (int)UI.nMouseX-3), UI.nMouseY,
-				MicroProfileMin(nWidth, UI.nMouseX+3), UI.nMouseY,
-				UI.nMouseX, MicroProfileMax((int)UI.nMouseY-3, 0),
-				UI.nMouseX, MicroProfileMin(nHeight, UI.nMouseY+3),
+				float(MicroProfileMax(0, (int)UI.nMouseX-3)), float(UI.nMouseY),
+				float(MicroProfileMin(nWidth, UI.nMouseX+3)), float(UI.nMouseY),
+				float(UI.nMouseX), float(MicroProfileMax((int)UI.nMouseY-3, 0)),
+				float(UI.nMouseX), float(MicroProfileMin(nHeight, UI.nMouseY+3)),
 			};
 			MicroProfileDrawLine2D(2, &fCursor[0], 0xff00ff00);
 			MicroProfileDrawLine2D(2, &fCursor[4], 0xff00ff00);
