@@ -158,9 +158,11 @@ typedef uint16_t MicroProfileGroupId;
 #include <stdint.h>
 #include <string.h>
 
+#ifndef MICROPROFILE_NOCXX11
 #include <thread>
 #include <mutex>
 #include <atomic>
+#endif
 
 #ifndef MICROPROFILE_API
 #define MICROPROFILE_API
