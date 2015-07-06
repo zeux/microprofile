@@ -157,6 +157,7 @@ typedef uint16_t MicroProfileGroupId;
 
 #include <stdint.h>
 #include <string.h>
+
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -534,16 +535,7 @@ typedef UINT_PTR MpSocket;
 typedef int MpSocket;
 #endif
 
-
-#if defined(__APPLE__) || defined(__linux__)
-typedef pthread_t MicroProfileThread;
-#elif defined(_WIN32)
-typedef HANDLE MicroProfileThread;
-#else
 typedef std::thread* MicroProfileThread;
-#endif
-
-
 
 enum MicroProfileDrawMask
 {
@@ -945,40 +937,6 @@ int64_t MicroProfileGetTick()
 #if MICROPROFILE_WEBSERVER || MICROPROFILE_CONTEXT_SWITCH_TRACE
 typedef void* (*MicroProfileThreadFunc)(void*);
 
-#if defined(__APPLE__) || defined(__linux__)
-typedef pthread_t MicroProfileThread;
-void MicroProfileThreadStart(MicroProfileThread* pThread, MicroProfileThreadFunc Func)
-{	
-	pthread_attr_t Attr;
-	int r  = pthread_attr_init(&Attr);
-	MP_ASSERT(r == 0);
-	pthread_create(pThread, &Attr, Func, 0);
-}
-void MicroProfileThreadJoin(MicroProfileThread* pThread)
-{
-	int r = pthread_join(*pThread, 0);
-	MP_ASSERT(r == 0);
-}
-#elif defined(_WIN32)
-typedef HANDLE MicroProfileThread;
-DWORD _stdcall ThreadTrampoline(void* pFunc)
-{
-	MicroProfileThreadFunc F = (MicroProfileThreadFunc)pFunc;
-	return (uint32_t)F(0);
-}
-
-void MicroProfileThreadStart(MicroProfileThread* pThread, MicroProfileThreadFunc Func)
-{	
-	*pThread = CreateThread(0, 0, ThreadTrampoline, Func, 0, 0);
-}
-void MicroProfileThreadJoin(MicroProfileThread* pThread)
-{
-	WaitForSingleObject(*pThread, INFINITE);
-	CloseHandle(*pThread);
-}
-#else
-#include <thread>
-typedef std::thread* MicroProfileThread;
 inline void MicroProfileThreadStart(MicroProfileThread* pThread, MicroProfileThreadFunc Func)
 {
 	*pThread = new std::thread(Func, nullptr);
@@ -988,7 +946,6 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 	(*pThread)->join();
 	delete *pThread;
 }
-#endif
 #endif
 
 #if MICROPROFILE_WEBSERVER
