@@ -177,9 +177,6 @@ MICROPROFILE_API int64_t MicroProfileTicksPerSecondCpu();
 #include <unistd.h>
 #include <libkern/OSAtomic.h>
 #include <TargetConditionals.h>
-#if TARGET_OS_IPHONE
-#define MICROPROFILE_IOS
-#endif
 
 #define MP_TICK() mach_absolute_time()
 inline int64_t MicroProfileTicksPerSecondCpu()
@@ -201,7 +198,9 @@ inline uint64_t MicroProfileGetCurrentThreadId()
 }
 
 #define MP_BREAK() __builtin_trap()
+#if __has_feature(tls)
 #define MP_THREAD_LOCAL __thread
+#endif
 #define MP_STRCASECMP strcasecmp
 #define MP_GETCURRENTTHREADID() MicroProfileGetCurrentThreadId()
 typedef uint64_t ThreadIdType;
@@ -1003,8 +1002,8 @@ void MicroProfileGpuShutdown();
 
 MicroProfile g_MicroProfile;
 MicroProfileThreadLog*			g_MicroProfileGpuLog = 0;
-#ifdef MICROPROFILE_IOS
-// iOS doesn't support __thread
+
+#ifndef MP_THREAD_LOCAL
 static pthread_key_t g_MicroProfileThreadLogKey;
 static pthread_once_t g_MicroProfileThreadLogKeyOnce = PTHREAD_ONCE_INIT;
 static void MicroProfileCreateThreadLogKey()
@@ -1014,6 +1013,7 @@ static void MicroProfileCreateThreadLogKey()
 #else
 MP_THREAD_LOCAL MicroProfileThreadLog* g_MicroProfileThreadLog = 0;
 #endif
+
 static bool g_bUseLock = false; /// This is used because windows does not support using mutexes under dll init(which is where global initialization is handled)
 
 
@@ -1115,7 +1115,7 @@ void MicroProfileShutdown()
 	MicroProfileGpuShutdown();
 }
 
-#ifdef MICROPROFILE_IOS
+#ifndef MP_THREAD_LOCAL
 inline MicroProfileThreadLog* MicroProfileGetThreadLog()
 {
 	pthread_once(&g_MicroProfileThreadLogKeyOnce, MicroProfileCreateThreadLogKey);
