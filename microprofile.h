@@ -3254,7 +3254,7 @@ bool MicroProfileIsLocalThread(uint32_t nThreadId)
 #include <sys/time.h>
 void* MicroProfileTraceThread(void* unused)
 {
-	FILE* pFile = fopen(".microprofilepipe", "r");
+	FILE* pFile = fopen("/tmp/.microprofilecspipe", "r");
 	if(!pFile)
 	{
 		printf("CONTEXT SWITCH FAILED TO OPEN FILE: make sure to run dtrace script\n");
