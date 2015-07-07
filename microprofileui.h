@@ -862,11 +862,28 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 		float fRcpStep = 1.f / fStep;
 		int nColorIndex = (int)(floor(fMsBase*fRcpStep));
 		float fStart = floor(fMsBase*fRcpStep) * fStep;
+
+		char StepLabel[64] = "";
+		if(fStep >= 0.005 && fStep <= 1000)
+		{
+			if(fStep >= 1)
+				sprintf(StepLabel, "%.3gms", fStep);
+			else
+				sprintf(StepLabel, "%.2fms", fStep);
+		}
+
+		uint32_t nStepLabelLength = strlen(StepLabel);
+		float fStepLabelOffset = (fStep*fMsToScreen-nStepLabelLength*(MICROPROFILE_TEXT_WIDTH+1))/2;
+
 		for(float f = fStart; f < fMsEnd; )
 		{
 			float fStart = f;
 			float fNext = f + fStep;
 			MicroProfileDrawBox(((fStart-fMsBase) * fMsToScreen), nBaseY, (fNext-fMsBase) * fMsToScreen+1, nBaseY + nHeight, UI.nOpacityBackground | g_nMicroProfileBackColors[nColorIndex++ & 1]);
+
+			if(nStepLabelLength)
+				MicroProfileDrawText((fStart-fMsBase) * fMsToScreen + fStepLabelOffset, nBaseY, UI.nOpacityForeground | 0x808080, StepLabel, nStepLabelLength);
+
 			f = fNext;
 		}
 	}
