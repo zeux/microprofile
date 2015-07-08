@@ -47,7 +47,8 @@
 // 	MICROPROFILE_SCOPEGPU
 // 	MICROPROFILE_SCOPEGPUI
 //  MICROPROFILE_META
-//
+//  MICROPROFILE_LABEL
+//  MICROPROFILE_LABELF
 //
 //	Usage:
 //
@@ -1580,15 +1581,6 @@ void MicroProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2])
 
 void MicroProfileFlip()
 {
-	#if 0
-	//verify LogEntry wraps correctly
-	MicroProfileLogEntry c = MP_LOG_TICK_MASK-5000;
-	for(int i = 0; i < 10000; ++i, c += 1)
-	{
-		MicroProfileLogEntry l2 = (c+2500) & MP_LOG_TICK_MASK;
-		MP_ASSERT(2500 == MicroProfileLogTickDifference(c, l2));
-	}
-	#endif
 	MICROPROFILE_SCOPE(g_MicroProfileFlip);
 	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
 
