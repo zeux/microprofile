@@ -85,17 +85,13 @@
 //      const char* MicroProfileGetThreadName(); Threadnames in detailed view
 //
 // Default implementations of Gpu timestamp functions:
-// 		Opengl:
+// 		OpenGL:
 // 			in .c file where MICROPROFILE_IMPL is defined:
-//   		#define MICROPROFILE_GPU_TIMERS_GL
-// 			call MicroProfileGpuInit(0) on startup
-//      Opengl on Apple / OSX:
-// 			in .c file where MICROPROFILE_IMPL is defined:
-//   		#define MICROPROFILE_GPU_TIMERS_GL_APPLE
+//   		#define MICROPROFILE_GPU_TIMERS_GL 1
 // 			call MicroProfileGpuInit(0) on startup
 //		D3D11:
 // 			in .c file where MICROPROFILE_IMPL is defined:
-//   		#define MICROPROFILE_GPU_TIMERS_D3D11
+//   		#define MICROPROFILE_GPU_TIMERS_D3D11 1
 // 			call MicroProfileGpuInit(context) on startup; Pass a pointer to ImmediateContext
 //
 // Limitations:
@@ -304,10 +300,6 @@ typedef uint32_t ThreadIdType;
 #define MICROPROFILE_LABEL_BUFFER_SIZE (256<<10)
 #endif
 
-#ifndef MICROPROFILE_GPU_TIMERS
-#define MICROPROFILE_GPU_TIMERS 1
-#endif
-
 #ifndef MICROPROFILE_GPU_FRAME_DELAY
 #define MICROPROFILE_GPU_FRAME_DELAY 3 //must be > 0
 #endif
@@ -407,24 +399,12 @@ MICROPROFILE_API uint32_t MicroProfileWebServerPort();
 #define MicroProfileWebServerPort() ((uint32_t)-1)
 #endif
 
-
-
-
-#if MICROPROFILE_GPU_TIMERS
 MICROPROFILE_API uint32_t MicroProfileGpuInsertTimeStamp();
 MICROPROFILE_API uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey);
 MICROPROFILE_API uint64_t MicroProfileTicksPerSecondGpu();
 MICROPROFILE_API void MicroProfileGpuInit(void* pContext);
 MICROPROFILE_API void MicroProfileGpuFlip();
 MICROPROFILE_API void MicroProfileGpuShutdown();
-#else
-#define MicroProfileGpuInsertTimeStamp() 1
-#define MicroProfileGpuGetTimeStamp(a) 0
-#define MicroProfileTicksPerSecondGpu() 1
-#define MicroProfileGpuInit(context) do{}while(0)
-#define MicroProfileGpuFlip() do{}while(0)
-#define MicroProfileGpuShutdown() do{}while(0)
-#endif
 
 #if MICROPROFILE_USE_THREAD_NAME_CALLBACK
 MICROPROFILE_API const char* MicroProfileGetThreadName();
@@ -662,7 +642,7 @@ struct MicroProfileGpuTimerState
 	int64_t nQueryFrequency;
 	MicroProfileD3D11Frame QueryFrames[MICROPROFILE_GPU_FRAME_DELAY];
 };
-#elif MICROPROFILE_GPU_TIMERS_GL
+#elif MICROPROFILE_GPU_TIMERS_GL && !defined(__APPLE__)
 #define MICROPROFILE_GL_MAX_QUERIES (8<<10)
 
 struct MicroProfileGpuTimerState
@@ -670,7 +650,7 @@ struct MicroProfileGpuTimerState
 	uint32_t GLTimers[MICROPROFILE_GL_MAX_QUERIES];
 	uint32_t GLTimerPos;
 };
-#elif MICROPROFILE_GPU_TIMERS_GL_APPLE
+#elif MICROPROFILE_GPU_TIMERS_GL && defined(__APPLE__)
 #define MICROPROFILE_GL_MAX_QUERIES (8<<8)
 
 struct MicroProfileGpuTimerState
@@ -3461,7 +3441,7 @@ void MicroProfileGpuShutdown()
 
 	S.GPU.pDeviceContext = 0;
 }
-#elif MICROPROFILE_GPU_TIMERS_GL
+#elif MICROPROFILE_GPU_TIMERS_GL && !defined(__APPLE__)
 void MicroProfileGpuInit(void* pContext)
 {
 	S.GPU.GLTimerPos = 0;
@@ -3495,7 +3475,7 @@ uint64_t MicroProfileTicksPerSecondGpu()
 {
 	return 1000000000ll;
 }
-#elif MICROPROFILE_GPU_TIMERS_GL_APPLE
+#elif MICROPROFILE_GPU_TIMERS_GL && defined(__APPLE__)
 void MicroProfileGpuInit(void* pContext)
 {
 	glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.GLTimers[0]);
@@ -3546,6 +3526,33 @@ uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
 uint64_t MicroProfileTicksPerSecondGpu()
 {
 	return 1000000000ll;
+}
+#elif !MICROPROFILE_GPU_TIMERS_CUSTOM
+uint32_t MicroProfileGpuInsertTimeStamp()
+{
+	return 1;
+}
+
+uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
+{
+	return 0;
+}
+
+uint64_t MicroProfileTicksPerSecondGpu()
+{
+	return 1;
+}
+
+void MicroProfileGpuInit(void* pContext)
+{
+}
+
+void MicroProfileGpuFlip()
+{
+}
+
+void MicroProfileGpuShutdown()
+{
 }
 #endif
 
