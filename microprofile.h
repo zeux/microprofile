@@ -3460,7 +3460,7 @@ void MicroProfileGpuShutdown()
 {
 	for(uint32_t i = 0; i < MICROPROFILE_D3D_MAX_QUERIES; ++i)
 	{
-		((ID3D11Query*)&S.GPU.pQueries[i])->Release();
+		((ID3D11Query*)S.GPU.pQueries[i])->Release();
 		S.GPU.pQueries[i] = 0;
 	}
 	for(uint32_t i = 0; i < MICROPROFILE_GPU_FRAME_DELAY; ++i)
