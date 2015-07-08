@@ -3234,12 +3234,16 @@ void* MicroProfileTraceThread(void* unused)
 
 bool MicroProfileIsLocalThread(uint32_t nThreadId) 
 {
+#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
 	HANDLE h = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, nThreadId);
 	if(h == NULL)
 		return false;
 	DWORD hProcess = GetProcessIdOfThread(h);
 	CloseHandle(h);
 	return GetCurrentProcessId() == hProcess;
+#else
+	return false;
+#endif
 }
 
 #elif defined(__APPLE__)
