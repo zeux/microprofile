@@ -1234,23 +1234,26 @@ uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
 			return i;
 		}
 	}
-	uint16_t nGroupIndex = 0xffff;
+	uint16_t nGroupIndex = S.nGroupCount++;
+	MP_ASSERT(nGroupIndex < MICROPROFILE_MAX_GROUPS);
+
 	uint32_t nLen = (uint32_t)strlen(pGroup);
 	if(nLen > MICROPROFILE_NAME_MAX_LEN-1)
 		nLen = MICROPROFILE_NAME_MAX_LEN-1;
-	memcpy(&S.GroupInfo[S.nGroupCount].pName[0], pGroup, nLen);
-	S.GroupInfo[S.nGroupCount].pName[nLen] = '\0';
-	S.GroupInfo[S.nGroupCount].nNameLen = nLen;
-	S.GroupInfo[S.nGroupCount].nNumTimers = 0;
-	S.GroupInfo[S.nGroupCount].nGroupIndex = S.nGroupCount;
-	S.GroupInfo[S.nGroupCount].Type = Type;
-	S.GroupInfo[S.nGroupCount].nMaxTimerNameLen = 0;
-	S.GroupInfo[S.nGroupCount].nColor = 0x88888888;
-	S.GroupInfo[S.nGroupCount].nCategory = 0;
-	S.CategoryInfo[0].nGroupMask |= (1ll << (uint64_t)S.nGroupCount);
-	nGroupIndex = S.nGroupCount++;
-	S.nGroupMask = (S.nGroupMask<<1)|1;
-	MP_ASSERT(nGroupIndex < MICROPROFILE_MAX_GROUPS);
+	memcpy(&S.GroupInfo[nGroupIndex].pName[0], pGroup, nLen);
+	S.GroupInfo[nGroupIndex].pName[nLen] = '\0';
+	S.GroupInfo[nGroupIndex].nNameLen = nLen;
+
+	S.GroupInfo[nGroupIndex].nNumTimers = 0;
+	S.GroupInfo[nGroupIndex].nGroupIndex = nGroupIndex;
+	S.GroupInfo[nGroupIndex].Type = Type;
+	S.GroupInfo[nGroupIndex].nMaxTimerNameLen = 0;
+	S.GroupInfo[nGroupIndex].nColor = 0x88888888;
+	S.GroupInfo[nGroupIndex].nCategory = 0;
+
+	S.CategoryInfo[0].nGroupMask |= 1ll << nGroupIndex;
+	S.nGroupMask |= 1ll << nGroupIndex;
+
 	return nGroupIndex;
 }
 
