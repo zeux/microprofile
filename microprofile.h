@@ -3254,10 +3254,9 @@ uint32_t MicroProfileGpuInsertTimer()
 
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nIndex)
 {
-	if(nIndex == (uint32_t)-1)
-	{
-		return (uint64_t)-1;
-	}
+	if(!S.GPU.pDeviceContext) return (uint32_t)-1;
+	if(nIndex == (uint32_t)-1) return (uint64_t)-1;
+
 	int64_t nResult = S.GPU.nQueryResults[nIndex];
 	MP_ASSERT(nResult != -1);
 	return nResult;	
@@ -3476,6 +3475,7 @@ uint32_t MicroProfileGpuInsertTimer()
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
 {
 	if(!S.GPU.bInitialized) return (uint64_t)-1;
+	if(nKey == (uint32_t)-1) return (uint64_t)-1;
 
 	if(S.GPU.nTimestampBits)
 	{
