@@ -1656,7 +1656,15 @@ void MicroProfileFlip()
 							for(uint32_t k = nStart; k < nEnd; ++k)
 							{
 								MicroProfileLogEntry L = pLog->Log[k];
-								pLog->Log[k] = MicroProfileLogSetTick(L, MicroProfileGpuGetTimeStamp((uint32_t)MicroProfileLogGetTick(L)));
+								int Type = MicroProfileLogType(L);
+
+								if(Type == MP_LOG_ENTER || Type == MP_LOG_LEAVE)
+								{
+									uint32_t nTimer = MicroProfileLogGetTick(L);
+									uint64_t nTick = MicroProfileGpuGetTimeStamp(nTimer);
+
+									pLog->Log[k] = MicroProfileLogSetTick(L, nTick);
+								}
 							}
 						}
 					}
