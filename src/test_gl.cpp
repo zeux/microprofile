@@ -6,6 +6,11 @@
 #include <GL/glext.h>
 #endif
 
+#ifdef __linux__
+void glQueryCounter (GLuint id, GLenum target) {}
+void glGetQueryObjectui64v (GLuint id, GLenum pname, GLuint64 *params) {}
+#endif
+
 #define MICROPROFILE_IMPL
 #define MICROPROFILEUI_IMPL
 #define MICROPROFILEDRAW_IMPL
