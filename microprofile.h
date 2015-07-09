@@ -245,7 +245,6 @@ typedef uint32_t ThreadIdType;
 
 #define MICROPROFILE_DECLARE(var) extern MicroProfileToken g_mp_##var
 #define MICROPROFILE_DEFINE(var, group, name, color) MicroProfileToken g_mp_##var = MicroProfileGetToken(group, name, color, MicroProfileTokenTypeCpu)
-#define MICROPROFILE_REGISTER_GROUP(group, category, color) MicroProfileRegisterGroup(group, category, color)
 #define MICROPROFILE_DECLARE_GPU(var) extern MicroProfileToken g_mp_##var
 #define MICROPROFILE_DEFINE_GPU(var, name, color) MicroProfileToken g_mp_##var = MicroProfileGetToken("GPU", name, color, MicroProfileTokenTypeGpu)
 #define MICROPROFILE_TOKEN_PASTE0(a, b) a ## b
@@ -1247,39 +1246,6 @@ uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
 	S.nGroupMask = (S.nGroupMask<<1)|1;
 	MP_ASSERT(nGroupIndex < MICROPROFILE_MAX_GROUPS);
 	return nGroupIndex;
-}
-
-void MicroProfileRegisterGroup(const char* pGroup, const char* pCategory, uint32_t nColor)
-{
-	int nCategoryIndex = -1;
-	for(uint32_t i = 0; i < S.nCategoryCount; ++i)
-	{
-		if(!MP_STRCASECMP(pCategory, S.CategoryInfo[i].pName))
-		{
-			nCategoryIndex = (int)i;
-			break;
-		}
-	}
-	if(-1 == nCategoryIndex && S.nCategoryCount < MICROPROFILE_MAX_CATEGORIES)
-	{
-		MP_ASSERT(S.CategoryInfo[S.nCategoryCount].pName[0] == '\0');
-		nCategoryIndex = (int)S.nCategoryCount++;
-		uint32_t nLen = (uint32_t)strlen(pCategory);
-		if(nLen > MICROPROFILE_NAME_MAX_LEN-1)
-			nLen = MICROPROFILE_NAME_MAX_LEN-1;
-		memcpy(&S.CategoryInfo[nCategoryIndex].pName[0], pCategory, nLen);
-		S.CategoryInfo[nCategoryIndex].pName[nLen] = '\0';	
-	}
-	uint16_t nGroup = MicroProfileGetGroup(pGroup, 0 != MP_STRCASECMP(pGroup, "gpu")?MicroProfileTokenTypeCpu : MicroProfileTokenTypeGpu);
-	S.GroupInfo[nGroup].nColor = nColor;
-	if(nCategoryIndex >= 0)
-	{
-		uint64_t nBit = 1ll << nGroup;
-		uint32_t nOldCategory = S.GroupInfo[nGroup].nCategory;
-		S.CategoryInfo[nOldCategory].nGroupMask &= ~nBit;
-		S.CategoryInfo[nCategoryIndex].nGroupMask |= nBit;
-		S.GroupInfo[nGroup].nCategory = nCategoryIndex;
-	}
 }
 
 MicroProfileToken MicroProfileGetToken(const char* pGroup, const char* pName, uint32_t nColor, MicroProfileTokenType Type)
