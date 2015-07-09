@@ -3306,15 +3306,10 @@ void MicroProfileGpuFlip()
 	MicroProfileD3D11Frame& OldFrame = S.GPU.QueryFrames[nNextFrame];
 	if(OldFrame.nRateQueryStarted)
 	{
-		struct RateQueryResult
-		{
-			uint64_t nFrequency;
-			BOOL bDisjoint;
-		};
-		RateQueryResult Result;
+		D3D11_QUERY_DATA_TIMESTAMP_DISJOINT Result;
 		if(MicroProfileGpuGetData(OldFrame.pRateQuery, &Result, sizeof(Result)))
 		{
-			S.GPU.nQueryFrequency = (int64_t)Result.nFrequency;
+			S.GPU.nQueryFrequency = (int64_t)Result.Frequency;
 
 			uint32_t nStart = OldFrame.nQueryStart;
 			uint32_t nCount = OldFrame.nQueryCount;
