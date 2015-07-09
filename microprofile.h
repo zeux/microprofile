@@ -887,6 +887,7 @@ inline uint16_t MicroProfileGetGroupIndex(MicroProfileToken t)
 #ifdef MICROPROFILE_IMPL
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #define snprintf _snprintf
 
@@ -927,6 +928,9 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 #if MICROPROFILE_WEBSERVER
 
 #ifdef _WIN32
+#if defined(_WINSOCKAPI_) && !defined(_WINSOCK2API_)
+#error WinSock.h has already been included; microprofile requires WinSock2
+#endif
 #include <WinSock2.h>
 #define MP_INVALID_SOCKET(f) (f == INVALID_SOCKET)
 #endif
