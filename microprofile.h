@@ -3317,15 +3317,7 @@ bool MicroProfileGpuGetData(void* pQuery, void* pData, uint32_t nDataSize)
 	{
 		hr = ((ID3D11DeviceContext*)S.GPU.pDeviceContext)->GetData((ID3D11Query*)pQuery, pData, nDataSize, 0);
 	}while(hr == S_FALSE);
-	switch(hr)
-	{
-		case DXGI_ERROR_DEVICE_REMOVED:
-		case DXGI_ERROR_INVALID_CALL:
-		case E_INVALIDARG:
-			MP_BREAK();
-			return false;
-
-	}
+	MP_ASSERT(hr == S_OK);
 	return true;
 }
 
