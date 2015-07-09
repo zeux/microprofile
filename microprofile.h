@@ -953,6 +953,7 @@ void MicroProfileDumpToFile();
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <math.h>
 #include <algorithm>
 
@@ -1579,10 +1580,10 @@ void MicroProfileFlip()
 		
 		pFramePut->nFrameStartCpu = MP_TICK();
 		pFramePut->nFrameStartGpu = (uint32_t)MicroProfileGpuInsertTimeStamp();
-		if(pFrameNext->nFrameStartGpu != (uint64_t)-1)
+		if(pFrameNext->nFrameStartGpu != -1)
 			pFrameNext->nFrameStartGpu = MicroProfileGpuGetTimeStamp((uint32_t)pFrameNext->nFrameStartGpu);
 
-		if(pFrameCurrent->nFrameStartGpu == (uint64_t)-1)
+		if(pFrameCurrent->nFrameStartGpu == -1)
 			pFrameCurrent->nFrameStartGpu = pFrameNext->nFrameStartGpu + 1; 
 
 		uint64_t nFrameStartCpu = pFrameCurrent->nFrameStartCpu;
@@ -2269,7 +2270,7 @@ void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFra
 	{
 		if(S.MetaCounters[j].pName)
 		{
-			MicroProfilePrintf(CB, Handle, "\"%s\",%f,%lld,%lld\n",S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, S.MetaCounters[j].nSumAggregateMax,S.MetaCounters[j].nSumAggregate);
+			MicroProfilePrintf(CB, Handle, "\"%s\",%f,%llu,%llu\n",S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, S.MetaCounters[j].nSumAggregateMax,S.MetaCounters[j].nSumAggregate);
 		}
 	}
 }
