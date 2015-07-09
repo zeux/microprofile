@@ -646,20 +646,22 @@ struct MicroProfileGpuTimerState
 
 struct MicroProfileGpuTimerState
 {
-	uint32_t GLTimers[MICROPROFILE_GL_MAX_QUERIES];
-	uint32_t GLTimerPos;
+	bool bInitialized;
+	uint32_t nTimers[MICROPROFILE_GL_MAX_QUERIES];
+	uint32_t nTimerPos;
 };
 #elif MICROPROFILE_GPU_TIMERS_GL && defined(__APPLE__)
 #define MICROPROFILE_GL_MAX_QUERIES (8<<8)
 
 struct MicroProfileGpuTimerState
 {
-	uint32_t GLTimers[MICROPROFILE_GL_MAX_QUERIES];
-	uint64_t GLTimestamp[MICROPROFILE_GL_MAX_QUERIES];
-	uint64_t GLElapsed[MICROPROFILE_GL_MAX_QUERIES];
-	char     GLHasValue[MICROPROFILE_GL_MAX_QUERIES];
-	uint32_t GLTimerPos;
-	char     GLFirst;
+	bool bInitialized;
+	uint32_t nTimers[MICROPROFILE_GL_MAX_QUERIES];
+	uint64_t nTimestamp[MICROPROFILE_GL_MAX_QUERIES];
+	uint64_t nElapsed[MICROPROFILE_GL_MAX_QUERIES];
+	bool bHasValue[MICROPROFILE_GL_MAX_QUERIES];
+	uint32_t nTimerPos;
+	bool bFirst;
 };
 #else
 struct MicroProfileGpuTimerState{};
@@ -3350,6 +3352,8 @@ void MicroProfileGpuFlip()
 
 void MicroProfileGpuInit(void* pContext)
 {
+	MP_ASSERT(!S.GPU.pDeviceContext);
+
 	ID3D11DeviceContext* pDeviceContext = (ID3D11DeviceContext*)pContext;
 	S.GPU.pDeviceContext = pDeviceContext;
 
@@ -3384,6 +3388,8 @@ void MicroProfileGpuInit(void* pContext)
 
 void MicroProfileGpuShutdown()
 {
+	MP_ASSERT(S.GPU.pDeviceContext);
+
 	for(uint32_t i = 0; i < MICROPROFILE_D3D_MAX_QUERIES; ++i)
 	{
 		((ID3D11Query*)S.GPU.pQueries[i])->Release();
@@ -3400,13 +3406,20 @@ void MicroProfileGpuShutdown()
 #elif MICROPROFILE_GPU_TIMERS_GL && !defined(__APPLE__)
 void MicroProfileGpuInit(void* pContext)
 {
-	S.GPU.GLTimerPos = 0;
-	glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.GLTimers[0]);
+	MP_ASSERT(!S.GPU.bInitialized);
+
+	S.GPU.bInitialized = true;
+	S.GPU.nTimerPos = 0;
+	glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.nTimers[0]);
 }
 
 void MicroProfileGpuShutdown()
 {
-	glDeleteQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.GLTimers[0]);
+	MP_ASSERT(S.GPU.bInitialized);
+
+	glDeleteQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.nTimers[0]);
+
+	S.GPU.bInitialized = false;
 }
 
 void MicroProfileGpuFlip()
@@ -3415,15 +3428,20 @@ void MicroProfileGpuFlip()
 
 uint32_t MicroProfileGpuInsertTimeStamp()
 {
-	uint32_t nIndex = (S.GPU.GLTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
-	glQueryCounter(S.GPU.GLTimers[nIndex], GL_TIMESTAMP);
-	S.GPU.GLTimerPos = nIndex;
+	if(!S.GPU.bInitialized) return (uint32_t)-1;
+
+	uint32_t nIndex = (S.GPU.nTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
+	glQueryCounter(S.GPU.nTimers[nIndex], GL_TIMESTAMP);
+	S.GPU.nTimerPos = nIndex;
 	return nIndex;
 }
+
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
 {
+	if(!S.GPU.bInitialized) return (uint64_t)-1;
+
 	uint64_t result;
-	glGetQueryObjectui64v(S.GPU.GLTimers[nKey], GL_QUERY_RESULT, &result);
+	glGetQueryObjectui64v(S.GPU.nTimers[nKey], GL_QUERY_RESULT, &result);
 	return result;
 }
 
@@ -3434,18 +3452,23 @@ uint64_t MicroProfileTicksPerSecondGpu()
 #elif MICROPROFILE_GPU_TIMERS_GL && defined(__APPLE__)
 void MicroProfileGpuInit(void* pContext)
 {
-	glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.GLTimers[0]);
-	memset(S.GPU.GLTimestamp, 0, sizeof(S.GPU.GLTimestamp));
-	memset(S.GPU.GLElapsed, 0, sizeof(S.GPU.GLElapsed));
-	memset(S.GPU.GLHasValue, 0, sizeof(S.GPU.GLHasValue));
-	S.GPU.GLHasValue[0] = 1;
-	S.GPU.GLTimerPos = 0;
-	S.GPU.GLFirst = 1;
+	MP_ASSERT(!S.GPU.bInitialized);
+
+	S.GPU.bInitialized = true;
+
+	glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.nTimers[0]);
+
+	S.GPU.bHasValue[0] = true;
+	S.GPU.nTimerPos = 0;
+	S.GPU.bFirst = true;
 }
 
 void MicroProfileGpuShutdown()
 {
-	glDeleteQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.GLTimers[0]);
+	MP_ASSERT(S.GPU.bInitialized);
+
+	glDeleteQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.nTimers[0]);
+	S.GPU.bInitialized = false;
 }
 
 void MicroProfileGpuFlip()
@@ -3454,31 +3477,37 @@ void MicroProfileGpuFlip()
 
 uint32_t MicroProfileGpuInsertTimeStamp()
 {
-	uint32_t nIndex = (S.GPU.GLTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
-	if ( S.GPU.GLFirst )
-		S.GPU.GLFirst = 0;
+	if(!S.GPU.bInitialized) return (uint32_t)-1;
+
+	uint32_t nIndex = (S.GPU.nTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
+	if(S.GPU.bFirst)
+		S.GPU.bFirst = false;
 	else
 		glEndQuery(GL_TIME_ELAPSED);
-	glBeginQuery(GL_TIME_ELAPSED, S.GPU.GLTimers[nIndex]);
-	S.GPU.GLHasValue[nIndex] = 0;
-	S.GPU.GLTimerPos = nIndex;
+	glBeginQuery(GL_TIME_ELAPSED, S.GPU.nTimers[nIndex]);
+	S.GPU.bHasValue[nIndex] = false;
+	S.GPU.nTimerPos = nIndex;
 	return nIndex;
 }
+
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
 {
-	if ( S.GPU.GLHasValue[nKey] )
-		return S.GPU.GLTimestamp[nKey];
+	if(!S.GPU.bInitialized) return (uint64_t)-1;
+
+	if(S.GPU.bHasValue[nKey])
+		return S.GPU.nTimestamp[nKey];
 	int nPrevKey = (nKey - 1 + MICROPROFILE_GL_MAX_QUERIES) % MICROPROFILE_GL_MAX_QUERIES;
 	uint64_t prevResult = MicroProfileGpuGetTimeStamp(nPrevKey);
 	GLint available; do {
 		available = 0;
-		glGetQueryObjectiv ( S.GPU.GLTimers[nKey], GL_QUERY_RESULT_AVAILABLE, &available );
+		glGetQueryObjectiv(S.GPU.nTimers[nKey], GL_QUERY_RESULT_AVAILABLE, &available);
 	} while(!available);
-	glGetQueryObjectui64v(S.GPU.GLTimers[nKey], GL_QUERY_RESULT, &S.GPU.GLElapsed[nKey]);
-	S.GPU.GLTimestamp[nKey] = S.GPU.GLElapsed[nPrevKey] + prevResult;
-	S.GPU.GLHasValue[nKey] = true;
-	return S.GPU.GLTimestamp[nKey];
+	glGetQueryObjectui64v(S.GPU.nTimers[nKey], GL_QUERY_RESULT, &S.GPU.nElapsed[nKey]);
+	S.GPU.nTimestamp[nKey] = S.GPU.nElapsed[nPrevKey] + prevResult;
+	S.GPU.bHasValue[nKey] = true;
+	return S.GPU.nTimestamp[nKey];
 }
+
 uint64_t MicroProfileTicksPerSecondGpu()
 {
 	return 1000000000ll;
