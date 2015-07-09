@@ -78,7 +78,7 @@
 // 		void MicroProfileDrawBox(int nX, int nY, int nX1, int nY1, uint32_t nColor, MicroProfileBoxType = MicroProfileBoxTypeFlat);
 // 		void MicroProfileDrawLine2D(uint32_t nVertices, float* pVertices, uint32_t nColor);
 //  Gpu time stamps: (See below for d3d/opengl helper)
-// 		uint32_t MicroProfileGpuInsertTimeStamp();
+// 		uint32_t MicroProfileGpuInsertTimer();
 // 		uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey);
 // 		uint64_t MicroProfileTicksPerSecondGpu();
 //  threading:
@@ -398,7 +398,7 @@ MICROPROFILE_API uint32_t MicroProfileWebServerPort();
 #define MicroProfileWebServerPort() ((uint32_t)-1)
 #endif
 
-MICROPROFILE_API uint32_t MicroProfileGpuInsertTimeStamp();
+MICROPROFILE_API uint32_t MicroProfileGpuInsertTimer();
 MICROPROFILE_API uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey);
 MICROPROFILE_API uint64_t MicroProfileTicksPerSecondGpu();
 MICROPROFILE_API void MicroProfileGpuInit(void* pContext);
@@ -590,6 +590,7 @@ struct MicroProfileFrameState
 {
 	int64_t nFrameStartCpu;
 	int64_t nFrameStartGpu;
+	uint32_t nFrameStartGpuTimer;
 	uint32_t nLogStart[MICROPROFILE_MAX_THREADS];
 };
 
@@ -1057,6 +1058,7 @@ void MicroProfileInit()
 		{
 			S.Frames[i].nFrameStartCpu = nTick;
 			S.Frames[i].nFrameStartGpu = -1;
+			S.Frames[i].nFrameStartGpuTimer = (uint32_t)-1;
 		}
 
 		MicroProfileThreadLog* pGpu = MicroProfileCreateThreadLog("GPU");
@@ -1463,7 +1465,7 @@ uint64_t MicroProfileGpuEnter(MicroProfileToken nToken_)
 {
 	if(MicroProfileGetGroupMask(nToken_) & S.nActiveGroup)
 	{
-		uint64_t nTimer = MicroProfileGpuInsertTimeStamp();
+		uint32_t nTimer = MicroProfileGpuInsertTimer();
 		MicroProfileLogPut(nToken_, nTimer, MP_LOG_ENTER, g_MicroProfileGpuLog);
 		return 1;
 	}
@@ -1474,7 +1476,7 @@ void MicroProfileGpuLeave(MicroProfileToken nToken_, uint64_t nTickStart)
 {
 	if(nTickStart)
 	{
-		uint64_t nTimer = MicroProfileGpuInsertTimeStamp();
+		uint32_t nTimer = MicroProfileGpuInsertTimer();
 		MicroProfileLogPut(nToken_, nTimer, MP_LOG_LEAVE, g_MicroProfileGpuLog);
 	}
 }
@@ -1578,9 +1580,9 @@ void MicroProfileFlip()
 		MicroProfileFrameState* pFrameNext = &S.Frames[nFrameNext];
 		
 		pFramePut->nFrameStartCpu = MP_TICK();
-		pFramePut->nFrameStartGpu = (uint32_t)MicroProfileGpuInsertTimeStamp();
-		if(pFrameNext->nFrameStartGpu != -1)
-			pFrameNext->nFrameStartGpu = MicroProfileGpuGetTimeStamp((uint32_t)pFrameNext->nFrameStartGpu);
+		pFramePut->nFrameStartGpuTimer = MicroProfileGpuInsertTimer();
+		if(pFrameNext->nFrameStartGpuTimer != (uint32_t)-1)
+			pFrameNext->nFrameStartGpu = MicroProfileGpuGetTimeStamp(pFrameNext->nFrameStartGpuTimer);
 
 		if(pFrameCurrent->nFrameStartGpu == -1)
 			pFrameCurrent->nFrameStartGpu = pFrameNext->nFrameStartGpu + 1; 
@@ -3243,7 +3245,7 @@ void MicroProfileStartContextSwitchTrace(){}
 #if MICROPROFILE_GPU_TIMERS_D3D11
 #include <d3d11.h>
 
-uint32_t MicroProfileGpuInsertTimeStamp()
+uint32_t MicroProfileGpuInsertTimer()
 {
 	if(!S.GPU.pDeviceContext) return (uint32_t)-1;
 
@@ -3421,7 +3423,7 @@ void MicroProfileGpuFlip()
 {
 }
 
-uint32_t MicroProfileGpuInsertTimeStamp()
+uint32_t MicroProfileGpuInsertTimer()
 {
 	if(!S.GPU.bInitialized) return (uint32_t)-1;
 
@@ -3470,7 +3472,7 @@ void MicroProfileGpuFlip()
 {
 }
 
-uint32_t MicroProfileGpuInsertTimeStamp()
+uint32_t MicroProfileGpuInsertTimer()
 {
 	if(!S.GPU.bInitialized) return (uint32_t)-1;
 
@@ -3508,9 +3510,9 @@ uint64_t MicroProfileTicksPerSecondGpu()
 	return 1000000000ll;
 }
 #elif !MICROPROFILE_GPU_TIMERS_CUSTOM
-uint32_t MicroProfileGpuInsertTimeStamp()
+uint32_t MicroProfileGpuInsertTimer()
 {
-	return 1;
+	return 0;
 }
 
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
