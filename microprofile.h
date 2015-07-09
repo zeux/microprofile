@@ -321,7 +321,7 @@ typedef uint32_t ThreadIdType;
 #define MICROPROFILE_GROUP_MASK_ALL 0xffffffffffff
 
 
-#define MICROPROFILE_INVALID_TOKEN (uint64_t)-1
+#define MICROPROFILE_INVALID_TOKEN (uint64_t)0
 
 enum MicroProfileTokenType
 {
