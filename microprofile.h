@@ -833,12 +833,9 @@ inline uint64_t MicroProfileLogTimerIndex(MicroProfileLogEntry Index)
 inline MicroProfileLogEntry MicroProfileMakeLogIndex(uint64_t nBegin, MicroProfileToken nToken, int64_t nTick)
 {
 	MicroProfileLogEntry Entry =  (nBegin<<62) | ((0x3fff&nToken)<<48) | (MP_LOG_TICK_MASK&nTick);
-	int t = MicroProfileLogType(Entry);
-	uint64_t nTimerIndex = MicroProfileLogTimerIndex(Entry);
-	MP_ASSERT(t == nBegin);
-	MP_ASSERT(nTimerIndex == (nToken&0x3fff));
+	MP_ASSERT(MicroProfileLogType(Entry) == int(nBegin));
+	MP_ASSERT(MicroProfileLogTimerIndex(Entry) == (nToken&0x3fff));
 	return Entry;
-
 } 
 
 inline int64_t MicroProfileLogTickDifference(MicroProfileLogEntry Start, MicroProfileLogEntry End)
@@ -2270,7 +2267,7 @@ void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFra
 	{
 		if(S.MetaCounters[j].pName)
 		{
-			MicroProfilePrintf(CB, Handle, "\"%s\",%f,%llu,%llu\n",S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, S.MetaCounters[j].nSumAggregateMax,S.MetaCounters[j].nSumAggregate);
+			MicroProfilePrintf(CB, Handle, "\"%s\",%f,%lld,%lld\n",S.MetaCounters[j].pName, S.MetaCounters[j].nSumAggregate / (float)nAggregateFrames, (long long)S.MetaCounters[j].nSumAggregateMax, (long long)S.MetaCounters[j].nSumAggregate);
 		}
 	}
 }
@@ -2373,7 +2370,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		{
 			if(S.MetaCounters[j].pName)
 			{
-				MicroProfilePrintf(CB, Handle, "%llu,", S.MetaCounters[j].nAggregateMax[i]);
+				MicroProfilePrintf(CB, Handle, "%lld,", (long long)S.MetaCounters[j].nAggregateMax[i]);
 			}
 		}
 		MicroProfilePrintf(CB, Handle, "];\n");
