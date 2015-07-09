@@ -696,6 +696,7 @@ struct MicroProfile
 	uint32_t nOverflow;
 
 	uint64_t nGroupMask;
+	uint64_t nGroupMaskGpu;
 	uint32_t nRunning;
 	uint32_t nToggleRunning;
 	uint32_t nMaxGroupSize;
@@ -1253,6 +1254,7 @@ uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
 
 	S.CategoryInfo[0].nGroupMask |= 1ll << nGroupIndex;
 	S.nGroupMask |= 1ll << nGroupIndex;
+	S.nGroupMaskGpu |= uint64_t(Type == MicroProfileTokenTypeGpu) << nGroupIndex;
 
 	return nGroupIndex;
 }
