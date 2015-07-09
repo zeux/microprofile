@@ -1,6 +1,3 @@
 sudo: false
 language: cpp
-compiler:
-  - clang
-  - gcc
 script: make -C src test
