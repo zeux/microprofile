@@ -631,7 +631,7 @@ struct MicroProfileGpuTimerState
 	bool bInitialized;
 	int32_t nTimestampBits;
 	uint32_t nTimers[MICROPROFILE_GL_MAX_QUERIES];
-	uint32_t nTimerPos;
+	uint32_t nTimerPut;
 	uint64_t nTimestamp[MICROPROFILE_GL_MAX_QUERIES];
 	uint64_t nElapsed[MICROPROFILE_GL_MAX_QUERIES];
 	bool bHasValue[MICROPROFILE_GL_MAX_QUERIES];
@@ -3396,7 +3396,7 @@ void MicroProfileGpuInit(void* pContext)
 	MP_ASSERT(!S.GPU.bInitialized);
 
 	S.GPU.bInitialized = true;
-	S.GPU.nTimerPos = 0;
+	S.GPU.nTimerPut = 0;
 	glGenQueries(MICROPROFILE_GL_MAX_QUERIES, &S.GPU.nTimers[0]);
 
 	glGetQueryiv(GL_TIMESTAMP, GL_QUERY_COUNTER_BITS, &S.GPU.nTimestampBits);
@@ -3434,13 +3434,13 @@ void MicroProfileGpuFlip()
 		// Insert a fake timer that forces alignment between CPU and GPU timers
 		// Since GL_TIME_ELAPSED does not track GPU idle this is necessary to get reasonable
 		// information for CPU-bound cases.
-		uint32_t nIndex = (S.GPU.nTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
+		uint32_t nIndex = (S.GPU.nTimerPut+1)%MICROPROFILE_GL_MAX_QUERIES;
 
 		S.GPU.bHasValue[nIndex] = true;
 		S.GPU.nElapsed[nIndex] = 0;
 		S.GPU.nTimestamp[nIndex] = MicroProfileGetGpuTimeOffset();
 
-		S.GPU.nTimerPos = nIndex;
+		S.GPU.nTimerPut = nIndex;
 	}
 }
 
@@ -3448,7 +3448,7 @@ uint32_t MicroProfileGpuInsertTimer()
 {
 	if(!S.GPU.bInitialized) return (uint32_t)-1;
 
-	uint32_t nIndex = (S.GPU.nTimerPos+1)%MICROPROFILE_GL_MAX_QUERIES;
+	uint32_t nIndex = (S.GPU.nTimerPut+1)%MICROPROFILE_GL_MAX_QUERIES;
 
 	if(S.GPU.nTimestampBits)
 	{
@@ -3468,7 +3468,7 @@ uint32_t MicroProfileGpuInsertTimer()
 		S.GPU.bHasValue[nIndex] = false;
 	}
 
-	S.GPU.nTimerPos = nIndex;
+	S.GPU.nTimerPut = nIndex;
 	return nIndex;
 }
 
