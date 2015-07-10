@@ -1863,15 +1863,12 @@ void MicroProfileFlip()
 	}
 	S.nAggregateClear = 0;
 
-	uint64_t nNewActiveGroup = 0;
-	if(S.nForceEnable || (S.nDisplay && S.nRunning))
-		nNewActiveGroup = S.nAllGroupsWanted ? S.nGroupMask : S.nActiveGroupWanted;
+	uint64_t nNewActiveGroup = S.nAllGroupsWanted ? S.nGroupMask : S.nActiveGroupWanted;
 	nNewActiveGroup |= S.nForceGroup;
 	if(S.nActiveGroup != nNewActiveGroup)
 		S.nActiveGroup = nNewActiveGroup;
-	uint32_t nNewActiveBars = 0;
-	if(S.nDisplay && S.nRunning)
-		nNewActiveBars = S.nBars;
+
+	uint32_t nNewActiveBars = S.nBars;
 	if(S.nForceMetaCounters)
 	{
 		for(int i = 0; i < MICROPROFILE_META_MAX; ++i)
