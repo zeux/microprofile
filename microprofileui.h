@@ -89,8 +89,8 @@
 #define MICROPROFILE_HELP_LEFT "Left-Click"
 #endif
 
-#ifndef MICROPROFILE_HELP_ALT
-#define MICROPROFILE_HELP_ALT "Alt-Click"
+#ifndef MICROPROFILE_HELP_RIGHT
+#define MICROPROFILE_HELP_RIGHT "Right-Click"
 #endif
 
 #ifndef MICROPROFILE_HELP_MOD
@@ -2565,7 +2565,7 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 					MicroProfileStringArrayClear(&DetailedHelp);
 					MicroProfileStringArrayFormat(&DetailedHelp, "%s", MICROPROFILE_HELP_LEFT);
 					MicroProfileStringArrayAddLiteral(&DetailedHelp, "Toggle Graph");
-					MicroProfileStringArrayFormat(&DetailedHelp, "%s", MICROPROFILE_HELP_ALT);
+					MicroProfileStringArrayFormat(&DetailedHelp, "%s", MICROPROFILE_HELP_RIGHT);
 					MicroProfileStringArrayAddLiteral(&DetailedHelp, "Zoom");
 					MicroProfileStringArrayFormat(&DetailedHelp, "%s + %s", MICROPROFILE_HELP_MOD, MICROPROFILE_HELP_LEFT);
 					MicroProfileStringArrayAddLiteral(&DetailedHelp, "Lock Tooltip");
@@ -2579,7 +2579,7 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 					MicroProfileStringArrayClear(&DetailedHistoryHelp);
 					MicroProfileStringArrayFormat(&DetailedHistoryHelp, "%s", MICROPROFILE_HELP_LEFT);
 					MicroProfileStringArrayAddLiteral(&DetailedHistoryHelp, "Center View");
-					MicroProfileStringArrayFormat(&DetailedHistoryHelp, "%s", MICROPROFILE_HELP_ALT);
+					MicroProfileStringArrayFormat(&DetailedHistoryHelp, "%s", MICROPROFILE_HELP_RIGHT);
 					MicroProfileStringArrayAddLiteral(&DetailedHistoryHelp, "Zoom to frame");
 					MicroProfileDrawFloatWindow(nWidth, 20, DetailedHistoryHelp.ppStrings, DetailedHistoryHelp.nNumStrings, 0xff777777);
 
