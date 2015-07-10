@@ -612,7 +612,7 @@ struct MicroProfileGpuTimerState
 	uint32_t nTimerPut;
 	struct ID3D11Query* pRateQuery;
 	uint32_t nRateQueryIssue;
-	int64_t nQueryFrequency;
+	uint64_t nQueryFrequency;
 };
 #elif MICROPROFILE_GPU_TIMERS_GL
 struct MicroProfileGpuTimerState
