@@ -668,13 +668,15 @@ void MicroProfileDrawFloatTooltip(uint32_t nX, uint32_t nY, uint32_t nToken, uin
 	}
 }
 
-
-void MicroProfileZoomTo(int64_t nTickStart, int64_t nTickEnd)
+void MicroProfileZoomTo(int64_t nTickStart, int64_t nTickEnd, MicroProfileTokenType eToken)
 {
 	MicroProfile& S = *MicroProfileGet();
 
-	int64_t nStart = S.Frames[S.nFrameCurrent].nFrameStartCpu;
-	float fToMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu());
+	bool bGpu = eToken == MicroProfileTokenTypeGpu;
+	int64_t nStart = bGpu ? S.Frames[S.nFrameCurrent].nFrameStartGpu : S.Frames[S.nFrameCurrent].nFrameStartCpu;
+	uint64_t nFrequency = bGpu ? MicroProfileTicksPerSecondGpu() : MicroProfileTicksPerSecondCpu();
+
+	float fToMs = MicroProfileTickToMsMultiplier(nFrequency);
 	UI.fDetailedOffsetTarget = MicroProfileLogTickDifference(nStart, nTickStart) * fToMs;
 	UI.fDetailedRangeTarget = MicroProfileLogTickDifference(nTickStart, nTickEnd) * fToMs;
 }
@@ -1256,7 +1258,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 
 			if(UI.nMouseRight)
 			{
-				MicroProfileZoomTo(UI.nRangeBegin, UI.nRangeEnd);
+				MicroProfileZoomTo(UI.nRangeBegin, UI.nRangeEnd, MicroProfileTokenTypeCpu);
 			}
 		}
 
@@ -1283,6 +1285,11 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			uint32_t nLenEnd = snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsEnd);
 			MicroProfileDrawBox(fXEnd+1, nBaseY, fXEnd+1+(1+MICROPROFILE_TEXT_WIDTH) * nLenEnd + 3, MICROPROFILE_TEXT_HEIGHT + 2 + nBaseY, 0x33000000, MicroProfileBoxTypeFlat);
 			MicroProfileDrawText(fXEnd+2, nBaseY+1, (uint32_t)-1, sBuffer, nLenEnd);
+
+			if(UI.nMouseRight)
+			{
+				MicroProfileZoomTo(UI.nRangeBeginGpu, UI.nRangeEndGpu, MicroProfileTokenTypeGpu);
+			}
 		}
 	}
 }
@@ -1360,7 +1367,7 @@ void MicroProfileDrawDetailedView(uint32_t nWidth, uint32_t nHeight, bool bDrawB
 		{
 			int64_t nRangeBegin = S.Frames[nSelectedFrame].nFrameStartCpu;
 			int64_t nRangeEnd = S.Frames[(nSelectedFrame+1)%MICROPROFILE_MAX_FRAME_HISTORY].nFrameStartCpu;
-			MicroProfileZoomTo(nRangeBegin, nRangeEnd);
+			MicroProfileZoomTo(nRangeBegin, nRangeEnd, MicroProfileTokenTypeCpu);
 		}
 		if(UI.nMouseDownLeft)
 		{
