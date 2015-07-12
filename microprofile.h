@@ -1630,6 +1630,8 @@ void MicroProfileFlip()
 					//fetch gpu results.
 					if(pLog->nGpu)
 					{
+						uint64_t nLastTick = pFrameCurrent->nFrameStartGpu;
+
 						for(uint32_t j = 0; j < 2; ++j)
 						{
 							uint32_t nStart = nRange[j][0];
@@ -1644,7 +1646,10 @@ void MicroProfileFlip()
 									uint32_t nTimer = MicroProfileLogGetTick(L);
 									uint64_t nTick = MicroProfileGpuGetTimeStamp(nTimer);
 
-									pLog->Log[k] = MicroProfileLogSetTick(L, nTick);
+									if(nTick != MICROPROFILE_INVALID_TICK)
+										nLastTick = nTick;
+
+									pLog->Log[k] = MicroProfileLogSetTick(L, nLastTick);
 								}
 							}
 						}
