@@ -2181,6 +2181,22 @@ function DrawContextSwitchBars(context, ThreadId, fScaleX, fOffsetY, fDetailedOf
 	ProfileLeave();
 }
 
+function SetHoverToken(Lod, nToken, nGlobalIndex, nLog)
+{
+	for(var i = Frames.length-1; i >= 0; --i)
+	{
+		var IndexStart = Lod.LogStart[i][nLog];
+		if(nGlobalIndex >= IndexStart)
+		{
+			nHoverFrame = i;
+			nHoverTokenNext = nToken;
+			nHoverTokenIndexNext = nGlobalIndex - IndexStart;
+			nHoverTokenLogIndexNext = nLog;
+			break;
+		}
+	}
+}
+
 function DrawDetailedView(context, MinWidth, bDrawEnabled)
 {
 	if(bDrawEnabled)
@@ -2284,9 +2300,6 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 				var LocalFirstFrame = Frames[FirstFrame].FirstFrameIndex[nLog];
 				var IndexStart = Lod.LogStart[LocalFirstFrame][nLog];
 				var IndexEnd = TimeArray.length;
-				IndexEnd = TimeArray.length;
-				var HasSetHover = 0;
-
 
 				for(var j = IndexStart; j < IndexEnd; ++j)
 				{
@@ -2362,10 +2375,8 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 								{
 									fRangeBeginNext = timestart;
 									fRangeEndNext = timeend;
-									nHoverTokenNext = index;
-									nHoverTokenIndexNext = j;
-									nHoverTokenLogIndexNext = nLog;
-									HasSetHover = 1;
+
+									SetHoverToken(Lod, index, j, nLog)
 								}
 							}
 							if(StackPos == 0 && time > fTimeEnd)
@@ -2374,18 +2385,6 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 					}
 				}
 				fOffsetY += (1+g_MaxStack[nLog]) * BoxHeight;
-
-				if(HasSetHover)
-				{
-					for(var i = 0; i < Frames.length; ++i)
-					{
-						var IndexStart = Lod.LogStart[i][nLog];
-						if(nHoverTokenNext >= IndexStart)
-						{
-							nHoverFrame = i;
-						}
-					}
-				}
 			}
 		}
 
@@ -3758,4 +3757,4 @@ AutoRedraw();
 
 </script>
 </body>
-</html>      
+</html>
