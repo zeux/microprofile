@@ -2547,6 +2547,26 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 
+			MicroProfilePrintf(CB, Handle, "var tl_%d_%d = [", i, j);
+			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
+			{
+				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
+				if(nLogType == MP_LOG_LABEL)
+				{
+					uint64_t nLabel = MicroProfileLogGetTick(pLog->Log[k]);
+					const char* pLabelName = MicroProfileGetLabel(nLabel);
+
+					if (strchr(pLabelName, '"') == 0 && strchr(pLabelName, '\\') == 0)
+						MicroProfilePrintf(CB, Handle, "\"%s\",", pLabelName);
+					else
+						MicroProfilePrintf(CB, Handle, "null,");
+				}
+				else
+				{
+					MicroProfilePrintf(CB, Handle, "null,");
+				}
+			}
+			MicroProfilePrintf(CB, Handle, "];\n");
 		}
 
 		MicroProfilePrintf(CB, Handle, "var ts%d = [", i);
@@ -2569,6 +2589,12 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		}
 		MicroProfilePrintf(CB, Handle, "];\n");
 
+		MicroProfilePrintf(CB, Handle, "var tl%d = [", i);
+		for(uint32_t j = 0; j < S.nNumLogs; ++j)
+		{
+			MicroProfilePrintf(CB, Handle, "tl_%d_%d,", i, j);
+		}
+		MicroProfilePrintf(CB, Handle, "];\n");
 
 		int64_t nFrameStart = S.Frames[nFrameIndex].nFrameStartCpu;
 		int64_t nFrameEnd = S.Frames[nFrameIndexNext].nFrameStartCpu;
@@ -2576,7 +2602,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		float fToMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu());
 		float fFrameMs = MicroProfileLogTickDifference(nTickStart, nFrameStart) * fToMs;
 		float fFrameEndMs = MicroProfileLogTickDifference(nTickStart, nFrameEnd) * fToMs;
-		MicroProfilePrintf(CB, Handle, "Frames[%d] = MakeFrame(%d, %f, %f, ts%d, tt%d, ti%d);\n", i, 0, fFrameMs, fFrameEndMs, i, i, i);
+		MicroProfilePrintf(CB, Handle, "Frames[%d] = MakeFrame(%d, %f, %f, ts%d, tt%d, ti%d, tl%d);\n", i, 0, fFrameMs, fFrameEndMs, i, i, i, i);
 	}
 	
 	uint32_t nContextSwitchStart = 0;

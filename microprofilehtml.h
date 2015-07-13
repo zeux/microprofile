@@ -163,9 +163,9 @@ const char g_MicroProfileHtml_begin_0[] =
 "	var timer = {\"id\":id, \"name\":name, \"len\":name.length, \"color\":color, \"colordark\":colordark,\"timercolor\":color, \"textcolor\":InvertColor(color), \"group\":group, \"average\":average, \"max\":max, \"exclaverage\":exclaverage, \"exclmax\":exclmax, \"callaverage\":callaverage, \"callcount\":callcount, \"total\":total, \"meta\":meta, \"textcolorindex\":InvertColorIndex(color), \"metaavg\":metaavg, \"metamax\":metamax};\n"
 "	return timer;\n"
 "}\n"
-"function MakeFrame(id, framestart, frameend, ts, tt, ti)\n"
+"function MakeFrame(id, framestart, frameend, ts, tt, ti, tl)\n"
 "{\n"
-"	var frame = {\"id\":id, \"framestart\":framestart, \"frameend\":frameend, \"ts\":ts, \"tt\":tt, \"ti\":ti};\n"
+"	var frame = {\"id\":id, \"framestart\":framestart, \"frameend\":frameend, \"ts\":ts, \"tt\":tt, \"ti\":ti, \"tl\":tl};\n"
 "	return frame;\n"
 "}\n"
 "\n"
@@ -180,7 +180,6 @@ sizeof(g_MicroProfileHtml_begin_0),
 };
 size_t g_MicroProfileHtml_begin_count = 1;
 const char g_MicroProfileHtml_end_0[] =
-"\n"
 "\n"
 "\n"
 "var CanvasDetailedView = document.getElementById(\'DetailedView\');\n"
@@ -1622,11 +1621,11 @@ const char g_MicroProfileHtml_end_0[] =
 "\n"
 "\n"
 "			StringArray.push(\"Time\");\n"
-"			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3));";
+"			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3));\n"
+"";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"\n"
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"Total\");\n"
@@ -2899,11 +2898,11 @@ const char g_MicroProfileHtml_end_1[] =
 "				if(MouseDragY != MouseDragYLast)\n"
 "				{\n"
 "					ZoomGraph(MouseDragY - MouseDragYLast);\n"
-"			";
+"				";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"	}\n"
+"}\n"
 "			}\n"
 "		}\n"
 "		else if(Mode == ModeTimers)\n"
