@@ -848,8 +848,8 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	int64_t nGapTime = MicroProfileTicksPerSecondCpu() * MICROPROFILE_GAP_TIME / 1000;
 	for(uint32_t i = 0; i < MICROPROFILE_MAX_FRAME_HISTORY - MICROPROFILE_GPU_FRAME_DELAY; ++i)
 	{
-		uint32_t nNextIndex = (S.nFrameCurrent + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
-		pFrameFirst = &S.Frames[nNextIndex];
+		uint32_t nPrevIndex = (S.nFrameCurrent + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
+		pFrameFirst = &S.Frames[nPrevIndex];
 		if(pFrameFirst->nFrameStartCpu <= nBaseTicksCpu-nGapTime)
 			break;
 	}
@@ -859,6 +859,15 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	float fMsEnd = fMs + fMsBase;
 	float fWidth = (float)nWidth;
 	float fMsToScreen = fWidth / fMs;
+
+	for(uint32_t i = pFrameFirst - &S.Frames[0]; i != nFrameNext; i = (i+1) % MICROPROFILE_MAX_FRAME_HISTORY)
+	{
+		uint64_t nTickStart = S.Frames[i].nFrameStartCpu;
+		float fMsStart = fToMsCpu * MicroProfileLogTickDifference(nBaseTicksCpu, nTickStart);
+		float fXStart = fMsStart * fMsToScreen;
+
+		MicroProfileDrawLineVertical(fXStart, nBaseY, nBaseY + nHeight, UI.nOpacityForeground | 0xbbbbbb);
+	}
 
 	{
 		float fRate = floor(2*(log10(fMs)-1))/2;
