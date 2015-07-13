@@ -992,7 +992,7 @@ function GatherHoverLabels(TimerIndex, StartIndex, nLog, nFrameLast)
 				StackPos--;
 				if(StackPos == 0 && index == TimerIndex)
 				{
-					return HoverInfo;
+					return HoverInfo.reverse();
 				}
 			}
 			else if(type == 0)

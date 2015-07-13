@@ -1004,7 +1004,7 @@ const char g_MicroProfileHtml_end_0[] =
 "				StackPos--;\n"
 "				if(StackPos == 0 && index == TimerIndex)\n"
 "				{\n"
-"					return HoverInfo;\n"
+"					return HoverInfo.reverse();\n"
 "				}\n"
 "			}\n"
 "			else if(type == 0)\n"
@@ -1629,11 +1629,11 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(Timer.exclaverage);\n"
 "			StringArray.push(\"Call Average\");\n"
 "			StringArray.push(Timer.callaverage);\n"
-"			StringAr";
+"	";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"ray.push(\"Call Count\");\n"
+"		StringArray.push(\"Call Count\");\n"
 "			StringArray.push(Timer.callcount);\n"
 "\n"
 "			StringArray.push(\"\");\n"
@@ -2906,11 +2906,11 @@ const char g_MicroProfileHtml_end_1[] =
 "  return Math.max(min, Math.min(number, max));\n"
 "}\n"
 "\n"
-"function MouseDragPan";
+"function Mo";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"()\n"
+"useDragPan()\n"
 "{\n"
 "	return MouseDragButton == 1 || MouseDragKeyShift;\n"
 "}\n"
