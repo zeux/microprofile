@@ -967,6 +967,50 @@ function GatherHoverMetaCounters(TimerIndex, StartIndex, nLog, nFrameLast)
 		}
 	}
 }
+
+function GatherHoverLabels(TimerIndex, StartIndex, nLog, nFrameLast)
+{
+	var HoverInfo = [];
+	var StackPos = 1;
+	//search backwards, aggregate labels
+	for(var i = nFrameLast; i >= 0; i--)
+	{
+		var fr = Frames[i];
+		var ts = fr.ts[nLog];
+		var ti = fr.ti[nLog];
+		var tt = fr.tt[nLog];
+		var tl = fr.tl[nLog];
+		var start = i == nFrameLast ? StartIndex-1 : ts.length-1;
+
+		for(var j = start; j >= 0; j--)
+		{
+			var type = tt[j];
+			var index = ti[j];
+			var time = ts[j];
+			if(type == 1)
+			{
+				StackPos--;
+				if(StackPos == 0 && index == TimerIndex)
+				{
+					return HoverInfo;
+				}
+			}
+			else if(type == 0)
+			{
+				StackPos++;
+			}
+			else if (type == 3 && StackPos == 1)
+			{
+				var Label = tl[j];
+				if(Label)
+				{
+					HoverInfo.push(Label);
+				}
+			}
+		}
+	}
+}
+
 function CalculateAllTimers(fBegin, fEnd)
 {
 	var Sum = [];
@@ -1657,13 +1701,13 @@ function DrawHoverToolTip()
 				StringArray.push("" + FrameTime.Max);
 			}
 
-			var HoverInfo = GatherHoverMetaCounters(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
-			var Header = 0;
-			for(index in HoverInfo)
+			var HoverMeta = GatherHoverMetaCounters(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
+			var HeaderMeta = 0;
+			for(index in HoverMeta)
 			{
-				if(0 == Header)
+				if(0 == HeaderMeta)
 				{
-					Header = 1;
+					HeaderMeta = 1;
 					StringArray.push("");
 					StringArray.push("");
 					StringArray.push("Meta");
@@ -1671,7 +1715,21 @@ function DrawHoverToolTip()
 
 				}
 				StringArray.push(""+index);
-				StringArray.push(""+HoverInfo[index]);
+				StringArray.push(""+HoverMeta[index]);
+			}
+
+			var HoverLabel = GatherHoverLabels(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
+
+			if (HoverLabel.length > 0)
+			{
+				StringArray.push("");
+				StringArray.push("");
+
+				for(index in HoverLabel)
+				{
+					StringArray.push("Label:")
+					StringArray.push(HoverLabel[index]);
+				}
 			}
 
 			StringArray.push("");
