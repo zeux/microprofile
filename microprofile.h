@@ -2361,11 +2361,15 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		MicroProfilePrintf(CB, Handle, "];\n");
 
 
-
-		MicroProfilePrintf(CB, Handle, "TimerInfo[%d] = MakeTimer(%d, \"%s\", %d, '#%02x%02x%02x', %f, %f, %f, %f, %f, %d, %f, Meta%d, MetaAvg%d, MetaMax%d);\n", S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].pName, S.TimerInfo[i].nGroupIndex, 
-			MICROPROFILE_UNPACK_RED(S.TimerInfo[i].nColor) & 0xff,
-			MICROPROFILE_UNPACK_GREEN(S.TimerInfo[i].nColor) & 0xff,
-			MICROPROFILE_UNPACK_BLUE(S.TimerInfo[i].nColor) & 0xff,
+		uint32_t nColor = S.TimerInfo[i].nColor;
+		uint32_t nColorDark = (nColor >> 1) & ~0x80808080;
+		MicroProfilePrintf(CB, Handle, "TimerInfo[%d] = MakeTimer(%d, \"%s\", %d, '#%02x%02x%02x','#%02x%02x%02x', %f, %f, %f, %f, %f, %d, %f, Meta%d, MetaAvg%d, MetaMax%d);\n", S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].pName, S.TimerInfo[i].nGroupIndex, 
+			MICROPROFILE_UNPACK_RED(nColor) & 0xff,
+			MICROPROFILE_UNPACK_GREEN(nColor) & 0xff,
+			MICROPROFILE_UNPACK_BLUE(nColor) & 0xff,
+			MICROPROFILE_UNPACK_RED(nColorDark) & 0xff,
+			MICROPROFILE_UNPACK_GREEN(nColorDark) & 0xff,
+			MICROPROFILE_UNPACK_BLUE(nColorDark) & 0xff,
 			pAverage[nIdx],
 			pMax[nIdx],
 			pAverageExclusive[nIdx],
@@ -2877,6 +2881,26 @@ void MicroProfileWebServerStop()
 	MicroProfileThreadJoin(&S.WebServerThread);
 }
 
+int MicroProfileParseGet(const char* pGet)
+{
+	const char* pStart = pGet;
+	while(*pGet != '\0')
+	{
+		if(*pGet < '0' || *pGet > '9')
+			return 0;
+		pGet++;
+	}
+	int nFrames = atoi(pStart);
+	if(nFrames)
+	{
+		return nFrames;
+	}
+	else
+	{
+		return MICROPROFILE_WEBSERVER_MAXFRAMES;
+	}
+}
+
 void* MicroProfileWebServerUpdate(void*)
 {
 	for (;;)
@@ -2906,7 +2930,7 @@ void* MicroProfileWebServerUpdate(void*)
 				char* pEnd = pString;
 				while(*pEnd != '\0')
 				{
-					if(*pEnd == '\r' || *pEnd == '\n')
+					if(*pEnd == '\r' || *pEnd == '\n' || *pEnd == ' ')
 					{
 						*pEnd = '\0';
 						return;
@@ -2922,50 +2946,46 @@ void* MicroProfileWebServerUpdate(void*)
 
 			if(pHttp && pGet)
 			{
-				int nMaxFrames = MICROPROFILE_WEBSERVER_MAXFRAMES;
 				*pHttp = '\0';
 				pGet += sizeof("GET /")-1;
 				Terminate(pGet);
-				int nFrames = atoi(pGet);
+				int nFrames = MicroProfileParseGet(pGet);
 				if(nFrames)
 				{
-					nMaxFrames = nFrames;
-				}
-				uint64_t nTickStart = MP_TICK();
-				send(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1, 0);
-				uint64_t nDataStart = S.nWebServerDataSent;
-				S.WebServerPut = 0;
-#if 0 == MICROPROFILE_MINIZ
-				MicroProfileDumpHtml(MicroProfileWriteSocket, &Connection, nMaxFrames, pHost);
-				uint64_t nDataEnd = S.nWebServerDataSent;
-				uint64_t nTickEnd = MP_TICK();
-				uint64_t nDiff = (nTickEnd - nTickStart);
-				float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
-				int nKb = ((nDataEnd-nDataStart)>>10) + 1;
-				int nCompressedKb = nKb;
-				MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
-				MicroProfileFlushSocket(Connection);
-#else
-				MicroProfileCompressedSocketState CompressState;
-				MicroProfileCompressedSocketStart(&CompressState, Connection);
-				MicroProfileDumpHtml(MicroProfileCompressedWriteSocket, &CompressState, nMaxFrames, pHost);
-				S.nWebServerDataSent += CompressState.nSize;
-				uint64_t nDataEnd = S.nWebServerDataSent;
-				uint64_t nTickEnd = MP_TICK();
-				uint64_t nDiff = (nTickEnd - nTickStart);
-				float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
-				int nKb = ((nDataEnd-nDataStart)>>10) + 1;
-				int nCompressedKb = ((CompressState.nCompressedSize)>>10) + 1;
-				MicroProfilePrintf(MicroProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
-				MicroProfileCompressedSocketFinish(&CompressState);
-				MicroProfileFlushSocket(Connection);
-#endif
+					uint64_t nTickStart = MP_TICK();
+					send(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1, 0);
+					uint64_t nDataStart = S.nWebServerDataSent;
+					S.WebServerPut = 0;
+	#if 0 == MICROPROFILE_MINIZ
+					MicroProfileDumpHtml(MicroProfileWriteSocket, &Connection, nFrames, pHost);
+					uint64_t nDataEnd = S.nWebServerDataSent;
+					uint64_t nTickEnd = MP_TICK();
+					uint64_t nDiff = (nTickEnd - nTickStart);
+					float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
+					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
+					int nCompressedKb = nKb;
+					MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
+					MicroProfileFlushSocket(Connection);
+	#else
+					MicroProfileCompressedSocketState CompressState;
+					MicroProfileCompressedSocketStart(&CompressState, Connection);
+					MicroProfileDumpHtml(MicroProfileCompressedWriteSocket, &CompressState, nFrames, pHost);
+					S.nWebServerDataSent += CompressState.nSize;
+					uint64_t nDataEnd = S.nWebServerDataSent;
+					uint64_t nTickEnd = MP_TICK();
+					uint64_t nDiff = (nTickEnd - nTickStart);
+					float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
+					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
+					int nCompressedKb = ((CompressState.nCompressedSize)>>10) + 1;
+					MicroProfilePrintf(MicroProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
+					MicroProfileCompressedSocketFinish(&CompressState);
+					MicroProfileFlushSocket(Connection);
+	#endif
 
-#if MICROPROFILE_DEBUG
-				printf("\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
-#else
-				(void)nCompressedKb;
-#endif
+	#if MICROPROFILE_DEBUG
+					printf("\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
+	#endif
+				}
 			}
 		}
 #ifdef _WIN32
