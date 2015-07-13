@@ -2966,7 +2966,6 @@ void* MicroProfileWebServerUpdate(void*)
 					uint64_t nDiff = (nTickEnd - nTickStart);
 					float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
 					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
-					int nCompressedKb = nKb;
 					MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
 					MicroProfileFlushSocket(Connection);
 	#else
@@ -2983,10 +2982,6 @@ void* MicroProfileWebServerUpdate(void*)
 					MicroProfilePrintf(MicroProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
 					MicroProfileCompressedSocketFinish(&CompressState);
 					MicroProfileFlushSocket(Connection);
-	#endif
-
-	#if MICROPROFILE_DEBUG
-					printf("\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
 	#endif
 				}
 			}
