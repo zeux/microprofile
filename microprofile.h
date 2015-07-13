@@ -609,7 +609,10 @@ struct MicroProfileGpuTimerState
 {
 	struct ID3D11DeviceContext* pDeviceContext;
 	struct ID3D11Query* pQueries[MICROPROFILE_GPU_MAX_QUERIES];
-	uint32_t nTimerPut;
+	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
+	uint32_t nQueryPut;
+	uint32_t nQueryGet[MICROPROFILE_GPU_FRAME_DELAY];
+	uint32_t nNextFrame;
 	struct ID3D11Query* pRateQuery;
 	uint32_t nRateQueryIssue;
 	uint64_t nQueryFrequency;
@@ -3291,6 +3294,23 @@ void MicroProfileGpuFlip()
 {
 	if(!S.GPU.pDeviceContext) return;
 
+	uint32_t nNextFrame = S.GPU.nNextFrame;
+	uint32_t nNextNextFrame = (S.GPU.nNextFrame + 1) % MICROPROFILE_GPU_FRAME_DELAY;
+
+	for(uint32_t nIndex = S.GPU.nQueryGet[nNextFrame]; nIndex != S.GPU.nQueryGet[nNextNextFrame]; nIndex = (nIndex+1) % MICROPROFILE_GPU_MAX_QUERIES)
+	{
+		uint64_t nResult = 0;
+
+		HRESULT hr;
+		do hr = S.GPU.pDeviceContext->GetData(S.GPU.pQueries[nIndex], &nResult, sizeof(nResult), 0);
+		while(hr == S_FALSE);
+
+		S.GPU.nResults[nIndex] = (hr == S_OK) ? nResult : MICROPROFILE_INVALID_TICK;
+	}
+
+	S.GPU.nQueryGet[nNextFrame] = S.GPU.nQueryPut;
+	S.GPU.nNextFrame = nNextNextFrame;
+
 	if(S.GPU.nRateQueryIssue == 0)
 	{
 		S.GPU.pDeviceContext->Begin(S.GPU.pRateQuery);
@@ -3316,26 +3336,23 @@ uint32_t MicroProfileGpuInsertTimer()
 {
 	if(!S.GPU.pDeviceContext) return (uint32_t)-1;
 
-	uint32_t nIndex = (S.GPU.nTimerPut+1)%MICROPROFILE_GPU_MAX_QUERIES;
+	uint32_t nIndex = S.GPU.nQueryPut;
+	uint32_t nNextIndex = (nIndex+1)%MICROPROFILE_GPU_MAX_QUERIES;
+
+	if(nNextIndex == S.GPU.nQueryGet[S.GPU.nNextFrame]) return (uint32_t)-1;
 
 	S.GPU.pDeviceContext->End(S.GPU.pQueries[nIndex]);
 
-	S.GPU.nTimerPut = nIndex;
+	S.GPU.nQueryPut = nNextIndex;
 	return nIndex;
 }
 
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nIndex)
 {
-	if(!S.GPU.pDeviceContext) return (uint32_t)-1;
-	if(nIndex == (uint32_t)-1) return (uint64_t)-1;
+	if(!S.GPU.pDeviceContext) return MICROPROFILE_INVALID_TICK;
+	if(nIndex == (uint32_t)-1) return MICROPROFILE_INVALID_TICK;
 
-	uint64_t nTick = 0;
-
-	HRESULT hr;
-	do hr = S.GPU.pDeviceContext->GetData(S.GPU.pQueries[nIndex], &nTick, sizeof(nTick), 0);
-	while(hr == S_FALSE);
-
-	return (hr == S_OK) ? nTick : (uint64_t)-1;
+	return S.GPU.nResults[nIndex];
 }
 
 uint64_t MicroProfileTicksPerSecondGpu()
