@@ -2239,16 +2239,16 @@ function DrawContextSwitchBars(context, ThreadId, fScaleX, fOffsetY, fDetailedOf
 	ProfileLeave();
 }
 
-function SetHoverToken(Lod, nToken, nGlobalIndex, nLog)
+function SetHoverToken(nToken, nIndex, nLog)
 {
 	for(var i = Frames.length-1; i >= 0; --i)
 	{
-		var IndexStart = Lod.LogStart[i][nLog];
-		if(nGlobalIndex >= IndexStart)
+		var IndexStart = LodData[0].LogStart[i][nLog];
+		if(nIndex >= IndexStart)
 		{
 			nHoverFrame = i;
 			nHoverTokenNext = nToken;
-			nHoverTokenIndexNext = nGlobalIndex - IndexStart;
+			nHoverTokenIndexNext = nIndex - IndexStart;
 			nHoverTokenLogIndexNext = nLog;
 			break;
 		}
@@ -2351,19 +2351,21 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 				var Stack = Array(20);
 				var Lod = LodData[LodIndex];
 
-				var TypeArray = Lod.TypeArray[nLog];
-				var IndexArray = Lod.IndexArray[nLog];
-				var TimeArray = Lod.TimeArray[nLog];
+				var TypeArray = g_TypeArray[nLog];
+				var IndexArray = g_IndexArray[nLog];
+				var TimeArray = g_TimeArray[nLog];
+				var GlobalArray = Lod.GlobalArray[nLog];
 
 				var LocalFirstFrame = Frames[FirstFrame].FirstFrameIndex[nLog];
 				var IndexStart = Lod.LogStart[LocalFirstFrame][nLog];
-				var IndexEnd = TimeArray.length;
+				var IndexEnd = GlobalArray.length;
 
 				for(var j = IndexStart; j < IndexEnd; ++j)
 				{
-					var type = TypeArray[j];
-					var index = IndexArray[j];
-					var time = TimeArray[j];
+					var glob = GlobalArray[j];
+					var type = TypeArray[glob];
+					var index = IndexArray[glob];
+					var time = TimeArray[glob];
 					if(type == 1)
 					{
 						//push
@@ -2434,7 +2436,7 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 									fRangeBeginNext = timestart;
 									fRangeEndNext = timeend;
 
-									SetHoverToken(Lod, index, j, nLog)
+									SetHoverToken(index, glob, nLog)
 								}
 							}
 							if(StackPos == 0 && time > fTimeEnd)
@@ -3386,7 +3388,7 @@ function CalcAverage()
 
 }
 
-function MakeLod(index, MinDelta, TimeArray, TypeArray, IndexArray, LogStart)
+function MakeLod(index, MinDelta, GlobalArray, LogStart)
 {
 	if(LodData[index])
 	{
@@ -3395,9 +3397,7 @@ function MakeLod(index, MinDelta, TimeArray, TypeArray, IndexArray, LogStart)
 	// debugger;
 	var o = new Object();
 	o.MinDelta = MinDelta;
-	o.TimeArray = TimeArray;
-	o.TypeArray = TypeArray;
-	o.IndexArray = IndexArray;
+	o.GlobalArray = GlobalArray;
 	o.LogStart = LogStart;
 	LodData[index] = o;
 }
@@ -3409,19 +3409,13 @@ function PreprocessBuildSplitArray()
 	ProfileEnter("PreprocessBuildSplitArray");
 	var SplitArrays = new Array(nNumLogs);
 
-	for(nLog = 0; nLog < nNumLogs; ++nLog)
-	{
-		console.log("source log " + nLog + " size " + LodData[0].TypeArray[nLog].length);
-	}
-
-
 	for(nLog = 0; nLog < nNumLogs; nLog++)
 	{
 		var MaxDepth = 1;
 		var StackPos = 0;
 		var Stack = Array(20);
-		var TypeArray = LodData[0].TypeArray[nLog];
-		var TimeArray = LodData[0].TimeArray[nLog];
+		var TypeArray = g_TypeArray[nLog];
+		var TimeArray = g_TimeArray[nLog];
 		var DeltaTimes = new Array(TypeArray.length);
 
 		for(var j = 0; j < TypeArray.length; ++j)
@@ -3503,9 +3497,9 @@ function PreprocessBuildDurationArray()
 		var StackPos = 0;
 		var Stack = Array(20);
 		var StackIndex = Array(20);
-		var TypeArray = LodData[0].TypeArray[nLog];
-		var TimeArray = LodData[0].TimeArray[nLog];
-		var DurationArray = Array(LodData[0].TypeArray[nLog].length);
+		var TypeArray = g_TypeArray[nLog];
+		var TimeArray = g_TimeArray[nLog];
+		var DurationArray = Array(g_TypeArray[nLog].length);
 		for(var j = 0; j < TypeArray.length; ++j)
 		{
 			var type = TypeArray[j];
@@ -3560,43 +3554,29 @@ function PreprocessLods()
 			DestLogStart[j] = Array(nNumLogs);
 		}
 		var MinDelta = Array(nNumLogs);
-		var TimeArray = Array(nNumLogs);
-		var IndexArray = Array(nNumLogs);
-		var TypeArray = Array(nNumLogs);
-
-
+		var GlobalArray = Array(nNumLogs);
 
 		for(nLog = 0; nLog < nNumLogs; ++nLog)
 		{
-			var SourceTypeArray = Source.TypeArray[nLog];
-			var SourceTimeArray = Source.TimeArray[nLog];
-			var SourceIndexArray = Source.IndexArray[nLog];
 			var Duration = DurationArrays[nLog];
-			console.assert(Duration.length == SourceTypeArray.length, "must be equal!");
 			var SplitTime = SplitArrays[nLog][i];
 
 			MinDelta[nLog] = SplitTime;
 			if(SplitTime < SPLIT_LIMIT)
 			{
-				var SourceCount = SourceTypeArray.length;
-				var DestTypeArray = Array();
-				var DestTimeArray = Array();
-				var DestIndexArray = Array();
+				var SourceCount = Duration.length;
+				var DestGlobalArray = Array();
 				var RemapArray = Array(SourceCount);
 
 				for(var j = 0; j < SourceCount; ++j)
 				{
-					RemapArray[j] = DestTypeArray.length;
+					RemapArray[j] = DestGlobalArray.length;
 					if(Duration[j] >= SplitTime)
 					{
-						DestTypeArray.push(SourceTypeArray[j]);
-						DestTimeArray.push(SourceTimeArray[j]);
-						DestIndexArray.push(SourceIndexArray[j]);
+						DestGlobalArray.push(j);
 					}
 				}
-				TimeArray[nLog] = DestTimeArray;
-				IndexArray[nLog] = DestIndexArray;
-				TypeArray[nLog] = DestTypeArray;
+				GlobalArray[nLog] = DestGlobalArray;
 				for(var j = 0; j < NumFrames; ++j)
 				{
 					var OldStart = SourceLogStart[j][nLog];
@@ -3618,7 +3598,7 @@ function PreprocessLods()
 			}
 
 		}
-		MakeLod(i+1, MinDelta, TimeArray, TypeArray, IndexArray, DestLogStart);
+		MakeLod(i+1, MinDelta, GlobalArray, DestLogStart);
 	}
 	ProfileLeave();
 }
@@ -3628,6 +3608,7 @@ function PreprocessGlobalArray()
 	var nNumLogs = Frames[0].ts.length;
 	var CaptureStart = Frames[0].framestart;
 	var CaptureEnd = Frames[Frames.length-1].frameend;
+	g_GlobalArray = new Array(nNumLogs);
 	g_TypeArray = new Array(nNumLogs);
 	g_TimeArray = new Array(nNumLogs);
 	g_IndexArray = new Array(nNumLogs);
@@ -3646,6 +3627,7 @@ function PreprocessGlobalArray()
 	{
 		MinDelta[nLog] = 0;
 		var Discard = 0;
+		var GlobalArray = new Array();
 		var TypeArray = new Array();
 		var TimeArray = new Array();
 		var IndexArray = new Array();
@@ -3666,6 +3648,7 @@ function PreprocessGlobalArray()
 				}
 				else
 				{
+					GlobalArray.push(TypeArray.length);
 					TypeArray.push(tt[xx]);
 					TimeArray.push(ts[xx]);
 					IndexArray.push(ti[xx]);
@@ -3673,6 +3656,7 @@ function PreprocessGlobalArray()
 			}
 			Frame_.LogEnd[nLog] = TimeArray.length;
 		}
+		g_GlobalArray[nLog] = GlobalArray;
 		g_TypeArray[nLog] = TypeArray;
 		g_TimeArray[nLog] = TimeArray;
 		g_IndexArray[nLog] = IndexArray;
@@ -3681,7 +3665,7 @@ function PreprocessGlobalArray()
 			console.log('discarded ' + Discard + ' markers from ' + ThreadNames[nLog]);
 		}
 	}
-	MakeLod(0, MinDelta, g_TimeArray, g_TypeArray, g_IndexArray, LogStartArray);
+	MakeLod(0, MinDelta, g_GlobalArray, LogStartArray);
 	ProfileLeave();
 }
 
