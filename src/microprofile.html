@@ -162,6 +162,16 @@ function MakeTimer(id, name, group, color, colordark, average, max, exclaverage,
 	var timer = {"id":id, "name":name, "len":name.length, "color":color, "colordark":colordark,"timercolor":color, "textcolor":InvertColor(color), "group":group, "average":average, "max":max, "exclaverage":exclaverage, "exclmax":exclmax, "callaverage":callaverage, "callcount":callcount, "total":total, "meta":meta, "textcolorindex":InvertColorIndex(color), "metaavg":metaavg, "metamax":metamax};
 	return timer;
 }
+
+function MakeTimes(scale, ts)
+{
+	for(var i = 0; i < ts.length; ++i)
+	{
+		ts[i] *= scale;
+	}
+	return ts;
+}
+
 function MakeFrame(id, framestart, frameend, ts, tt, ti, tl)
 {
 	var frame = {"id":id, "framestart":framestart, "frameend":frameend, "ts":ts, "tt":tt, "ti":ti, "tl":tl};

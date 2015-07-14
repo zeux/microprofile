@@ -2520,14 +2520,14 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
 			float fToMs = MicroProfileTickToMsMultiplier(pLog->nGpu ? MicroProfileTicksPerSecondGpu() : MicroProfileTicksPerSecondCpu());
-			MicroProfilePrintf(CB, Handle, "var ts_%d_%d = [", i, j);
+			MicroProfilePrintf(CB, Handle, "var ts_%d_%d = MakeTimes(%e,[", i, j, fToMs);
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-				float fTime = (nLogType == MP_LOG_META || nLogType == MP_LOG_LABEL) ? 0.f : MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) * fToMs;
-				MicroProfilePrintf(CB, Handle, "%f,", fTime);
+				uint64_t nTick = (nLogType == MP_LOG_META || nLogType == MP_LOG_LABEL) ? 0 : MicroProfileLogTickDifference(nStartTick, pLog->Log[k]);
+				MicroProfilePrintf(CB, Handle, "%lld,", (long long)nTick);
 			}
-			MicroProfilePrintf(CB, Handle, "];\n");
+			MicroProfilePrintf(CB, Handle, "]);\n");
 			MicroProfilePrintf(CB, Handle, "var tt_%d_%d = [", i, j);
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
