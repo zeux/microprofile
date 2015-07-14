@@ -1336,8 +1336,11 @@ uint64_t MicroProfileEnter(MicroProfileToken nToken_)
 		if(nGroupMask & S.nGroupMaskGpu)
 		{
 			uint32_t nTimer = MicroProfileGpuInsertTimer();
-			MicroProfileLogPut(nToken_, nTimer, MP_LOG_ENTER, g_MicroProfileGpuLog);
-			return 0;
+			if(nTimer != (uint32_t)-1)
+			{
+				MicroProfileLogPut(nToken_, nTimer, MP_LOG_ENTER, g_MicroProfileGpuLog);
+				return 0;
+			}
 		}
 		else if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
 		{
@@ -3491,17 +3494,17 @@ uint64_t MicroProfileTicksPerSecondGpu()
 #elif !MICROPROFILE_GPU_TIMERS_CUSTOM
 uint32_t MicroProfileGpuInsertTimer()
 {
-	return 0;
+	return (uint32_t)-1;
 }
 
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
 {
-	return 0;
+	return MICROPROFILE_INVALID_TICK;
 }
 
 uint64_t MicroProfileTicksPerSecondGpu()
 {
-	return 1;
+	return 1000000000ll;
 }
 
 void MicroProfileGpuInit(void* pContext)
