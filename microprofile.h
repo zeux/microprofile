@@ -2432,30 +2432,13 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	{
 		if(S.Pool[i])
 		{
-			MicroProfilePrintf(CB, Handle, "[");
 			float fToMs = S.Pool[i]->nGpu ? fToMsGPU : fToMsCPU;
+			MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
 			for(uint32_t j = 0; j < MICROPROFILE_MAX_GROUPS; ++j)
 			{
-				MicroProfilePrintf(CB, Handle, "%f,", S.Pool[i]->nAggregateGroupTicks[j]/nAggregateFrames * fToMs);
+				MicroProfilePrintUIntComma(CB, Handle, S.Pool[i]->nAggregateGroupTicks[j]);
 			}
-			MicroProfilePrintf(CB, Handle, "],\n");
-		}
-	}
-	MicroProfilePrintf(CB, Handle, "];\n");
-
-
-	MicroProfilePrintf(CB, Handle, "\nvar ThreadGroupTimeTotalArray = [\n");
-	for(uint32_t i = 0; i < S.nNumLogs; ++i)
-	{
-		if(S.Pool[i])
-		{
-			MicroProfilePrintf(CB, Handle, "[");
-			float fToMs = S.Pool[i]->nGpu ? fToMsGPU : fToMsCPU;
-			for(uint32_t j = 0; j < MICROPROFILE_MAX_GROUPS; ++j)
-			{
-				MicroProfilePrintf(CB, Handle, "%f,", S.Pool[i]->nAggregateGroupTicks[j] * fToMs);
-			}
-			MicroProfilePrintf(CB, Handle, "],\n");
+			MicroProfilePrintf(CB, Handle, "]),\n");
 		}
 	}
 	MicroProfilePrintf(CB, Handle, "];");
@@ -2529,7 +2512,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
 			int64_t nStartTick = pLog->nGpu ? nTickStartGpu : nTickStart;
-			float fToMs = MicroProfileTickToMsMultiplier(pLog->nGpu ? MicroProfileTicksPerSecondGpu() : MicroProfileTicksPerSecondCpu());
+			float fToMs = pLog->nGpu ? fToMsGPU : fToMsCPU;
 
 			MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)

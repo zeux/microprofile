@@ -1931,8 +1931,8 @@ function DrawBarView()
 				{
 					var groupid = GroupOrder[idx];
 					var Group = GroupInfo[groupid];
-					var PerThreadTimer = ThreadGroupTimeArray[i][groupid];
-					var PerThreadTimerTotal = ThreadGroupTimeTotalArray[i][groupid];
+					var PerThreadTimerTotal = ThreadGroupTimeArray[i][groupid];
+					var PerThreadTimer = PerThreadTimerTotal / AggregateInfo.Frames;
 					if((PerThreadTimer > 0.0001|| PerThreadTimerTotal>0.1) && (GroupsAllActive || GroupsActive[Group.name]))
 					{
 						var GColor = GroupColors ? GroupInfo[groupid].color : 'white';
@@ -1990,8 +1990,8 @@ function DrawBarView()
 				{
 					for(var i = 0; i < ThreadNames.length; ++i)
 					{
-						var PerThreadTimer = ThreadGroupTimeArray[i][groupid];
-						var PerThreadTimerTotal = ThreadGroupTimeTotalArray[i][groupid];
+						var PerThreadTimerTotal = ThreadGroupTimeArray[i][groupid];
+						var PerThreadTimer = PerThreadTimerTotal / AggregateInfo.Frames;
 						if((PerThreadTimer > 0.0001|| PerThreadTimerTotal>0.1) && (ThreadsActive[ThreadNames[i]] || ThreadsAllActive))
 						{
 							var YText = Y+Height-FontAscent;

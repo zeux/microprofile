@@ -1947,8 +1947,8 @@ const char g_MicroProfileHtml_end_1[] =
 "				{\n"
 "					var groupid = GroupOrder[idx];\n"
 "					var Group = GroupInfo[groupid];\n"
-"					var PerThreadTimer = ThreadGroupTimeArray[i][groupid];\n"
-"					var PerThreadTimerTotal = ThreadGroupTimeTotalArray[i][groupid];\n"
+"					var PerThreadTimerTotal = ThreadGroupTimeArray[i][groupid];\n"
+"					var PerThreadTimer = PerThreadTimerTotal / AggregateInfo.Frames;\n"
 "					if((PerThreadTimer > 0.0001|| PerThreadTimerTotal>0.1) && (GroupsAllActive || GroupsActive[Group.name]))\n"
 "					{\n"
 "						var GColor = GroupColors ? GroupInfo[groupid].color : \'white\';\n"
@@ -2006,8 +2006,8 @@ const char g_MicroProfileHtml_end_1[] =
 "				{\n"
 "					for(var i = 0; i < ThreadNames.length; ++i)\n"
 "					{\n"
-"						var PerThreadTimer = ThreadGroupTimeArray[i][groupid];\n"
-"						var PerThreadTimerTotal = ThreadGroupTimeTotalArray[i][groupid];\n"
+"						var PerThreadTimerTotal = ThreadGroupTimeArray[i][groupid];\n"
+"						var PerThreadTimer = PerThreadTimerTotal / AggregateInfo.Frames;\n"
 "						if((PerThreadTimer > 0.0001|| PerThreadTimerTotal>0.1) && (ThreadsActive[ThreadNames[i]] || ThreadsAllActive))\n"
 "						{\n"
 "							var YText = Y+Height-FontAscent;\n"
@@ -2922,12 +2922,12 @@ const char g_MicroProfileHtml_end_1[] =
 "{\n"
 "  return Math.max(min, Math.min(number, max));\n"
 "}\n"
-"\n"
-"function ";
+"";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"MouseDragPan()\n"
+"\n"
+"function MouseDragPan()\n"
 "{\n"
 "	return MouseDragButton == 1 || MouseDragKeyShift;\n"
 "}\n"
