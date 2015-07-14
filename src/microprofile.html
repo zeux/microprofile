@@ -1590,11 +1590,9 @@ function DrawHoverToolTip()
 	if(nHoverToken != -1)
 	{
 		var StringArray = [];
-		var groupid = TimerInfo[nHoverToken].group;
-		StringArray.push("Timer");
-		StringArray.push(TimerInfo[nHoverToken].name);
-		StringArray.push("Group");
-		StringArray.push(GroupInfo[groupid].name);
+
+		var Timer = TimerInfo[nHoverToken];
+		var Group = GroupInfo[Timer.group];
 
 		var bShowTimers = Mode == ModeTimers;
 		if(FlipToolTip)
@@ -1603,10 +1601,14 @@ function DrawHoverToolTip()
 		}
 		if(bShowTimers)
 		{
+			StringArray.push("Timer");
+			StringArray.push(Timer.name);
+			StringArray.push("Group");
+			StringArray.push(Group.name);
 
 			StringArray.push("");
 			StringArray.push("");
-			var Timer = TimerInfo[nHoverToken];
+
 			StringArray.push("Average");
 			StringArray.push(Timer.average);
 			StringArray.push("Max");
@@ -1625,11 +1627,11 @@ function DrawHoverToolTip()
 
 
 			StringArray.push("Group");
-			StringArray.push(GroupInfo[groupid].name);
+			StringArray.push(Group.name);
 			StringArray.push("Average");
-			StringArray.push(GroupInfo[groupid].average);
+			StringArray.push(Group.average);
 			StringArray.push("Max");
-			StringArray.push(GroupInfo[groupid].max);
+			StringArray.push(Group.max);
 
 			StringArray.push("");
 			StringArray.push("");
@@ -1647,35 +1649,38 @@ function DrawHoverToolTip()
 		}
 		else
 		{
+			StringArray.push("Timer");
+			StringArray.push(Timer.name);
+			StringArray.push("Group");
+			StringArray.push(Group.name);
+
 			StringArray.push("");
 			StringArray.push("");
-
-
 
 			StringArray.push("Time");
 			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3));
 			StringArray.push("");
 			StringArray.push("");
 			StringArray.push("Total");
-			StringArray.push("" + TimerInfo[nHoverToken].Sum);
+			StringArray.push("" + Timer.Sum);
 			StringArray.push("Max");
-			StringArray.push("" + TimerInfo[nHoverToken].Max);
+			StringArray.push("" + Timer.Max);
 			StringArray.push("Average");
-			StringArray.push("" + TimerInfo[nHoverToken].Average);
+			StringArray.push("" + Timer.Average);
 			StringArray.push("Count");
-			StringArray.push("" + TimerInfo[nHoverToken].CallCount);
+			StringArray.push("" + Timer.CallCount);
 
 			StringArray.push("");
 			StringArray.push("");
 
 			StringArray.push("Max/Frame");
-			StringArray.push("" + TimerInfo[nHoverToken].FrameMax);
+			StringArray.push("" + Timer.FrameMax);
 
 			StringArray.push("Average Time/Frame");
-			StringArray.push("" + TimerInfo[nHoverToken].FrameAverage);
+			StringArray.push("" + Timer.FrameAverage);
 
 			StringArray.push("Average Count/Frame");
-			StringArray.push("" + TimerInfo[nHoverToken].FrameCallAverage);
+			StringArray.push("" + Timer.FrameCallAverage);
 
 
 
