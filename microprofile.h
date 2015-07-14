@@ -905,6 +905,7 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 #if defined(__APPLE__) || defined(__linux__)
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <fcntl.h>
 #define MP_INVALID_SOCKET(f) (f < 0)
 #endif
@@ -2865,6 +2866,31 @@ void MicroProfileCompressedWriteSocket(void* Handle, size_t nSize, const char* p
 
 void* MicroProfileWebServerUpdate(void*);
 
+void MicroProfileWebServerHello(int nPort)
+{
+	char Buffer[1024];
+
+	if(gethostname(Buffer, sizeof(Buffer)) == 0)
+	{
+		if (struct hostent* host = gethostbyname(Buffer))
+		{
+		#ifdef _WIN32
+			uint8_t* pIp = (uint8_t*)host->h_addr_list[0];
+		#else
+			uint8_t* pIp = (uint8_t*)host->h_addr;
+		#endif
+
+			if (pIp)
+			{
+				MICROPROFILE_PRINTF("MicroProfile: Web server started on %d.%d.%d.%d:%d\n", pIp[0], pIp[1], pIp[2], pIp[3], nPort);
+				return;
+			}
+		}
+	}
+
+	MICROPROFILE_PRINTF("MicroProfile: Web server started on port %d", nPort);
+}
+
 void MicroProfileWebServerStart()
 {
 #ifdef _WIN32
@@ -2889,6 +2915,7 @@ void MicroProfileWebServerStart()
 		if(0 == ::bind(S.WebServerSocket, (sockaddr*)&Addr, sizeof(Addr)))
 		{
 			S.nWebServerPort = MICROPROFILE_WEBSERVER_PORT+i;
+			MicroProfileWebServerHello(S.nWebServerPort);
 			break;
 		}
 	}
@@ -2998,7 +3025,6 @@ void* MicroProfileWebServerUpdate(void*)
 					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
 					MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
 					MicroProfileFlushSocket(Connection);
-					printf("Sent %dkb in %.2fms\n",nKb, fMs);
 	#else
 					MicroProfileCompressedSocketState CompressState;
 					MicroProfileCompressedSocketStart(&CompressState, Connection);
@@ -3215,11 +3241,11 @@ void* MicroProfileTraceThread(void* unused)
 	FILE* pFile = fopen("/tmp/.microprofilecspipe", "r");
 	if(!pFile)
 	{
-		printf("CONTEXT SWITCH FAILED TO OPEN FILE: make sure to run dtrace script\n");
+		MICROPROFILE_PRINTF("MicroProfile: Context switch trace failed to open file (make sure to run DTrace script)\n");
 		S.bContextSwitchRunning = false;
 		return 0;
 	}
-	printf("STARTING TRACE THREAD\n");
+
 	char* pLine = 0;
 	size_t cap = 0;
 	size_t len = 0;
@@ -3250,7 +3276,7 @@ void* MicroProfileTraceThread(void* unused)
 			MicroProfileContextSwitchPut(&Switch);
 		}
 	}
-	printf("EXITING TRACE THREAD\n");
+
 	S.bContextSwitchRunning = false;
 	return 0;
 }
