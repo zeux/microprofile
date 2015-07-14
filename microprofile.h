@@ -467,7 +467,7 @@ struct MicroProfileScopeHandler
 #ifndef MICROPROFILE_CONTEXT_SWITCH_TRACE 
 #if defined(_WIN32) 
 #define MICROPROFILE_CONTEXT_SWITCH_TRACE 1
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !defined(TARGET_OS_IPHONE)
 #define MICROPROFILE_CONTEXT_SWITCH_TRACE 1
 #else
 #define MICROPROFILE_CONTEXT_SWITCH_TRACE 0
