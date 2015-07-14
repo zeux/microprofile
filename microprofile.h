@@ -2541,16 +2541,23 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 
+			uint32_t nLabelIndex = 0;
+
 			MicroProfilePrintf(CB, Handle, "var ti_%d_%d = [", i, j);
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
+				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				uint32_t nTimerIndex = (uint32_t)MicroProfileLogTimerIndex(pLog->Log[k]);
-				MicroProfilePrintf(CB, Handle, "%d,", nTimerIndex);
-				nTimerCounter[nTimerIndex]++;
+				uint32_t nIndex = (nLogType == MP_LOG_LABEL) ? nLabelIndex++ : nTimerIndex;
+				MicroProfilePrintf(CB, Handle, "%d,", nIndex);
+
+				if(nLogType == MP_LOG_ENTER)
+					nTimerCounter[nTimerIndex]++;
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 
 			MicroProfilePrintf(CB, Handle, "var tl_%d_%d = [", i, j);
+
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
@@ -2559,14 +2566,10 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 					uint64_t nLabel = MicroProfileLogGetTick(pLog->Log[k]);
 					const char* pLabelName = MicroProfileGetLabel(nLabel);
 
-					if (strchr(pLabelName, '"') == 0 && strchr(pLabelName, '\\') == 0)
+					if(pLabelName)
 						MicroProfilePrintf(CB, Handle, "\"%s\",", pLabelName);
 					else
 						MicroProfilePrintf(CB, Handle, "null,");
-				}
-				else
-				{
-					MicroProfilePrintf(CB, Handle, "null,");
 				}
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
@@ -3012,6 +3015,7 @@ void* MicroProfileWebServerUpdate(void*)
 					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
 					MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
 					MicroProfileFlushSocket(Connection);
+					printf("Sent %dkb in %.2fms\n",nKb, fMs);
 	#else
 					MicroProfileCompressedSocketState CompressState;
 					MicroProfileCompressedSocketStart(&CompressState, Connection);
