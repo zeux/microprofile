@@ -2714,7 +2714,7 @@ void MicroProfileDumpToFile()
 	}
 }
 
-void MicroProfileSendSocket(MpSocket Socket, const void* pData, size_t nSize)
+void MicroProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 {
 #ifdef MSG_NOSIGNAL
 	int nFlags = MSG_NOSIGNAL;
@@ -2776,7 +2776,7 @@ void MicroProfileCompressedSocketFlush(MicroProfileCompressedSocketState* pState
 	unsigned char* pSendEnd = &pState->DeflateOut[MICROPROFILE_COMPRESS_CHUNK - Stream.avail_out];
 	if(pSendStart != pSendEnd)
 	{
-		MicroProfileSendSocket(pState->Socket, pSendStart, pSendEnd - pSendStart);
+		MicroProfileSendSocket(pState->Socket, (char*)pSendStart, pSendEnd - pSendStart);
 		pState->nCompressedSize += pSendEnd - pSendStart;
 	}
 	Stream.next_out = &pState->DeflateOut[0];
