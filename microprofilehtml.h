@@ -158,9 +158,9 @@ const char g_MicroProfileHtml_begin_0[] =
 "	return group;\n"
 "}\n"
 "\n"
-"function MakeTimer(id, name, group, color, colordark, average, max, exclaverage, exclmax, callaverage, callcount, total, meta, metaavg, metamax)\n"
+"function MakeTimer(id, name, group, color, colordark, average, max, exclaverage, exclmax, callaverage, callcount, total, meta, metaagg, metamax)\n"
 "{\n"
-"	var timer = {\"id\":id, \"name\":name, \"len\":name.length, \"color\":color, \"colordark\":colordark,\"timercolor\":color, \"textcolor\":InvertColor(color), \"group\":group, \"average\":average, \"max\":max, \"exclaverage\":exclaverage, \"exclmax\":exclmax, \"callaverage\":callaverage, \"callcount\":callcount, \"total\":total, \"meta\":meta, \"textcolorindex\":InvertColorIndex(color), \"metaavg\":metaavg, \"metamax\":metamax};\n"
+"	var timer = {\"id\":id, \"name\":name, \"len\":name.length, \"color\":color, \"colordark\":colordark,\"timercolor\":color, \"textcolor\":InvertColor(color), \"group\":group, \"average\":average, \"max\":max, \"exclaverage\":exclaverage, \"exclmax\":exclmax, \"callaverage\":callaverage, \"callcount\":callcount, \"total\":total, \"meta\":meta, \"textcolorindex\":InvertColorIndex(color), \"metaagg\":metaagg, \"metamax\":metamax};\n"
 "	return timer;\n"
 "}\n"
 "\n"
@@ -2069,7 +2069,7 @@ const char g_MicroProfileHtml_end_1[] =
 "							{\n"
 "								// var Len = MetaNames[j].length + 1;\n"
 "								DrawMeta(Timer.meta[j], MetaLengths[j], 0);\n"
-"								DrawMeta(Timer.metaavg[j], MetaLengthsAvg[j], 2);\n"
+"								DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2);\n"
 "								DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0);\n"
 "							}\n"
 "						}\n"
@@ -2500,7 +2500,6 @@ const char g_MicroProfileHtml_end_1[] =
 "				var a = Batches[i];\n"
 "				if(a.length)\n"
 "				{\n"
-"					context.fillStyle = TimerInfo[i].colordark;\n"
 "					if(!DisableMerge)\n"
 "					{\n"
 "						for(var j = 0; j < a.length; j += 3)\n"
@@ -2922,14 +2921,14 @@ const char g_MicroProfileHtml_end_1[] =
 "{\n"
 "  return Math.max(min, Math.min(number, max));\n"
 "}\n"
-"";
-
-const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
-const char g_MicroProfileHtml_end_2[] =
 "\n"
 "function MouseDragPan()\n"
 "{\n"
-"	return MouseDragButton == 1 || MouseDragKeyShift;\n"
+"	";
+
+const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
+const char g_MicroProfileHtml_end_2[] =
+"return MouseDragButton == 1 || MouseDragKeyShift;\n"
 "}\n"
 "function MouseDragSelectRange()\n"
 "{\n"

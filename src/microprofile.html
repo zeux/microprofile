@@ -157,9 +157,9 @@ function MakeGroup(id, name, category, numtimers, isgpu, total, average, max, co
 	return group;
 }
 
-function MakeTimer(id, name, group, color, colordark, average, max, exclaverage, exclmax, callaverage, callcount, total, meta, metaavg, metamax)
+function MakeTimer(id, name, group, color, colordark, average, max, exclaverage, exclmax, callaverage, callcount, total, meta, metaagg, metamax)
 {
-	var timer = {"id":id, "name":name, "len":name.length, "color":color, "colordark":colordark,"timercolor":color, "textcolor":InvertColor(color), "group":group, "average":average, "max":max, "exclaverage":exclaverage, "exclmax":exclmax, "callaverage":callaverage, "callcount":callcount, "total":total, "meta":meta, "textcolorindex":InvertColorIndex(color), "metaavg":metaavg, "metamax":metamax};
+	var timer = {"id":id, "name":name, "len":name.length, "color":color, "colordark":colordark,"timercolor":color, "textcolor":InvertColor(color), "group":group, "average":average, "max":max, "exclaverage":exclaverage, "exclmax":exclmax, "callaverage":callaverage, "callcount":callcount, "total":total, "meta":meta, "textcolorindex":InvertColorIndex(color), "metaagg":metaagg, "metamax":metamax};
 	return timer;
 }
 
@@ -2053,7 +2053,7 @@ function DrawBarView()
 							{
 								// var Len = MetaNames[j].length + 1;
 								DrawMeta(Timer.meta[j], MetaLengths[j], 0);
-								DrawMeta(Timer.metaavg[j], MetaLengthsAvg[j], 2);
+								DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2);
 								DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0);
 							}
 						}
@@ -2484,7 +2484,6 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 				var a = Batches[i];
 				if(a.length)
 				{
-					context.fillStyle = TimerInfo[i].colordark;
 					if(!DisableMerge)
 					{
 						for(var j = 0; j < a.length; j += 3)
