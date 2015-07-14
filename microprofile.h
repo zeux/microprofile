@@ -2723,11 +2723,21 @@ void MicroProfileDumpToFile()
 	}
 }
 
+void MicroProfileSendSocket(MpSocket Socket, const void* pData, size_t nSize)
+{
+#ifdef MSG_NOSIGNAL
+	int nFlags = MSG_NOSIGNAL;
+#else
+	int nFlags = 0;
+#endif
+
+	send(Socket, pData, nSize, nFlags);
+}
+
 void MicroProfileFlushSocket(MpSocket Socket)
 {
 	send(Socket, &S.WebServerBuffer[0], S.WebServerPut, 0);
 	S.WebServerPut = 0;
-
 }
 
 void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
@@ -2737,7 +2747,7 @@ void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 	if(nSize > MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE / 2)
 	{
 		MicroProfileFlushSocket(Socket);
-		send(Socket, pData, nSize, 0);
+		MicroProfileSendSocket(Socket, pData, nSize);
 
 	}
 	else
@@ -2776,7 +2786,7 @@ void MicroProfileCompressedSocketFlush(MicroProfileCompressedSocketState* pState
 	unsigned char* pSendEnd = &pState->DeflateOut[MICROPROFILE_COMPRESS_CHUNK - Stream.avail_out];
 	if(pSendStart != pSendEnd)
 	{
-		send(pState->Socket, (const char*)pSendStart, pSendEnd - pSendStart, 0);
+		MicroProfileSendSocket(pState->Socket, pSendStart, pSendEnd - pSendStart);
 		pState->nCompressedSize += pSendEnd - pSendStart;
 	}
 	Stream.next_out = &pState->DeflateOut[0];
@@ -2937,6 +2947,11 @@ void* MicroProfileWebServerUpdate(void*)
 		MpSocket Connection = accept(S.WebServerSocket, 0, 0);
 		if(MP_INVALID_SOCKET(Connection)) break;
 
+	#ifdef SO_NOSIGPIPE
+		int nConnectionOption = 1;
+		setsockopt(Connection, SOL_SOCKET, SO_NOSIGPIPE, &nConnectionOption, sizeof(nConnectionOption));
+	#endif
+
 		char Req[8192];
 		int nReceived = recv(Connection, Req, sizeof(Req)-1, 0);
 		if(nReceived > 0)
@@ -2982,7 +2997,7 @@ void* MicroProfileWebServerUpdate(void*)
 				if(nFrames)
 				{
 					uint64_t nTickStart = MP_TICK();
-					send(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1, 0);
+					MicroProfileSendSocket(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1);
 					uint64_t nDataStart = S.nWebServerDataSent;
 					S.WebServerPut = 0;
 	#if 0 == MICROPROFILE_MINIZ
