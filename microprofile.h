@@ -2410,7 +2410,6 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			S.Aggregate[i].nCount,
 			pTotal[nIdx],
 			i,i,i);
-
 	}
 
 	MicroProfilePrintf(CB, Handle, "\nvar ThreadNames = [");
@@ -2428,54 +2427,38 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	MicroProfilePrintf(CB, Handle, "];\n\n");
 
 
+	MicroProfilePrintf(CB, Handle, "\nvar ThreadGroupTimeArray = [\n");
 	for(uint32_t i = 0; i < S.nNumLogs; ++i)
 	{
 		if(S.Pool[i])
 		{
-			MicroProfilePrintf(CB, Handle, "var ThreadGroupTime%d = [", i);
+			MicroProfilePrintf(CB, Handle, "[");
 			float fToMs = S.Pool[i]->nGpu ? fToMsGPU : fToMsCPU;
 			for(uint32_t j = 0; j < MICROPROFILE_MAX_GROUPS; ++j)
 			{
 				MicroProfilePrintf(CB, Handle, "%f,", S.Pool[i]->nAggregateGroupTicks[j]/nAggregateFrames * fToMs);
 			}
-			MicroProfilePrintf(CB, Handle, "];\n");
-		}
-	}
-	MicroProfilePrintf(CB, Handle, "\nvar ThreadGroupTimeArray = [");
-	for(uint32_t i = 0; i < S.nNumLogs; ++i)
-	{
-		if(S.Pool[i])
-		{
-			MicroProfilePrintf(CB, Handle, "ThreadGroupTime%d,", i);
+			MicroProfilePrintf(CB, Handle, "],\n");
 		}
 	}
 	MicroProfilePrintf(CB, Handle, "];\n");
 
 
+	MicroProfilePrintf(CB, Handle, "\nvar ThreadGroupTimeTotalArray = [\n");
 	for(uint32_t i = 0; i < S.nNumLogs; ++i)
 	{
 		if(S.Pool[i])
 		{
-			MicroProfilePrintf(CB, Handle, "var ThreadGroupTimeTotal%d = [", i);
+			MicroProfilePrintf(CB, Handle, "[");
 			float fToMs = S.Pool[i]->nGpu ? fToMsGPU : fToMsCPU;
 			for(uint32_t j = 0; j < MICROPROFILE_MAX_GROUPS; ++j)
 			{
 				MicroProfilePrintf(CB, Handle, "%f,", S.Pool[i]->nAggregateGroupTicks[j] * fToMs);
 			}
-			MicroProfilePrintf(CB, Handle, "];\n");
-		}
-	}
-	MicroProfilePrintf(CB, Handle, "\nvar ThreadGroupTimeTotalArray = [");
-	for(uint32_t i = 0; i < S.nNumLogs; ++i)
-	{
-		if(S.Pool[i])
-		{
-			MicroProfilePrintf(CB, Handle, "ThreadGroupTimeTotal%d,", i);
+			MicroProfilePrintf(CB, Handle, "],\n");
 		}
 	}
 	MicroProfilePrintf(CB, Handle, "];");
-
-
 
 
 	MicroProfilePrintf(CB, Handle, "\nvar ThreadIds = [");
@@ -2538,23 +2521,35 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		uint32_t nFrameIndex = (nFirstFrame + i) % MICROPROFILE_MAX_FRAME_HISTORY;
 		uint32_t nFrameIndexNext = (nFrameIndex + 1) % MICROPROFILE_MAX_FRAME_HISTORY;
 
+		MicroProfilePrintf(CB, Handle, "var ts%d = [\n", i);
 		for(uint32_t j = 0; j < S.nNumLogs; ++j)
 		{
 			MicroProfileThreadLog* pLog = S.Pool[j];
-			int64_t nStartTick = pLog->nGpu ? nTickStartGpu : nTickStart;
 			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
 			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
+			int64_t nStartTick = pLog->nGpu ? nTickStartGpu : nTickStart;
 			float fToMs = MicroProfileTickToMsMultiplier(pLog->nGpu ? MicroProfileTicksPerSecondGpu() : MicroProfileTicksPerSecondCpu());
-			MicroProfilePrintf(CB, Handle, "var ts_%d_%d = MakeTimes(%e,[", i, j, fToMs);
+
+			MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				uint64_t nTick = (nLogType == MP_LOG_META || nLogType == MP_LOG_LABEL) ? 0 : MicroProfileLogTickDifference(nStartTick, pLog->Log[k]);
 				MicroProfilePrintUIntComma(CB, Handle, nTick);
 			}
-			MicroProfilePrintf(CB, Handle, "]);\n");
-			MicroProfilePrintf(CB, Handle, "var tt_%d_%d = [", i, j);
+			MicroProfilePrintf(CB, Handle, "]),\n");
+		}
+		MicroProfilePrintf(CB, Handle, "];\n");
+
+		MicroProfilePrintf(CB, Handle, "var tt%d = [\n", i);
+		for(uint32_t j = 0; j < S.nNumLogs; ++j)
+		{
+			MicroProfileThreadLog* pLog = S.Pool[j];
+			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
+
+			MicroProfilePrintf(CB, Handle, "[");
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
@@ -2565,11 +2560,19 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 				}
 				MicroProfilePrintUIntComma(CB, Handle, nLogType);
 			}
-			MicroProfilePrintf(CB, Handle, "];\n");
+			MicroProfilePrintf(CB, Handle, "],\n");
+		}
+		MicroProfilePrintf(CB, Handle, "];\n");
+
+		MicroProfilePrintf(CB, Handle, "var ti%d = [\n", i);
+		for(uint32_t j = 0; j < S.nNumLogs; ++j)
+		{
+			MicroProfileThreadLog* pLog = S.Pool[j];
+			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
 			uint32_t nLabelIndex = 0;
-
-			MicroProfilePrintf(CB, Handle, "var ti_%d_%d = [", i, j);
+			MicroProfilePrintf(CB, Handle, "[");
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
@@ -2580,10 +2583,18 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 				if(nLogType == MP_LOG_ENTER)
 					nTimerCounter[nTimerIndex]++;
 			}
-			MicroProfilePrintf(CB, Handle, "];\n");
+			MicroProfilePrintf(CB, Handle, "],\n");
+		}
+		MicroProfilePrintf(CB, Handle, "];\n");
 
-			MicroProfilePrintf(CB, Handle, "var tl_%d_%d = [", i, j);
+		MicroProfilePrintf(CB, Handle, "var tl%d = [\n", i);
+		for(uint32_t j = 0; j < S.nNumLogs; ++j)
+		{
+			MicroProfileThreadLog* pLog = S.Pool[j];
+			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
 
+			MicroProfilePrintf(CB, Handle, "[");
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
@@ -2598,33 +2609,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 						MicroProfilePrintf(CB, Handle, "null,");
 				}
 			}
-			MicroProfilePrintf(CB, Handle, "];\n");
-		}
-
-		MicroProfilePrintf(CB, Handle, "var ts%d = [", i);
-		for(uint32_t j = 0; j < S.nNumLogs; ++j)
-		{
-			MicroProfilePrintf(CB, Handle, "ts_%d_%d,", i, j);
-		}
-		MicroProfilePrintf(CB, Handle, "];\n");
-		MicroProfilePrintf(CB, Handle, "var tt%d = [", i);
-		for(uint32_t j = 0; j < S.nNumLogs; ++j)
-		{
-			MicroProfilePrintf(CB, Handle, "tt_%d_%d,", i, j);
-		}
-		MicroProfilePrintf(CB, Handle, "];\n");
-
-		MicroProfilePrintf(CB, Handle, "var ti%d = [", i);
-		for(uint32_t j = 0; j < S.nNumLogs; ++j)
-		{
-			MicroProfilePrintf(CB, Handle, "ti_%d_%d,", i, j);
-		}
-		MicroProfilePrintf(CB, Handle, "];\n");
-
-		MicroProfilePrintf(CB, Handle, "var tl%d = [", i);
-		for(uint32_t j = 0; j < S.nNumLogs; ++j)
-		{
-			MicroProfilePrintf(CB, Handle, "tl_%d_%d,", i, j);
+			MicroProfilePrintf(CB, Handle, "],\n");
 		}
 		MicroProfilePrintf(CB, Handle, "];\n");
 
