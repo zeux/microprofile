@@ -1143,11 +1143,19 @@ function PreprocessCalculateAllTimers()
 	var StackPosArray = Array(nNumLogs);
 	var StackArray = Array(nNumLogs);
 	var StackChildArray = Array(nNumLogs);
+	var GroupPosArray = Array(nNumLogs);
 	for(var i = 0; i < nNumLogs; ++i)
 	{
 		StackPosArray[i] = 0;
 		StackArray[i] = Array(20);
 		StackChildArray[i] = Array(20);
+		GroupPosArray[i] = Array(GroupInfo.length);
+
+		var GroupPos = GroupPosArray[i];
+		for(var j = 0; j < GroupInfo.length; j++)
+		{
+			GroupPos[j] = 0;
+		}
 	}
 
 	for(var i = nFrameFirst; i < nFrameLast; i++)
@@ -1168,6 +1176,7 @@ function PreprocessCalculateAllTimers()
 			var StackPos = StackPosArray[nLog];
 			var Stack = StackArray[nLog];
 			var StackChild = StackChildArray[nLog];
+			var GroupPos = GroupPosArray[nLog];
 			var ts = fr.ts[nLog];
 			var ti = fr.ti[nLog];
 			var tt = fr.tt[nLog];
@@ -1183,6 +1192,9 @@ function PreprocessCalculateAllTimers()
 					Stack[StackPos] = time;
 					StackPos++;
 					StackChild[StackPos] = 0;
+
+					var groupid = TimerInfo[index].group;
+					GroupPos[groupid]++;
 				}
 				else if(type == 0) // leave
 				{
@@ -1209,8 +1221,15 @@ function PreprocessCalculateAllTimers()
 						TimerInfo[index].Max = TimeDelta;
 
 					var groupid = TimerInfo[index].group;
-					GroupInfo[groupid].Sum += TimeDelta;
-					GroupInfo[groupid].FrameSum += TimeDelta;
+					if(GroupPos[groupid] > 0)
+					{
+						GroupPos[groupid]--;
+					}
+					if(GroupPos[groupid] == 0)
+					{
+						GroupInfo[groupid].Sum += TimeDelta;
+						GroupInfo[groupid].FrameSum += TimeDelta;
+					}
 				}
 				else
 				{

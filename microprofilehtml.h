@@ -1155,11 +1155,19 @@ const char g_MicroProfileHtml_end_0[] =
 "	var StackPosArray = Array(nNumLogs);\n"
 "	var StackArray = Array(nNumLogs);\n"
 "	var StackChildArray = Array(nNumLogs);\n"
+"	var GroupPosArray = Array(nNumLogs);\n"
 "	for(var i = 0; i < nNumLogs; ++i)\n"
 "	{\n"
 "		StackPosArray[i] = 0;\n"
 "		StackArray[i] = Array(20);\n"
 "		StackChildArray[i] = Array(20);\n"
+"		GroupPosArray[i] = Array(GroupInfo.length);\n"
+"\n"
+"		var GroupPos = GroupPosArray[i];\n"
+"		for(var j = 0; j < GroupInfo.length; j++)\n"
+"		{\n"
+"			GroupPos[j] = 0;\n"
+"		}\n"
 "	}\n"
 "\n"
 "	for(var i = nFrameFirst; i < nFrameLast; i++)\n"
@@ -1180,6 +1188,7 @@ const char g_MicroProfileHtml_end_0[] =
 "			var StackPos = StackPosArray[nLog];\n"
 "			var Stack = StackArray[nLog];\n"
 "			var StackChild = StackChildArray[nLog];\n"
+"			var GroupPos = GroupPosArray[nLog];\n"
 "			var ts = fr.ts[nLog];\n"
 "			var ti = fr.ti[nLog];\n"
 "			var tt = fr.tt[nLog];\n"
@@ -1195,6 +1204,9 @@ const char g_MicroProfileHtml_end_0[] =
 "					Stack[StackPos] = time;\n"
 "					StackPos++;\n"
 "					StackChild[StackPos] = 0;\n"
+"\n"
+"					var groupid = TimerInfo[index].group;\n"
+"					GroupPos[groupid]++;\n"
 "				}\n"
 "				else if(type == 0) // leave\n"
 "				{\n"
@@ -1221,8 +1233,15 @@ const char g_MicroProfileHtml_end_0[] =
 "						TimerInfo[index].Max = TimeDelta;\n"
 "\n"
 "					var groupid = TimerInfo[index].group;\n"
-"					GroupInfo[groupid].Sum += TimeDelta;\n"
-"					GroupInfo[groupid].FrameSum += TimeDelta;\n"
+"					if(GroupPos[groupid] > 0)\n"
+"					{\n"
+"						GroupPos[groupid]--;\n"
+"					}\n"
+"					if(GroupPos[groupid] == 0)\n"
+"					{\n"
+"						GroupInfo[groupid].Sum += TimeDelta;\n"
+"						GroupInfo[groupid].FrameSum += TimeDelta;\n"
+"					}\n"
 "				}\n"
 "				else\n"
 "				{\n"
@@ -1612,7 +1631,11 @@ const char g_MicroProfileHtml_end_0[] =
 "\n"
 "			StringArray.push(\"Timer Capture\");\n"
 "			StringArray.push(\"\");\n"
-"			StringArray.push(\"Frames\");\n"
+"			";
+
+const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
+const char g_MicroProfileHtml_end_1[] =
+"StringArray.push(\"Frames\");\n"
 "			StringArray.push(AggregateInfo.Frames);\n"
 "			StringArray.push(\"Time\");\n"
 "			StringArray.push(AggregateInfo.Time.toFixed(2) + \"ms\");\n"
@@ -1625,11 +1648,7 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"Timer:\");\n"
 "			StringArray.push(Timer.name);\n"
 "			StringArray.push(\"Time:\");\n"
-"			StringArray.push((fRangeEnd-fRangeBegin).toF";
-
-const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
-const char g_MicroProfileHtml_end_1[] =
-"ixed(3)+\"ms\");\n"
+"			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3)+\"ms\");\n"
 "\n"
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
@@ -2875,7 +2894,11 @@ const char g_MicroProfileHtml_end_1[] =
 "					fRangeEnd = fDetailedOffset + fDetailedRange * (xEnd / nWidth);\n"
 "				}\n"
 "			}\n"
-"			else if(MouseDragPan())\n"
+"			else if(M";
+
+const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
+const char g_MicroProfileHtml_end_2[] =
+"ouseDragPan())\n"
 "			{\n"
 "				var X = MouseDragX - MouseDragXLast;\n"
 "				var Y = MouseDragY - MouseDragYLast;\n"
@@ -2898,10 +2921,6 @@ const char g_MicroProfileHtml_end_1[] =
 "			}\n"
 "		}\n"
 "		else if(Mode == ModeTimers)\n"
-"";
-
-const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
-const char g_MicroProfileHtml_end_2[] =
 "		{\n"
 "			if(MouseDragKeyShift || MouseDragButton == 1)\n"
 "			{\n"
