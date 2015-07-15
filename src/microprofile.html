@@ -1021,106 +1021,12 @@ function GatherHoverLabels(TimerIndex, StartIndex, nLog, nFrameLast)
 	}
 }
 
-function CalculateTimers(Result, TimerIndex, nFrameFirst, nFrameLast)
+function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken)
 {
 	if(!nFrameFirst || nFrameFirst < 0)
 		nFrameFirst = 0;
 	if(!nFrameLast || nFrameLast > Frames.length)
 		nFrameLast = Frames.length;
-	var FrameCount = nFrameLast - nFrameFirst;
-	if(0 == FrameCount)
-		return;
-	var CallCount = 0;
-	var Sum = 0;
-	var Max = 0;
-	var FrameMax = 0;
-
-	var nNumLogs = Frames[0].ts.length;
-	var StackPosArray = Array(nNumLogs);
-	var StackArray = Array(nNumLogs);
-	for(var i = 0; i < nNumLogs; ++i)
-	{
-		StackPosArray[i] = 0;
-		StackArray[i] = Array(20);
-	}
-
-	for(var i = nFrameFirst; i < nFrameLast; i++)
-	{
-		var FrameSum = 0;
-		var fr = Frames[i];
-		for(nLog = 0; nLog < nNumLogs; nLog++)
-		{
-			var StackPos = StackPosArray[nLog];
-			var Stack = StackArray[nLog];
-			var ts = fr.ts[nLog];
-			var ti = fr.ti[nLog];
-			var tt = fr.tt[nLog];
-			var count = ts.length;
-			for(j = 0; j < count; j++)
-			{
-				var type = tt[j];
-				var index = ti[j];
-				var time = ts[j];
-				if(type == 1) //enter
-				{
-					//push
-					Stack[StackPos] = time;
-					if(StackArray[nLog][StackPos] != time)
-					{
-						console.log('fail fail fail');
-					}
-					StackPos++;
-				}
-				else if(type == 0) // leave
-				{
-					var timestart;
-					var timeend = time;
-					if(StackPos>0)
-					{
-						StackPos--;
-						timestart = Stack[StackPos];
-					}
-					else
-					{
-						timestart = Frames[nFrameFirst].framestart;
-					}
-					if(index == TimerIndex)
-					{
-						var TimeDelta = timeend - timestart;
-						CallCount++;
-						FrameSum += TimeDelta;
-						Sum += TimeDelta;
-						if(TimeDelta > Max)
-							Max = TimeDelta;
-					}
-				}
-				else
-				{
-					//meta
-				}
-			}
-			if(FrameSum > FrameMax)
-			{
-				FrameMax = FrameSum;
-			}
-			StackPosArray[nLog] = StackPos;
-		}
-	}
-
-	Result.CallCount = CallCount;
-	Result.Sum = Sum;
-	Result.Max = Max;
-	Result.CallAverage = (Sum / CallCount);
-	Result.FrameAverage = (Sum / FrameCount);
-	Result.FrameMax = FrameMax;
-	return Result;
-}
-
-function PreprocessCalculateAllTimers()
-{
-	ProfileEnter("CalculateAllTimers");
-	var nFrameFirst = 0;
-	var nFrameLast = Frames.length;
 	var FrameCount = nFrameLast - nFrameFirst;
 	if(0 == FrameCount)
 		return;
@@ -1212,23 +1118,26 @@ function PreprocessCalculateAllTimers()
 						TimeDeltaExclusive = TimeDelta;
 					}
 
-					TimerInfo[index].CallCount++;
-					TimerInfo[index].FrameSum += TimeDelta;
-					TimerInfo[index].ExclusiveFrameSum += TimeDeltaExclusive;
-					TimerInfo[index].Sum += TimeDelta;
-					TimerInfo[index].ExclusiveSum += TimeDeltaExclusive;
-					if(TimeDelta > TimerInfo[index].Max)
-						TimerInfo[index].Max = TimeDelta;
+					if(nToken < 0 || nToken == index)
+					{
+						TimerInfo[index].CallCount++;
+						TimerInfo[index].FrameSum += TimeDelta;
+						TimerInfo[index].ExclusiveFrameSum += TimeDeltaExclusive;
+						TimerInfo[index].Sum += TimeDelta;
+						TimerInfo[index].ExclusiveSum += TimeDeltaExclusive;
+						if(TimeDelta > TimerInfo[index].Max)
+							TimerInfo[index].Max = TimeDelta;
 
-					var groupid = TimerInfo[index].group;
-					if(GroupPos[groupid] > 0)
-					{
-						GroupPos[groupid]--;
-					}
-					if(GroupPos[groupid] == 0)
-					{
-						GroupInfo[groupid].Sum += TimeDelta;
-						GroupInfo[groupid].FrameSum += TimeDelta;
+						var groupid = TimerInfo[index].group;
+						if(GroupPos[groupid] > 0)
+						{
+							GroupPos[groupid]--;
+						}
+						if(GroupPos[groupid] == 0)
+						{
+							GroupInfo[groupid].Sum += TimeDelta;
+							GroupInfo[groupid].FrameSum += TimeDelta;
+						}
 					}
 				}
 				else
@@ -1268,7 +1177,12 @@ function PreprocessCalculateAllTimers()
 		TimerInfo[j].FrameAverage = (TimerInfo[j].Sum / FrameCount);
 		TimerInfo[j].ExclusiveFrameAverage = (TimerInfo[j].ExclusiveSum / FrameCount);
 	}
+}
 
+function PreprocessCalculateAllTimers()
+{
+	ProfileEnter("PreprocessCalculateAllTimers");
+	CalculateTimers(GroupInfo, TimerInfo, 0, Frames.length, -1);
 	ProfileLeave();
 }
 
@@ -1565,6 +1479,27 @@ function DrawToolTip(StringArray, Canvas, x, y, color)
 		YPos += BoxHeight;
 	}
 }
+function CloneObject(obj)
+{
+	var copy = new Object();
+	for(var attr in obj)
+	{
+		if(obj.hasOwnProperty(attr))
+		{
+			copy[attr] = obj[attr];
+		}
+	}
+	return copy;
+}
+function CloneArray(arr)
+{
+	var result = Array(arr.length);
+	for(var i = 0; i < arr.length; ++i)
+	{
+		result[i] = CloneObject(arr[i]);
+	}
+	return result;
+}
 function DrawHoverToolTip()
 {
 	ProfileEnter("DrawHoverToolTip");
@@ -1626,8 +1561,13 @@ function DrawHoverToolTip()
 		}
 		else
 		{
-			var FrameTime = new Object();
-			CalculateTimers(FrameTime, nHoverToken, nHoverFrame, nHoverFrame+1);
+			var FrameGroupInfo = CloneArray(GroupInfo);
+			var FrameTimerInfo = CloneArray(TimerInfo);
+
+			CalculateTimers(FrameGroupInfo, FrameTimerInfo, nHoverFrame, nHoverFrame+1, nHoverToken);
+
+			var GroupTime = FrameGroupInfo[Timer.group];
+			var FrameTime = FrameTimerInfo[nHoverToken];
 
 			StringArray.push("Timer:");
 			StringArray.push(Timer.name);
@@ -1650,13 +1590,13 @@ function DrawHoverToolTip()
 			StringArray.push("Frame Call Average:");
 			StringArray.push(Timer.CallAverage.toFixed(3)+"ms");
 			StringArray.push("Frame Call Count:");
-			StringArray.push(Timer.CallCount / Frames.length);
+			StringArray.push((Timer.CallCount / Frames.length).toFixed(2));
 
 			StringArray.push("");
 			StringArray.push("");
 
 			StringArray.push("Exclusive Frame Time:");
-			StringArray.push("?");
+			StringArray.push(FrameTime.ExclusiveSum.toFixed(3)+"ms");
 			StringArray.push("Exclusive Average:");
 			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+"ms");
 			StringArray.push("Exclusive Max:");
@@ -1668,7 +1608,7 @@ function DrawHoverToolTip()
 			StringArray.push("Group:");
 			StringArray.push(Group.name);
 			StringArray.push("Frame Time:");
-			StringArray.push("?");
+			StringArray.push(GroupTime.Sum.toFixed(3)+"ms");
 			StringArray.push("Frame Average:");
 			StringArray.push(Group.FrameAverage.toFixed(3)+"ms");
 			StringArray.push("Frame Max:");
