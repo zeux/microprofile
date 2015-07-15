@@ -1021,7 +1021,7 @@ function GatherHoverLabels(TimerIndex, StartIndex, nLog, nFrameLast)
 	}
 }
 
-function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken)
+function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken, nGroup)
 {
 	if(!nFrameFirst || nFrameFirst < 0)
 		nFrameFirst = 0;
@@ -1127,8 +1127,11 @@ function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken)
 						TimerInfo[index].ExclusiveSum += TimeDeltaExclusive;
 						if(TimeDelta > TimerInfo[index].Max)
 							TimerInfo[index].Max = TimeDelta;
+					}
 
-						var groupid = TimerInfo[index].group;
+					var groupid = TimerInfo[index].group;
+					if(nGroup < 0 || nGroup == groupid)
+					{
 						if(GroupPos[groupid] > 0)
 						{
 							GroupPos[groupid]--;
@@ -1182,7 +1185,7 @@ function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken)
 function PreprocessCalculateAllTimers()
 {
 	ProfileEnter("PreprocessCalculateAllTimers");
-	CalculateTimers(GroupInfo, TimerInfo, 0, Frames.length, -1);
+	CalculateTimers(GroupInfo, TimerInfo, 0, Frames.length, -1, -1);
 	ProfileLeave();
 }
 
@@ -1564,7 +1567,7 @@ function DrawHoverToolTip()
 			var FrameGroupInfo = CloneArray(GroupInfo);
 			var FrameTimerInfo = CloneArray(TimerInfo);
 
-			CalculateTimers(FrameGroupInfo, FrameTimerInfo, nHoverFrame, nHoverFrame+1, nHoverToken);
+			CalculateTimers(FrameGroupInfo, FrameTimerInfo, nHoverFrame, nHoverFrame+1, nHoverToken, Timer.group);
 
 			var GroupTime = FrameGroupInfo[Timer.group];
 			var FrameTime = FrameTimerInfo[nHoverToken];

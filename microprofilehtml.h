@@ -1033,7 +1033,7 @@ const char g_MicroProfileHtml_end_0[] =
 "	}\n"
 "}\n"
 "\n"
-"function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken)\n"
+"function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken, nGroup)\n"
 "{\n"
 "	if(!nFrameFirst || nFrameFirst < 0)\n"
 "		nFrameFirst = 0;\n"
@@ -1139,8 +1139,11 @@ const char g_MicroProfileHtml_end_0[] =
 "						TimerInfo[index].ExclusiveSum += TimeDeltaExclusive;\n"
 "						if(TimeDelta > TimerInfo[index].Max)\n"
 "							TimerInfo[index].Max = TimeDelta;\n"
+"					}\n"
 "\n"
-"						var groupid = TimerInfo[index].group;\n"
+"					var groupid = TimerInfo[index].group;\n"
+"					if(nGroup < 0 || nGroup == groupid)\n"
+"					{\n"
 "						if(GroupPos[groupid] > 0)\n"
 "						{\n"
 "							GroupPos[groupid]--;\n"
@@ -1194,7 +1197,7 @@ const char g_MicroProfileHtml_end_0[] =
 "function PreprocessCalculateAllTimers()\n"
 "{\n"
 "	ProfileEnter(\"PreprocessCalculateAllTimers\");\n"
-"	CalculateTimers(GroupInfo, TimerInfo, 0, Frames.length, -1);\n"
+"	CalculateTimers(GroupInfo, TimerInfo, 0, Frames.length, -1, -1);\n"
 "	ProfileLeave();\n"
 "}\n"
 "\n"
@@ -1576,7 +1579,7 @@ const char g_MicroProfileHtml_end_0[] =
 "			var FrameGroupInfo = CloneArray(GroupInfo);\n"
 "			var FrameTimerInfo = CloneArray(TimerInfo);\n"
 "\n"
-"			CalculateTimers(FrameGroupInfo, FrameTimerInfo, nHoverFrame, nHoverFrame+1, nHoverToken);\n"
+"			CalculateTimers(FrameGroupInfo, FrameTimerInfo, nHoverFrame, nHoverFrame+1, nHoverToken, Timer.group);\n"
 "\n"
 "			var GroupTime = FrameGroupInfo[Timer.group];\n"
 "			var FrameTime = FrameTimerInfo[nHoverToken];\n"
@@ -1607,12 +1610,12 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
 "\n"
-"			StringArray.push(\"Exclusive Frame Time:\");\n"
-"			StringArray.push(FrameTime.ExclusiveSum.toFi";
+"			StringArray";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"xed(3)+\"ms\");\n"
+".push(\"Exclusive Frame Time:\");\n"
+"			StringArray.push(FrameTime.ExclusiveSum.toFixed(3)+\"ms\");\n"
 "			StringArray.push(\"Exclusive Average:\");\n"
 "			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+\"ms\");\n"
 "			StringArray.push(\"Exclusive Max:\");\n"
@@ -2884,12 +2887,12 @@ const char g_MicroProfileHtml_end_1[] =
 "			var NumFrames = Frames.length;\n"
 "			var fBarWidth = nWidth / NumFrames;\n"
 "			var Index = clamp(Math.floor(NumFrames * x / nWidth), 0, NumFrames-1);\n"
-"			var Lerp = clamp((x/fBarWidth - Index) , 0, 1);\n"
-"			var time = Frames[Index].framestart + (Frames[Index].fram";
+"			var Lerp = clamp((x/fBarWidth";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"eend - Frames[Index].framestart) * Lerp;\n"
+" - Index) , 0, 1);\n"
+"			var time = Frames[Index].framestart + (Frames[Index].frameend - Frames[Index].framestart) * Lerp;\n"
 "			return time;\n"
 "		}\n"
 "		if(MouseDragSelectRange())\n"
