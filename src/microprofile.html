@@ -1124,6 +1124,11 @@ function PreprocessCalculateAllTimers()
 	var FrameCount = nFrameLast - nFrameFirst;
 	if(0 == FrameCount)
 		return;
+	for(var j = 0; j < GroupInfo.length; j++)
+	{
+		GroupInfo[j].Sum = 0;
+		GroupInfo[j].FrameMax = 0;
+	}
 	for(var j = 0; j < TimerInfo.length; j++)
 	{
 		TimerInfo[j].CallCount = 0;
@@ -1131,7 +1136,6 @@ function PreprocessCalculateAllTimers()
 		TimerInfo[j].Max = 0;
 		TimerInfo[j].FrameMax = 0;
 	}
-
 
 	var nNumLogs = Frames[0].ts.length;
 	var StackPosArray = Array(nNumLogs);
@@ -1144,6 +1148,10 @@ function PreprocessCalculateAllTimers()
 
 	for(var i = nFrameFirst; i < nFrameLast; i++)
 	{
+		for(var j = 0; j < GroupInfo.length; j++)
+		{
+			GroupInfo[j].FrameSum = 0;
+		}
 		for(var j = 0; j < TimerInfo.length; j++)
 		{
 			TimerInfo[j].FrameSum = 0;
@@ -1194,11 +1202,22 @@ function PreprocessCalculateAllTimers()
 						TimerInfo[index].Sum += TimeDelta;
 						if(TimeDelta > TimerInfo[index].Max)
 							TimerInfo[index].Max = TimeDelta;
+
+						var groupid = TimerInfo[index].group;
+						GroupInfo[groupid].Sum += TimeDelta;
+						GroupInfo[groupid].FrameSum += TimeDelta;
 					}
 				}
 				else
 				{
 					//meta
+				}
+			}
+			for(var j = 0; j < GroupInfo.length; j++)
+			{
+				if(GroupInfo[j].FrameSum > GroupInfo[j].FrameMax)
+				{
+					GroupInfo[j].FrameMax = GroupInfo[j].FrameSum;
 				}
 			}
 			for(var j = 0; j < TimerInfo.length; j++)
@@ -1210,10 +1229,13 @@ function PreprocessCalculateAllTimers()
 			}
 			StackPosArray[nLog] = StackPos;
 		}
-
-
 	}
 
+	for(var j = 0; j < GroupInfo.length; j++)
+	{
+		var FrameAverage = (GroupInfo[j].Sum / FrameCount);
+		GroupInfo[j].FrameAverage = FrameAverage;
+	}
 	for(var j = 0; j < TimerInfo.length; j++)
 	{
 		var CallCount = TimerInfo[j].CallCount;
@@ -1229,6 +1251,7 @@ function PreprocessCalculateAllTimers()
 		TimerInfo[j].FrameAverage = FrameAverage;
 		TimerInfo[j].FrameMax = FrameMax;
 	}
+
 	ProfileLeave();
 }
 
@@ -1630,9 +1653,9 @@ function DrawHoverToolTip()
 			StringArray.push("Frame Time:");
 			StringArray.push("?");
 			StringArray.push("Frame Average:");
-			StringArray.push(Group.average.toFixed(3)+"ms"); // does not use detailed frames!
+			StringArray.push(Group.FrameAverage.toFixed(3)+"ms");
 			StringArray.push("Frame Max:");
-			StringArray.push(Group.max.toFixed(3)+"ms"); // does not use detailed frames!
+			StringArray.push(Group.FrameMax.toFixed(3)+"ms");
 
 			var HoverMeta = GatherHoverMetaCounters(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
 			var HeaderMeta = 0;
