@@ -1176,12 +1176,11 @@ function CalculateTimers(Result, TimerIndex, nFrameFirst, nFrameLast)
 	}
 
 	Result.CallCount = CallCount;
-	Result.Sum = Sum.toFixed(3);
-	Result.Max = Max.toFixed(3);
-	Result.Average = (Sum / CallCount).toFixed(3);
-	Result.FrameAverage = (Sum / FrameCount).toFixed(3);
-	Result.FrameCallAverage = (CallCount / FrameCount).toFixed(3);
-	Result.FrameMax = FrameMax.toFixed(3);
+	Result.Sum = Sum;
+	Result.Max = Max;
+	Result.CallAverage = (Sum / CallCount);
+	Result.FrameAverage = (Sum / FrameCount);
+	Result.FrameMax = FrameMax;
 	return Result;
 }
 
@@ -1286,18 +1285,16 @@ function PreprocessCalculateAllTimers()
 	for(var j = 0; j < TimerInfo.length; j++)
 	{
 		var CallCount = TimerInfo[j].CallCount;
-		var Sum = TimerInfo[j].Sum.toFixed(3);
-		var Max = TimerInfo[j].Max.toFixed(3);
-		var Average = (TimerInfo[j].Sum / TimerInfo[j].CallCount).toFixed(3);
-		var FrameAverage = (TimerInfo[j].Sum / FrameCount).toFixed(3);
-		var FrameCallAverage = (TimerInfo[j].CallCount / FrameCount).toFixed(3);
-		var FrameMax = TimerInfo[j].FrameMax.toFixed(3);
+		var Sum = TimerInfo[j].Sum;
+		var Max = TimerInfo[j].Max;
+		var CallAverage = (TimerInfo[j].Sum / TimerInfo[j].CallCount);
+		var FrameAverage = (TimerInfo[j].Sum / FrameCount);
+		var FrameMax = TimerInfo[j].FrameMax;
 		TimerInfo[j].CallCount = CallCount;
 		TimerInfo[j].Sum = Sum;
-		TimerInfo[j].Max  = Max ;
-		TimerInfo[j].Average = Average;
+		TimerInfo[j].Max = Max ;
+		TimerInfo[j].CallAverage = CallAverage;
 		TimerInfo[j].FrameAverage = FrameAverage;
-		TimerInfo[j].FrameCallAverage = FrameCallAverage;
 		TimerInfo[j].FrameMax = FrameMax;
 	}
 	ProfileLeave();
@@ -1611,7 +1608,7 @@ function DrawHoverToolTip()
 		{
 			bShowTimers = !bShowTimers;
 		}
-		if(bShowTimers)
+		if(bShowTimers || nHoverFrame == -1)
 		{
 			StringArray.push("Timer");
 			StringArray.push(Timer.name);
@@ -1654,69 +1651,56 @@ function DrawHoverToolTip()
 			StringArray.push(AggregateInfo.Frames);
 			StringArray.push("Time");
 			StringArray.push(AggregateInfo.Time.toFixed(2) + "ms");
-
-
-
-
 		}
 		else
 		{
-			StringArray.push("Timer");
+			var FrameTime = new Object();
+			CalculateTimers(FrameTime, nHoverToken, nHoverFrame, nHoverFrame+1);
+
+			StringArray.push("Timer:");
 			StringArray.push(Timer.name);
-			StringArray.push("Group");
+			StringArray.push("Time:");
+			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Frame Time:");
+			StringArray.push(FrameTime.Sum.toFixed(3)+"ms");
+			StringArray.push("Average:");
+			StringArray.push(Timer.FrameAverage.toFixed(3)+"ms");
+			StringArray.push("Max:");
+			StringArray.push(Timer.FrameMax.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Frame Call Average:");
+			StringArray.push(Timer.CallAverage.toFixed(3)+"ms");
+			StringArray.push("Frame Call Count:");
+			StringArray.push(Timer.CallCount / Frames.length);
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Exclusive Frame Time:");
+			StringArray.push("?");
+			StringArray.push("Exclusive Average:");
+			StringArray.push(Timer.exclaverage.toFixed(3)+"ms"); // does not use detailed frames!
+			StringArray.push("Exclusive Max:");
+			StringArray.push(Timer.exclmax.toFixed(3)+"ms"); // does not use detailed frames!
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Group:");
 			StringArray.push(Group.name);
-
-			StringArray.push("");
-			StringArray.push("");
-
-			StringArray.push("Time");
-			StringArray.push((fRangeEnd-fRangeBegin).toFixed(3));
-			StringArray.push("");
-			StringArray.push("");
-			StringArray.push("Total");
-			StringArray.push("" + Timer.Sum);
-			StringArray.push("Max");
-			StringArray.push("" + Timer.Max);
-			StringArray.push("Average");
-			StringArray.push("" + Timer.Average);
-			StringArray.push("Count");
-			StringArray.push("" + Timer.CallCount);
-
-			StringArray.push("");
-			StringArray.push("");
-
-			StringArray.push("Max/Frame");
-			StringArray.push("" + Timer.FrameMax);
-
-			StringArray.push("Average Time/Frame");
-			StringArray.push("" + Timer.FrameAverage);
-
-			StringArray.push("Average Count/Frame");
-			StringArray.push("" + Timer.FrameCallAverage);
-
-
-
-
-
-		
-			if(nHoverFrame != -1)
-			{
-				StringArray.push("");
-				StringArray.push("");
-				StringArray.push("Frame " + nHoverFrame);
-				StringArray.push("");
-
-				var FrameTime = new Object();
-				CalculateTimers(FrameTime, nHoverToken, nHoverFrame, nHoverFrame+1);
-				StringArray.push("Total");
-				StringArray.push("" + FrameTime.Sum);
-				StringArray.push("Count");
-				StringArray.push("" + FrameTime.CallCount);
-				StringArray.push("Average");
-				StringArray.push("" + FrameTime.Average);
-				StringArray.push("Max");
-				StringArray.push("" + FrameTime.Max);
-			}
+			StringArray.push("Frame Time:");
+			StringArray.push("?");
+			StringArray.push("Frame Average:");
+			StringArray.push(Group.average.toFixed(3)+"ms"); // does not use detailed frames!
+			StringArray.push("Frame Max:");
+			StringArray.push(Group.max.toFixed(3)+"ms"); // does not use detailed frames!
 
 			var HoverMeta = GatherHoverMetaCounters(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
 			var HeaderMeta = 0;
@@ -1727,17 +1711,13 @@ function DrawHoverToolTip()
 					HeaderMeta = 1;
 					StringArray.push("");
 					StringArray.push("");
-					StringArray.push("Meta");
-					StringArray.push("");
-
 				}
 				StringArray.push(""+index);
 				StringArray.push(""+HoverMeta[index]);
 			}
 
 			var HoverLabel = GatherHoverLabels(nHoverToken, nHoverTokenIndex, nHoverTokenLogIndex, nHoverFrame);
-
-			if (HoverLabel.length > 0)
+			if(HoverLabel.length > 0)
 			{
 				StringArray.push("");
 				StringArray.push("");
@@ -1748,18 +1728,6 @@ function DrawHoverToolTip()
 					StringArray.push(HoverLabel[index]);
 				}
 			}
-
-			StringArray.push("");
-			StringArray.push("");
-
-			StringArray.push("Detailed Capture");
-			StringArray.push("");
-			StringArray.push("Frames");
-			StringArray.push(Frames.length);
-			StringArray.push("Time");
-			StringArray.push(DetailedTotal().toFixed(2) + "ms");
-
-
 		}
 		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20, Timer.color);
 	}
