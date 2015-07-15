@@ -2790,7 +2790,7 @@ void MicroProfileCompressedSocketStart(MicroProfileCompressedSocketState* pState
 	Stream.avail_out = MICROPROFILE_COMPRESS_CHUNK;
 	Stream.next_in = &pState->DeflateIn[0];
 	Stream.avail_in = 0;
-	mz_deflateInit(&Stream, Z_DEFAULT_COMPRESSION);
+	mz_deflateInit(&Stream, MZ_DEFAULT_COMPRESSION);
 	pState->Socket = Socket;
 	pState->nSize = 0;
 	pState->nCompressedSize = 0;
