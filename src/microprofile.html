@@ -1547,7 +1547,7 @@ function DrawDetailedBackground(context)
 	context.globalAlpha = 1;
 
 }
-function DrawToolTip(StringArray, Canvas, x, y)
+function DrawToolTip(StringArray, Canvas, x, y, color)
 {
 	var context = Canvas.getContext('2d');
 	context.font = Font;
@@ -1580,6 +1580,8 @@ function DrawToolTip(StringArray, Canvas, x, y)
 		x = CanvasRect.width - nMaxWidth;
 	}
 
+	context.fillStyle = color ? color : 'black';
+	context.fillRect(x-2, y-1, nMaxWidth+4, nHeight+2);
 	context.fillStyle = 'black';
 	context.fillRect(x-1, y, nMaxWidth+2, nHeight);
 	context.fillStyle = 'white';
@@ -1759,7 +1761,7 @@ function DrawHoverToolTip()
 
 
 		}
-		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20);
+		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20, Timer.color);
 	}
 	else if(nHoverCSCpu >= 0)
 	{

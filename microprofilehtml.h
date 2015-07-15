@@ -1559,7 +1559,7 @@ const char g_MicroProfileHtml_end_0[] =
 "	context.globalAlpha = 1;\n"
 "\n"
 "}\n"
-"function DrawToolTip(StringArray, Canvas, x, y)\n"
+"function DrawToolTip(StringArray, Canvas, x, y, color)\n"
 "{\n"
 "	var context = Canvas.getContext(\'2d\');\n"
 "	context.font = Font;\n"
@@ -1592,6 +1592,8 @@ const char g_MicroProfileHtml_end_0[] =
 "		x = CanvasRect.width - nMaxWidth;\n"
 "	}\n"
 "\n"
+"	context.fillStyle = color ? color : \'black\';\n"
+"	context.fillRect(x-2, y-1, nMaxWidth+4, nHeight+2);\n"
 "	context.fillStyle = \'black\';\n"
 "	context.fillRect(x-1, y, nMaxWidth+2, nHeight);\n"
 "	context.fillStyle = \'white\';\n"
@@ -1639,13 +1641,13 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(Timer.exclmax);\n"
 "			StringArray.push(\"Excl Average\");\n"
 "			StringArray.push(Timer.exclaverage);\n"
-"			StringArray.push(\"Call Average\");\n"
-"			StringArray.push(Timer.callaverage);\n"
-"			StringArray.push(\"Call Coun";
+"	";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"t\");\n"
+"		StringArray.push(\"Call Average\");\n"
+"			StringArray.push(Timer.callaverage);\n"
+"			StringArray.push(\"Call Count\");\n"
 "			StringArray.push(Timer.callcount);\n"
 "\n"
 "			StringArray.push(\"\");\n"
@@ -1775,7 +1777,7 @@ const char g_MicroProfileHtml_end_1[] =
 "\n"
 "\n"
 "		}\n"
-"		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20);\n"
+"		DrawToolTip(StringArray, CanvasDetailedView, DetailedViewMouseX, DetailedViewMouseY+20, Timer.color);\n"
 "	}\n"
 "	else if(nHoverCSCpu >= 0)\n"
 "	{\n"
@@ -2915,7 +2917,11 @@ const char g_MicroProfileHtml_end_1[] =
 "var MouseDragXLast = 0;\n"
 "var MouseDragYLast = 0;\n"
 "var MouseDragXStart = 0;\n"
-"var MouseDragYStart = 0;\n"
+"var MouseDragYStart";
+
+const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
+const char g_MicroProfileHtml_end_2[] =
+" = 0;\n"
 "\n"
 "function clamp(number, min, max)\n"
 "{\n"
@@ -2924,11 +2930,7 @@ const char g_MicroProfileHtml_end_1[] =
 "\n"
 "function MouseDragPan()\n"
 "{\n"
-"	";
-
-const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
-const char g_MicroProfileHtml_end_2[] =
-"return MouseDragButton == 1 || MouseDragKeyShift;\n"
+"	return MouseDragButton == 1 || MouseDragKeyShift;\n"
 "}\n"
 "function MouseDragSelectRange()\n"
 "{\n"
