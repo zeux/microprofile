@@ -2336,7 +2336,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	{
 		MP_ASSERT(i == S.GroupInfo[i].nGroupIndex);
 		float fToMs = S.GroupInfo[i].Type == MicroProfileTokenTypeCpu ? fToMsCPU : fToMsGPU;
-		MicroProfilePrintf(CB, Handle, "GroupInfo[%d] = MakeGroup(%d, \"%s\", %d, %d, %d, %f, %f, %f, '#%02x%02x%02x');\n", 
+		uint32_t nColor = S.TimerInfo[i].nColor;
+		MicroProfilePrintf(CB, Handle, "GroupInfo[%d] = MakeGroup(%d, \"%s\", %d, %d, %d, %f, %f, %f, '#%06x');\n", 
 			S.GroupInfo[i].nGroupIndex, 
 			S.GroupInfo[i].nGroupIndex, 
 			S.GroupInfo[i].pName, 
@@ -2346,9 +2347,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			fToMs * S.AggregateGroup[i], 
 			fToMs * S.AggregateGroup[i] / nAggregateFrames, 
 			fToMs * S.AggregateGroupMax[i],
-			MICROPROFILE_UNPACK_RED(S.GroupInfo[i].nColor) & 0xff,
-			MICROPROFILE_UNPACK_GREEN(S.GroupInfo[i].nColor) & 0xff,
-			MICROPROFILE_UNPACK_BLUE(S.GroupInfo[i].nColor) & 0xff);
+			((MICROPROFILE_UNPACK_RED(nColor) & 0xff) << 16) | ((MICROPROFILE_UNPACK_GREEN(nColor) & 0xff) << 8) | (MICROPROFILE_UNPACK_BLUE(nColor) & 0xff));
 	}
 	//timers
 
