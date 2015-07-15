@@ -1148,25 +1148,25 @@ function CalculateTimers(GroupInfo, TimerInfo, nFrameFirst, nFrameLast, nToken, 
 					//meta
 				}
 			}
-			for(var j = 0; j < GroupInfo.length; j++)
-			{
-				if(GroupInfo[j].FrameSum > GroupInfo[j].FrameMax)
-				{
-					GroupInfo[j].FrameMax = GroupInfo[j].FrameSum;
-				}
-			}
-			for(var j = 0; j < TimerInfo.length; j++)
-			{
-				if(TimerInfo[j].FrameSum > TimerInfo[j].FrameMax)
-				{
-					TimerInfo[j].FrameMax = TimerInfo[j].FrameSum;
-				}
-				if(TimerInfo[j].ExclusiveFrameSum > TimerInfo[j].ExclusiveFrameMax)
-				{
-					TimerInfo[j].ExclusiveFrameMax = TimerInfo[j].ExclusiveFrameSum;
-				}
-			}
 			StackPosArray[nLog] = StackPos;
+		}
+		for(var j = 0; j < GroupInfo.length; j++)
+		{
+			if(GroupInfo[j].FrameSum > GroupInfo[j].FrameMax)
+			{
+				GroupInfo[j].FrameMax = GroupInfo[j].FrameSum;
+			}
+		}
+		for(var j = 0; j < TimerInfo.length; j++)
+		{
+			if(TimerInfo[j].FrameSum > TimerInfo[j].FrameMax)
+			{
+				TimerInfo[j].FrameMax = TimerInfo[j].FrameSum;
+			}
+			if(TimerInfo[j].ExclusiveFrameSum > TimerInfo[j].ExclusiveFrameMax)
+			{
+				TimerInfo[j].ExclusiveFrameMax = TimerInfo[j].ExclusiveFrameSum;
+			}
 		}
 	}
 
@@ -1603,7 +1603,7 @@ function DrawHoverToolTip()
 			StringArray.push("Exclusive Average:");
 			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+"ms");
 			StringArray.push("Exclusive Max:");
-			StringArray.push(Timer.ExclusiveFrameSum.toFixed(3)+"ms");
+			StringArray.push(Timer.ExclusiveFrameMax.toFixed(3)+"ms");
 
 			StringArray.push("");
 			StringArray.push("");
