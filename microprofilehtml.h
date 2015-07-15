@@ -1554,9 +1554,9 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
 "\n"
-"			StringArray.push(\"Frame Call Average:\");\n"
+"			StringArray.push(\"Call Average:\");\n"
 "			StringArray.push(Timer.callaverage.toFixed(3)+\"ms\");\n"
-"			StringArray.push(\"Frame Call Count:\");\n"
+"			StringArray.push(\"Call Count:\");\n"
 "			StringArray.push((Timer.callcount / AggregateInfo.Frames).toFixed(2));\n"
 "\n"
 "			StringArray.push(\"\");\n"
@@ -1597,20 +1597,20 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
 "\n"
-"			StringArray.push(\"Frame Call Average:\");\n"
+"			StringArray.push(\"Call Average:\");\n"
 "			StringArray.push(Timer.CallAverage.toFixed(3)+\"ms\");\n"
-"			StringArray.push(\"Frame Call Count:\");\n"
+"			StringArray.push(\"Call Count:\");\n"
 "			StringArray.push((Timer.CallCount / Frames.length).toFixed(2));\n"
 "\n"
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
 "\n"
 "			StringArray.push(\"Exclusive Frame Time:\");\n"
-"			StringArray.push(FrameTime.E";
+"			StringArray.push(FrameTime.ExclusiveSum.toFixed(3)+\"";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"xclusiveSum.toFixed(3)+\"ms\");\n"
+"ms\");\n"
 "			StringArray.push(\"Exclusive Average:\");\n"
 "			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+\"ms\");\n"
 "			StringArray.push(\"Exclusive Max:\");\n"
@@ -2883,11 +2883,11 @@ const char g_MicroProfileHtml_end_1[] =
 "			var fBarWidth = nWidth / NumFrames;\n"
 "			var Index = clamp(Math.floor(NumFrames * x / nWidth), 0, NumFrames-1);\n"
 "			var Lerp = clamp((x/fBarWidth - Index) , 0, 1);\n"
-"			var time = Frames[Index].framestart + (Fr";
+"			var time = Frames[Index].framestart + (Frames[Index].frameend - F";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"ames[Index].frameend - Frames[Index].framestart) * Lerp;\n"
+"rames[Index].framestart) * Lerp;\n"
 "			return time;\n"
 "		}\n"
 "		if(MouseDragSelectRange())\n"
