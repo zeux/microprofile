@@ -1520,47 +1520,42 @@ function DrawHoverToolTip()
 		}
 		if(bShowTimers || nHoverFrame == -1)
 		{
-			StringArray.push("Timer");
+			StringArray.push("Timer:");
 			StringArray.push(Timer.name);
-			StringArray.push("Group");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Average:");
+			StringArray.push(Timer.average.toFixed(3)+"ms");
+			StringArray.push("Max:");
+			StringArray.push(Timer.max.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Exclusive Average:");
+			StringArray.push(Timer.exclaverage.toFixed(3)+"ms");
+			StringArray.push("Exclusive Max:");
+			StringArray.push(Timer.exclmax.toFixed(3)+"ms");
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Frame Call Average:");
+			StringArray.push(Timer.callaverage.toFixed(3)+"ms");
+			StringArray.push("Frame Call Count:");
+			StringArray.push((Timer.callcount / AggregateInfo.Frames).toFixed(2));
+
+			StringArray.push("");
+			StringArray.push("");
+
+			StringArray.push("Group:");
 			StringArray.push(Group.name);
-
-			StringArray.push("");
-			StringArray.push("");
-
-			StringArray.push("Average");
-			StringArray.push(Timer.average);
-			StringArray.push("Max");
-			StringArray.push(Timer.max);
-			StringArray.push("Excl Max");
-			StringArray.push(Timer.exclmax);
-			StringArray.push("Excl Average");
-			StringArray.push(Timer.exclaverage);
-			StringArray.push("Call Average");
-			StringArray.push(Timer.callaverage);
-			StringArray.push("Call Count");
-			StringArray.push(Timer.callcount);
-
-			StringArray.push("");
-			StringArray.push("");
-
-
-			StringArray.push("Group");
-			StringArray.push(Group.name);
-			StringArray.push("Average");
-			StringArray.push(Group.average);
-			StringArray.push("Max");
-			StringArray.push(Group.max);
-
-			StringArray.push("");
-			StringArray.push("");
-
-			StringArray.push("Timer Capture");
-			StringArray.push("");
-			StringArray.push("Frames");
-			StringArray.push(AggregateInfo.Frames);
-			StringArray.push("Time");
-			StringArray.push(AggregateInfo.Time.toFixed(2) + "ms");
+			StringArray.push("Frame Average:");
+			StringArray.push(Group.average.toFixed(3)+"ms");
+			StringArray.push("Frame Max:");
+			StringArray.push(Group.max.toFixed(3)+"ms");
 		}
 		else
 		{
