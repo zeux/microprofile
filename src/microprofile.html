@@ -1133,17 +1133,21 @@ function PreprocessCalculateAllTimers()
 	{
 		TimerInfo[j].CallCount = 0;
 		TimerInfo[j].Sum = 0;
+		TimerInfo[j].ExclusiveSum = 0;
 		TimerInfo[j].Max = 0;
 		TimerInfo[j].FrameMax = 0;
+		TimerInfo[j].ExclusiveFrameMax = 0;
 	}
 
 	var nNumLogs = Frames[0].ts.length;
 	var StackPosArray = Array(nNumLogs);
 	var StackArray = Array(nNumLogs);
+	var StackChildArray = Array(nNumLogs);
 	for(var i = 0; i < nNumLogs; ++i)
 	{
 		StackPosArray[i] = 0;
 		StackArray[i] = Array(20);
+		StackChildArray[i] = Array(20);
 	}
 
 	for(var i = nFrameFirst; i < nFrameLast; i++)
@@ -1155,6 +1159,7 @@ function PreprocessCalculateAllTimers()
 		for(var j = 0; j < TimerInfo.length; j++)
 		{
 			TimerInfo[j].FrameSum = 0;
+			TimerInfo[j].ExclusiveFrameSum = 0;
 		}
 
 		var fr = Frames[i];
@@ -1162,6 +1167,7 @@ function PreprocessCalculateAllTimers()
 		{
 			var StackPos = StackPosArray[nLog];
 			var Stack = StackArray[nLog];
+			var StackChild = StackChildArray[nLog];
 			var ts = fr.ts[nLog];
 			var ti = fr.ti[nLog];
 			var tt = fr.tt[nLog];
@@ -1175,38 +1181,36 @@ function PreprocessCalculateAllTimers()
 				{
 					//push
 					Stack[StackPos] = time;
-					if(StackArray[nLog][StackPos] != time)
-					{
-						console.log('fail fail fail');
-					}
 					StackPos++;
+					StackChild[StackPos] = 0;
 				}
 				else if(type == 0) // leave
 				{
-					var timestart;
-					var timeend = time;
+					var TimeDelta, TimeDeltaExclusive;
 					if(StackPos>0)
 					{
 						StackPos--;
-						timestart = Stack[StackPos];
+						TimeDelta = time - Stack[StackPos];
+						TimeDeltaExclusive = TimeDelta - StackChild[StackPos+1];
+						StackChild[StackPos] += TimeDelta;
 					}
 					else
 					{
-						timestart = Frames[nFrameFirst].framestart;
+						TimeDelta = time - Frames[nFrameFirst].framestart;
+						TimeDeltaExclusive = TimeDelta;
 					}
-					// if(index == TimerIndex)
-					{
-						var TimeDelta = timeend - timestart;
-						TimerInfo[index].CallCount++;
-						TimerInfo[index].FrameSum += TimeDelta;
-						TimerInfo[index].Sum += TimeDelta;
-						if(TimeDelta > TimerInfo[index].Max)
-							TimerInfo[index].Max = TimeDelta;
 
-						var groupid = TimerInfo[index].group;
-						GroupInfo[groupid].Sum += TimeDelta;
-						GroupInfo[groupid].FrameSum += TimeDelta;
-					}
+					TimerInfo[index].CallCount++;
+					TimerInfo[index].FrameSum += TimeDelta;
+					TimerInfo[index].ExclusiveFrameSum += TimeDeltaExclusive;
+					TimerInfo[index].Sum += TimeDelta;
+					TimerInfo[index].ExclusiveSum += TimeDeltaExclusive;
+					if(TimeDelta > TimerInfo[index].Max)
+						TimerInfo[index].Max = TimeDelta;
+
+					var groupid = TimerInfo[index].group;
+					GroupInfo[groupid].Sum += TimeDelta;
+					GroupInfo[groupid].FrameSum += TimeDelta;
 				}
 				else
 				{
@@ -1226,6 +1230,10 @@ function PreprocessCalculateAllTimers()
 				{
 					TimerInfo[j].FrameMax = TimerInfo[j].FrameSum;
 				}
+				if(TimerInfo[j].ExclusiveFrameSum > TimerInfo[j].ExclusiveFrameMax)
+				{
+					TimerInfo[j].ExclusiveFrameMax = TimerInfo[j].ExclusiveFrameSum;
+				}
 			}
 			StackPosArray[nLog] = StackPos;
 		}
@@ -1233,23 +1241,13 @@ function PreprocessCalculateAllTimers()
 
 	for(var j = 0; j < GroupInfo.length; j++)
 	{
-		var FrameAverage = (GroupInfo[j].Sum / FrameCount);
-		GroupInfo[j].FrameAverage = FrameAverage;
+		GroupInfo[j].FrameAverage = (GroupInfo[j].Sum / FrameCount);
 	}
 	for(var j = 0; j < TimerInfo.length; j++)
 	{
-		var CallCount = TimerInfo[j].CallCount;
-		var Sum = TimerInfo[j].Sum;
-		var Max = TimerInfo[j].Max;
-		var CallAverage = (TimerInfo[j].Sum / TimerInfo[j].CallCount);
-		var FrameAverage = (TimerInfo[j].Sum / FrameCount);
-		var FrameMax = TimerInfo[j].FrameMax;
-		TimerInfo[j].CallCount = CallCount;
-		TimerInfo[j].Sum = Sum;
-		TimerInfo[j].Max = Max ;
-		TimerInfo[j].CallAverage = CallAverage;
-		TimerInfo[j].FrameAverage = FrameAverage;
-		TimerInfo[j].FrameMax = FrameMax;
+		TimerInfo[j].CallAverage = (TimerInfo[j].Sum / TimerInfo[j].CallCount);
+		TimerInfo[j].FrameAverage = (TimerInfo[j].Sum / FrameCount);
+		TimerInfo[j].ExclusiveFrameAverage = (TimerInfo[j].ExclusiveSum / FrameCount);
 	}
 
 	ProfileLeave();
@@ -1641,9 +1639,9 @@ function DrawHoverToolTip()
 			StringArray.push("Exclusive Frame Time:");
 			StringArray.push("?");
 			StringArray.push("Exclusive Average:");
-			StringArray.push(Timer.exclaverage.toFixed(3)+"ms"); // does not use detailed frames!
+			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+"ms");
 			StringArray.push("Exclusive Max:");
-			StringArray.push(Timer.exclmax.toFixed(3)+"ms"); // does not use detailed frames!
+			StringArray.push(Timer.ExclusiveFrameSum.toFixed(3)+"ms");
 
 			StringArray.push("");
 			StringArray.push("");
