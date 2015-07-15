@@ -624,7 +624,7 @@ void MicroProfileDrawFloatTooltip(uint32_t nX, uint32_t nY, uint32_t nToken, uin
 	MicroProfileStringArrayFormat(&ToolTip,"%6.3fms",  fCallAverage);
 
 	MicroProfileStringArrayAddLiteral(&ToolTip, "Call Count:");
-	MicroProfileStringArrayFormat(&ToolTip, "%6d",  nAggregateCount / nAggregateFrames);
+	MicroProfileStringArrayFormat(&ToolTip, "%6.2f",  double(nAggregateCount) / nAggregateFrames);
 
 	MicroProfileStringArrayAddLiteral(&ToolTip, "");
 	MicroProfileStringArrayAddLiteral(&ToolTip, "");
