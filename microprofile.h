@@ -2904,7 +2904,8 @@ void MicroProfileWebServerStart()
 	S.WebServerSocket = socket(PF_INET, SOCK_STREAM, 6);
 	MP_ASSERT(!MP_INVALID_SOCKET(S.WebServerSocket));
 
-	S.nWebServerPort = (uint32_t)-1;
+	S.nWebServerPort = 0;
+
 	struct sockaddr_in Addr; 
 	Addr.sin_family = AF_INET; 
 	Addr.sin_addr.s_addr = INADDR_ANY; 
@@ -2933,6 +2934,8 @@ void MicroProfileWebServerStop()
 #endif
 
 	MicroProfileThreadJoin(&S.WebServerThread);
+
+	S.nWebServerPort = 0;
 }
 
 int MicroProfileParseGet(const char* pGet)
