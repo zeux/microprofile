@@ -1009,13 +1009,14 @@ void MicroProfileInit()
 		}
 		S.nGroupCount = 0;
 		S.nAggregateFlipTick = MP_TICK();
+		S.nBars = MP_DRAW_AVERAGE | MP_DRAW_MAX | MP_DRAW_CALL_COUNT;
 		S.nActiveGroup = 0;
 		S.nActiveBars = 0;
 		S.nForceGroup = 0;
 		S.nAllGroupsWanted = 0;
 		S.nActiveGroupWanted = 0;
 		S.nAllThreadsWanted = 1;
-		S.nAggregateFlip = 0;
+		S.nAggregateFlip = 60;
 		S.nTotalTimers = 0;
 		for(uint32_t i = 0; i < MICROPROFILE_MAX_GRAPHS; ++i)
 		{
