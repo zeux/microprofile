@@ -3449,6 +3449,12 @@ void MicroProfileGpuFlip()
 	uint32_t nNextFrame = S.GPU.nNextFrame;
 	uint32_t nNextNextFrame = (S.GPU.nNextFrame + 1) % MICROPROFILE_GPU_FRAME_DELAY;
 
+	if(S.GPU.bBeginIssued)
+	{
+		glEndQuery(GL_TIME_ELAPSED);
+		S.GPU.bBeginIssued = false;
+	}
+
 	for(uint32_t nIndex = S.GPU.nQueryGet[nNextFrame]; nIndex != S.GPU.nQueryGet[nNextNextFrame]; nIndex = (nIndex+1) % MICROPROFILE_GPU_MAX_QUERIES)
 	{
 		uint64_t nResult = 0;
