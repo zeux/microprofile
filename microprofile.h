@@ -2730,13 +2730,15 @@ void MicroProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 
 void MicroProfileFlushSocket(MpSocket Socket)
 {
-	send(Socket, &S.WebServerBuffer[0], S.nWebServerPut, 0);
-	S.nWebServerPut = 0;
+	if(S.nWebServerPut)
+	{
+		MicroProfileSendSocket(Socket, &S.WebServerBuffer[0], S.nWebServerPut);
+		S.nWebServerPut = 0;
+	}
 }
 
 void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 {
-	S.nWebServerDataSent += nSize;
 	MpSocket Socket = *(MpSocket*)Handle;
 	if(nSize > MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE / 2)
 	{
@@ -2752,6 +2754,8 @@ void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 			MicroProfileFlushSocket(Socket);
 		}
 	}
+
+	S.nWebServerDataSent += nSize;
 }
 
 #if MICROPROFILE_MINIZ
