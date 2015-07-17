@@ -767,10 +767,10 @@ struct MicroProfile
 
 	MpSocket 					WebServerSocket;
 	uint32_t					nWebServerPort;
+	bool						bWebServerStart;
 
 	char						WebServerBuffer[MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE];
-	uint32_t					WebServerPut;
-
+	uint32_t					nWebServerPut;
 	uint64_t 					nWebServerDataSent;
 
 	char						LabelBuffer[MICROPROFILE_LABEL_BUFFER_SIZE + MICROPROFILE_LABEL_MAX_LEN];
@@ -1040,7 +1040,7 @@ void MicroProfileInit()
 		pGpu->nGpu = 1;
 		pGpu->nThreadId = 0;
 
-		S.nWebServerDataSent = (uint64_t)-1;
+		S.bWebServerStart = true;
 	}
 	if(bUseLock)
 		mutex.unlock();
@@ -1519,10 +1519,10 @@ void MicroProfileFlip()
 		S.nDumpFileNextFrame = 0;
 		S.nAutoClearFrames = MICROPROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
 	}
-	if(S.nWebServerDataSent == (uint64_t)-1)
+	if(S.bWebServerStart)
 	{
 		MicroProfileWebServerStart();
-		S.nWebServerDataSent = 0;
+		S.bWebServerStart = false;
 	}
 
 	if(S.nAutoClearFrames)
@@ -2730,8 +2730,8 @@ void MicroProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 
 void MicroProfileFlushSocket(MpSocket Socket)
 {
-	send(Socket, &S.WebServerBuffer[0], S.WebServerPut, 0);
-	S.WebServerPut = 0;
+	send(Socket, &S.WebServerBuffer[0], S.nWebServerPut, 0);
+	S.nWebServerPut = 0;
 }
 
 void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
@@ -2745,9 +2745,9 @@ void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 	}
 	else
 	{
-		memcpy(&S.WebServerBuffer[S.WebServerPut], pData, nSize);
-		S.WebServerPut += nSize;
-		if(S.WebServerPut > MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE/2)
+		memcpy(&S.WebServerBuffer[S.nWebServerPut], pData, nSize);
+		S.nWebServerPut += nSize;
+		if(S.nWebServerPut > MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE/2)
 		{
 			MicroProfileFlushSocket(Socket);
 		}
@@ -3024,7 +3024,7 @@ void* MicroProfileWebServerUpdate(void*)
 					uint64_t nTickStart = MP_TICK();
 					MicroProfileSendSocket(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1);
 					uint64_t nDataStart = S.nWebServerDataSent;
-					S.WebServerPut = 0;
+					S.nWebServerPut = 0;
 	#if 0 == MICROPROFILE_MINIZ
 					MicroProfileDumpHtml(MicroProfileWriteSocket, &Connection, nFrames, pHost);
 					uint64_t nDataEnd = S.nWebServerDataSent;
