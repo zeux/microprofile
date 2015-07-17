@@ -3337,7 +3337,8 @@ void MicroProfileGpuInit(void* pContext)
 
 void MicroProfileGpuShutdown()
 {
-	MP_ASSERT(S.GPU.pDeviceContext);
+	if(!S.GPU.pDeviceContext)
+		return;
 
 	for(uint32_t i = 0; i < MICROPROFILE_GPU_MAX_QUERIES; ++i)
 	{
@@ -3441,7 +3442,8 @@ void MicroProfileGpuInit(void* pContext)
 
 void MicroProfileGpuShutdown()
 {
-	MP_ASSERT(S.GPU.bInitialized);
+	if(!S.GPU.bInitialized)
+		return;
 
 	glDeleteQueries(MICROPROFILE_GPU_MAX_QUERIES, &S.GPU.nQueries[0]);
 
