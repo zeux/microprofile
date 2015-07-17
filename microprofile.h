@@ -2896,19 +2896,16 @@ void MicroProfileWebServerHello(int nPort)
 
 void MicroProfileWebServerStart()
 {
+	MP_ASSERT(S.nWebServerPort == 0);
+
 #ifdef _WIN32
 	WSADATA wsa;
 	if(WSAStartup(MAKEWORD(2, 2), &wsa))
-	{
-		S.WebServerSocket = -1;
 		return;
-	}
 #endif
 
 	S.WebServerSocket = socket(PF_INET, SOCK_STREAM, 6);
 	MP_ASSERT(!MP_INVALID_SOCKET(S.WebServerSocket));
-
-	S.nWebServerPort = 0;
 
 	struct sockaddr_in Addr; 
 	Addr.sin_family = AF_INET; 
@@ -2920,16 +2917,22 @@ void MicroProfileWebServerStart()
 		{
 			S.nWebServerPort = MICROPROFILE_WEBSERVER_PORT+i;
 			MicroProfileWebServerHello(S.nWebServerPort);
-			break;
+
+			listen(S.WebServerSocket, 8);
+
+			MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
+			return;
 		}
 	}
-	listen(S.WebServerSocket, 8);
 
-	MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
+	MICROPROFILE_PRINTF("MicroProfile: Web server could not start: no free ports");
 }
 
 void MicroProfileWebServerStop()
 {
+	if(!S.nWebServerPort)
+		return;
+
 #ifdef _WIN32
 	closesocket(S.WebServerSocket);
 	WSACleanup();
