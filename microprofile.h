@@ -901,7 +901,8 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 #if defined(__APPLE__) || defined(__linux__)
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
 #include <fcntl.h>
 #define MP_INVALID_SOCKET(f) (f < 0)
 #endif
@@ -2871,27 +2872,34 @@ void* MicroProfileWebServerUpdate(void*);
 
 void MicroProfileWebServerHello(int nPort)
 {
-	char Buffer[1024];
+	uint32_t nInterfaces = 0;
 
-	if(gethostname(Buffer, sizeof(Buffer)) == 0)
+#if defined(__APPLE__) || defined(__linux__)
+	struct ifaddrs* ifal;
+	if(getifaddrs(&ifal) == 0 && ifal)
 	{
-		if (struct hostent* host = gethostbyname(Buffer))
+		for(struct ifaddrs* ifa = ifal; ifa; ifa = ifa->ifa_next)
 		{
-		#ifdef _WIN32
-			uint8_t* pIp = (uint8_t*)host->h_addr_list[0];
-		#else
-			uint8_t* pIp = (uint8_t*)host->h_addr;
-		#endif
-
-			if (pIp)
+			if(ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET)
 			{
-				MICROPROFILE_PRINTF("MicroProfile: Web server started on %d.%d.%d.%d:%d\n", pIp[0], pIp[1], pIp[2], pIp[3], nPort);
-				return;
+				void* pAddress = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+				char Ip[INET_ADDRSTRLEN];
+				if(inet_ntop(AF_INET, pAddress, Ip, sizeof(Ip)))
+				{
+					MICROPROFILE_PRINTF("MicroProfile: Web server started on %s:%d\n", Ip, nPort);
+					nInterfaces++;
+				}
 			}
 		}
-	}
 
-	MICROPROFILE_PRINTF("MicroProfile: Web server started on port %d", nPort);
+		freeifaddrs(ifal);
+	}
+#endif
+
+	if(nInterfaces == 0)
+	{
+		MICROPROFILE_PRINTF("MicroProfile: Web server started on port %d", nPort);
+	}
 }
 
 void MicroProfileWebServerStart()
