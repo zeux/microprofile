@@ -148,7 +148,7 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileEnableMetaCounter(c) do{}while(0)
 #define MicroProfileDisableMetaCounter(c) do{}while(0)
 #define MicroProfileDumpFile(html,csv) do{} while(0)
-#define MicroProfileWebServerPort() ((uint32_t)-1)
+#define MicroProfileWebServerPort() 0
 
 #else
 
@@ -390,14 +390,8 @@ MICROPROFILE_API void MicroProfileStartContextSwitchTrace();
 MICROPROFILE_API void MicroProfileStopContextSwitchTrace();
 MICROPROFILE_API bool MicroProfileIsLocalThread(uint32_t nThreadId);
 
-
-#if MICROPROFILE_WEBSERVER
 MICROPROFILE_API void MicroProfileDumpFile(const char* pHtml, const char* pCsv);
 MICROPROFILE_API uint32_t MicroProfileWebServerPort();
-#else
-#define MicroProfileDumpFile(c) do{} while(0)
-#define MicroProfileWebServerPort() ((uint32_t)-1)
-#endif
 
 MICROPROFILE_API uint32_t MicroProfileGpuInsertTimer();
 MICROPROFILE_API uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey);
@@ -3065,16 +3059,22 @@ void* MicroProfileWebServerUpdate(void*)
 
 	return 0;
 }
+#else
+void MicroProfileDumpFile(const char* pHtml, const char* pCsv)
+{
+}
+
+uint32_t MicroProfileWebServerPort()
+{
+	return 0;
+}
 #endif
-
-
 
 
 #if MICROPROFILE_CONTEXT_SWITCH_TRACE
 //functions that need to be implemented per platform.
 void* MicroProfileTraceThread(void* unused);
 bool MicroProfileIsLocalThread(uint32_t nThreadId);
-
 
 void MicroProfileStartContextSwitchTrace()
 {
@@ -3096,7 +3096,7 @@ void MicroProfileStopContextSwitchTrace()
 }
 
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #define INITGUID
 #include <wmistr.h>
 #include <evntrace.h>
@@ -3298,14 +3298,20 @@ bool MicroProfileIsLocalThread(uint32_t nThreadId)
 {
 	return false;
 }
-
 #endif
 #else
+bool MicroProfileIsLocalThread(uint32_t nThreadId)
+{
+	return false;
+}
 
-bool MicroProfileIsLocalThread(uint32_t nThreadId){return false;}
-void MicroProfileStopContextSwitchTrace(){}
-void MicroProfileStartContextSwitchTrace(){}
+void MicroProfileStartContextSwitchTrace()
+{
+}
 
+void MicroProfileStopContextSwitchTrace()
+{
+}
 #endif
 
 
