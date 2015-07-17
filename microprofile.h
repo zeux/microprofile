@@ -226,7 +226,9 @@ inline int64_t MicroProfileGetTick()
 }
 #define MP_TICK() MicroProfileGetTick()
 #define MP_BREAK() __builtin_trap()
+#ifndef __ANDROID__ // __thread is incompatible with ffunction-sections/fdata-sections
 #define MP_THREAD_LOCAL __thread
+#endif
 #define MP_STRCASECMP strcasecmp
 #define MP_GETCURRENTTHREADID() (uint64_t)pthread_self()
 typedef uint64_t ThreadIdType;
