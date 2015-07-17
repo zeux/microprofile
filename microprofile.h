@@ -1203,6 +1203,7 @@ uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
 			return i;
 		}
 	}
+
 	uint16_t nGroupIndex = S.nGroupCount++;
 	MP_ASSERT(nGroupIndex < MICROPROFILE_MAX_GROUPS);
 
@@ -1234,6 +1235,8 @@ MicroProfileToken MicroProfileGetToken(const char* pGroup, const char* pName, ui
 	MicroProfileToken ret = MicroProfileFindToken(pGroup, pName);
 	if(ret != MICROPROFILE_INVALID_TOKEN)
 		return ret;
+	if(S.nTotalTimers == MICROPROFILE_MAX_TIMERS)
+		return MICROPROFILE_INVALID_TOKEN;
 	uint16_t nGroupIndex = MicroProfileGetGroup(pGroup, Type);
 	uint16_t nTimerIndex = (uint16_t)(S.nTotalTimers++);
 	uint64_t nGroupMask = 1ll << nGroupIndex;
