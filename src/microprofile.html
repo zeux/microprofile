@@ -159,7 +159,7 @@ function MakeGroup(id, name, category, numtimers, isgpu, total, average, max, co
 
 function MakeTimer(id, name, group, color, colordark, average, max, exclaverage, exclmax, callaverage, callcount, total, meta, metaagg, metamax)
 {
-	var timer = {"id":id, "name":name, "len":name.length, "color":color, "colordark":colordark,"timercolor":color, "textcolor":InvertColor(color), "group":group, "average":average, "max":max, "exclaverage":exclaverage, "exclmax":exclmax, "callaverage":callaverage, "callcount":callcount, "total":total, "meta":meta, "textcolorindex":InvertColorIndex(color), "metaagg":metaagg, "metamax":metamax};
+	var timer = {"id":id, "name":name, "namelabel":name.startsWith("$"), "color":color, "colordark":colordark,"timercolor":color, "textcolor":InvertColor(color), "group":group, "average":average, "max":max, "exclaverage":exclaverage, "exclmax":exclmax, "callaverage":callaverage, "callcount":callcount, "total":total, "meta":meta, "textcolorindex":InvertColorIndex(color), "metaagg":metaagg, "metamax":metamax};
 	return timer;
 }
 
@@ -281,6 +281,7 @@ var g_MaxStack = Array();
 var g_TypeArray;
 var g_TimeArray;
 var g_IndexArray;
+var g_LabelArray;
 var LodData = new Array();
 var NumLodSplits = 10;
 var SplitMin = 100;
@@ -2247,8 +2248,9 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 				var Lod = LodData[LodIndex];
 
 				var TypeArray = g_TypeArray[nLog];
-				var IndexArray = g_IndexArray[nLog];
 				var TimeArray = g_TimeArray[nLog];
+				var IndexArray = g_IndexArray[nLog];
+				var LabelArray = g_LabelArray[nLog];
 				var GlobalArray = Lod.GlobalArray[nLog];
 
 				var LocalFirstFrame = Frames[FirstFrame].FirstFrameIndex[nLog];
@@ -2263,8 +2265,7 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 					var time = TimeArray[glob];
 					if(type == 1)
 					{
-						//push
-						Stack[StackPos] = time;
+						Stack[StackPos] = glob;
 						StackPos++;
 						if(StackPos > MaxDepth)
 						{
@@ -2277,7 +2278,8 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 						{
 							StackPos--;
 
-							var timestart = Stack[StackPos];
+							var globstart = Stack[StackPos];
+							var timestart = TimeArray[globstart];
 							var timeend = time;
 							var X = (timestart - fDetailedOffset) * fScaleX;
 							var Y = fOffsetY + StackPos * BoxHeight;
@@ -2298,15 +2300,14 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 									{
 										WText = nWidth - XText;
 									}
-									var Name = TimerInfo[index].name;
-									var NameLen = TimerInfo[index].len;
+									var Name = LabelArray[globstart] ? LabelArray[globstart] : TimerInfo[index].name;
 									var BarTextLen = Math.floor((WText-2)/FontWidth);
 									var TimeText = TimeToMsString(timeend-timestart);
 									var TimeTextLen = TimeText.length;
 
 									if(BarTextLen >= 2)
 									{
-										if(BarTextLen < NameLen)
+										if(BarTextLen < Name.length)
 											Name = Name.substr(0, BarTextLen);
 										var txtidx = TimerInfo[index].textcolorindex;
 										var YPos = Y+BoxHeight-FontAscent;
@@ -2315,7 +2316,7 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 
 										BatchesTxtPos[txtidx].push(YPos);
 										DebugDrawTextCount++;
-										if(BarTextLen - NameLen > TimeTextLen)
+										if(BarTextLen - Name.length > TimeTextLen)
 										{
 											BatchesTxt[txtidx].push(TimeText);
 											BatchesTxtPos[txtidx].push(XText+WText-2 - TimeTextLen * FontWidth);
@@ -3506,6 +3507,7 @@ function PreprocessGlobalArray()
 	g_TypeArray = new Array(nNumLogs);
 	g_TimeArray = new Array(nNumLogs);
 	g_IndexArray = new Array(nNumLogs);
+	g_LabelArray = new Array(nNumLogs);
 	var StackPos = 0;
 	var Stack = Array(20);
 	var LogStartArray = new Array(Frames.length);
@@ -3525,6 +3527,7 @@ function PreprocessGlobalArray()
 		var TypeArray = new Array();
 		var TimeArray = new Array();
 		var IndexArray = new Array();
+		var LabelArray = new Array();
 		for(var i = 0; i < Frames.length; i++)
 		{
 			var Frame_ = Frames[i];	
@@ -3533,6 +3536,7 @@ function PreprocessGlobalArray()
 			var tt = Frame_.tt[nLog];
 			var ts = Frame_.ts[nLog];
 			var ti = Frame_.ti[nLog];
+			var tl = Frame_.tl[nLog];
 			var len = tt.length;
 			for(var xx = 0; xx < len; ++xx)
 			{
@@ -3546,6 +3550,15 @@ function PreprocessGlobalArray()
 					TypeArray.push(tt[xx]);
 					TimeArray.push(ts[xx]);
 					IndexArray.push(ti[xx]);
+
+					// Use label after the region instead of the region name for some regions
+					var Label = null;
+					if(xx + 1 < len && tt[xx] == 1 && tt[xx+1] == 3 && TimerInfo[ti[xx]].namelabel)
+					{
+						Label = tl[ti[xx+1]];
+					}
+
+					LabelArray.push(Label);
 				}
 			}
 			Frame_.LogEnd[nLog] = TimeArray.length;
@@ -3554,6 +3567,7 @@ function PreprocessGlobalArray()
 		g_TypeArray[nLog] = TypeArray;
 		g_TimeArray[nLog] = TimeArray;
 		g_IndexArray[nLog] = IndexArray;
+		g_LabelArray[nLog] = LabelArray;
 		if(Discard)
 		{
 			console.log('discarded ' + Discard + ' markers from ' + ThreadNames[nLog]);
