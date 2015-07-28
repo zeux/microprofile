@@ -65,7 +65,6 @@ struct MicroProfileDrawContext
 	};
 
 	bool bInitialized;
-	bool bGL3;
 
 	GLuint nVAO;
 	GLuint nVertexBuffer;
@@ -154,22 +153,28 @@ void MicroProfileDrawInitGL()
 
 	MP_ASSERT(!S.bInitialized);
 
-	S.bGL3 = glGetString(GL_VERSION)[0] >= '3';
+	const GLubyte* pGLVersion = glGetString(GL_VERSION);
+	const GLubyte* pGLSLVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+	int nGLVersion = (pGLVersion[0] - '0') * 10 + (pGLVersion[2] - '0');
+	int nGLSLVersion = (pGLSLVersion[0] - '0') * 100 + (pGLSLVersion[2] - '0') * 10 + (pGLSLVersion[3] - '0');
 
 	glGenBuffers(1, &S.nVertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, S.nVertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(S.nVertices), 0, GL_STREAM_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	if (S.bGL3)
+	if (nGLVersion >= 3)
 		glGenVertexArrays(1, &S.nVAO);
+	else
+		S.nVAO = 0;
 
 	GLuint nVertexShader;
-	if(!MicroProfileCompileShader(&nVertexShader, GL_VERTEX_SHADER, S.bGL3 ? g_MicroProfileVertexShader_150 : g_MicroProfileVertexShader_110))
+	if(!MicroProfileCompileShader(&nVertexShader, GL_VERTEX_SHADER, nGLSLVersion >= 150 ? g_MicroProfileVertexShader_150 : g_MicroProfileVertexShader_110))
 		return;
 
 	GLuint nFragmentShader;
-	if(!MicroProfileCompileShader(&nFragmentShader, GL_FRAGMENT_SHADER, S.bGL3 ? g_MicroProfileFragmentShader_150 : g_MicroProfileFragmentShader_110))
+	if(!MicroProfileCompileShader(&nFragmentShader, GL_FRAGMENT_SHADER, nGLSLVersion >= 150 ? g_MicroProfileFragmentShader_150 : g_MicroProfileFragmentShader_110))
 		return;
 
 	if(!MicroProfileLinkProgram(&S.nProgram, nVertexShader, nFragmentShader))
@@ -226,7 +231,7 @@ void MicroProfileBeginDraw(uint32_t nWidth, uint32_t nHeight, float* pfProjectio
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 
-	if (S.bGL3)
+	if (S.nVAO)
 		glBindVertexArray(S.nVAO);
 
 	glUseProgram(S.nProgram);
@@ -347,7 +352,7 @@ void MicroProfileEndDraw()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(0);
 
-	if (S.bGL3)
+	if (S.nVAO)
 		glBindVertexArray(0);
 
 	glDisable(GL_BLEND);
