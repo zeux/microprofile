@@ -3444,6 +3444,14 @@ uint64_t MicroProfileTicksPerSecondGpu()
 	return S.GPU.nQueryFrequency ? S.GPU.nQueryFrequency : 1000000000ll;
 }
 #elif MICROPROFILE_GPU_TIMERS_GL
+#ifndef GL_TIMESTAMP
+#ifdef __APPLE__
+#include <OpenGL/gl3.h>
+#else
+#error You must include OpenGL headers for GPU timers to work
+#endif
+#endif
+
 uint64_t MicroProfileGetGpuTimeOffset()
 {
 	// We use microsecond-precise alignment to reduce the chance of overflow during multiplication
