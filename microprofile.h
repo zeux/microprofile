@@ -3326,7 +3326,9 @@ void MicroProfileStopContextSwitchTrace()
 
 
 #if MICROPROFILE_GPU_TIMERS_D3D11
+#ifndef D3D11_SDK_VERSION
 #include <d3d11.h>
+#endif
 
 void MicroProfileGpuInit(void* pContext)
 {
