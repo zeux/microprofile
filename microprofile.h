@@ -3455,7 +3455,13 @@ void MicroProfileGpuInit(void* pContext)
 	memset(&S.GPU, 0, sizeof(S.GPU));
 
 	S.GPU.bInitialized = true;
+
 	glGetQueryiv(GL_TIMESTAMP, GL_QUERY_COUNTER_BITS, &S.GPU.nTimestampBits);
+
+#ifdef __APPLE__
+	// OSX GL driver (incorrectly) issues GL_INVALID_ENUM when querying the timestamp bits
+	glGetError();
+#endif
 
 	glGenQueries(MICROPROFILE_GPU_MAX_QUERIES, &S.GPU.nQueries[0]);
 }
