@@ -1025,10 +1025,7 @@ const char g_MicroProfileHtml_end_0[] =
 "			else if (type == 3 && StackPos == 1)\n"
 "			{\n"
 "				var Label = tl[index];\n"
-"				if(Label)\n"
-"				{\n"
-"					HoverInfo.push(Label);\n"
-"				}\n"
+"				HoverInfo.push(Label ? Label : \"??\");\n"
 "			}\n"
 "		}\n"
 "	}\n"
@@ -1607,11 +1604,11 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"\");\n"
 "\n"
 "			StringArray.push(\"Exclusive Frame Time:\");\n"
-"			StringArray.push(FrameTime.Exclusi";
+"			StringArray.push(FrameTime.ExclusiveSum.toFixe";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"veSum.toFixed(3)+\"ms\");\n"
+"d(3)+\"ms\");\n"
 "			StringArray.push(\"Exclusive Average:\");\n"
 "			StringArray.push(Timer.ExclusiveFrameAverage.toFixed(3)+\"ms\");\n"
 "			StringArray.push(\"Exclusive Max:\");\n"
@@ -2883,11 +2880,11 @@ const char g_MicroProfileHtml_end_1[] =
 "			var NumFrames = Frames.length;\n"
 "			var fBarWidth = nWidth / NumFrames;\n"
 "			var Index = clamp(Math.floor(NumFrames * x / nWidth), 0, NumFrames-1);\n"
-"			var Lerp = cla";
+"			var Lerp = clamp((x/fBarWi";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"mp((x/fBarWidth - Index) , 0, 1);\n"
+"dth - Index) , 0, 1);\n"
 "			var time = Frames[Index].framestart + (Frames[Index].frameend - Frames[Index].framestart) * Lerp;\n"
 "			return time;\n"
 "		}\n"

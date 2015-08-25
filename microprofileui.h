@@ -525,20 +525,17 @@ void MicroProfileToolTipLabel(MicroProfileStringArray* pToolTip)
 							uint64_t nLabel = MicroProfileLogGetTick(LE);
 							const char* pLabelName = MicroProfileGetLabel(nLabel);
 
-							if (pLabelName)
+							if (!bSpaced)
 							{
-								if (!bSpaced)
-								{
-									bSpaced = true;
-									MicroProfileStringArrayAddLiteral(pToolTip, "");
-									MicroProfileStringArrayAddLiteral(pToolTip, "");
-								}
+								bSpaced = true;
+								MicroProfileStringArrayAddLiteral(pToolTip, "");
+								MicroProfileStringArrayAddLiteral(pToolTip, "");
+							}
 
-								if (pToolTip->nNumStrings + 2 <= MICROPROFILE_TOOLTIP_MAX_STRINGS)
-								{
-									MicroProfileStringArrayAddLiteral(pToolTip, "Label:");
-									MicroProfileStringArrayAddLiteral(pToolTip, pLabelName);
-								}
+							if (pToolTip->nNumStrings + 2 <= MICROPROFILE_TOOLTIP_MAX_STRINGS)
+							{
+								MicroProfileStringArrayAddLiteral(pToolTip, "Label:");
+								MicroProfileStringArrayAddLiteral(pToolTip, pLabelName ? pLabelName : "??");
 							}
 						}
 					}
