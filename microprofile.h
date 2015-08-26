@@ -147,7 +147,7 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileGetForceMetaCounters() 0
 #define MicroProfileEnableMetaCounter(c) do{}while(0)
 #define MicroProfileDisableMetaCounter(c) do{}while(0)
-#define MicroProfileDumpFile(html,csv) do{} while(0)
+#define MicroProfileDumpFile(path,type,frames) do{} while(0)
 #define MicroProfileWebServerPort() 0
 
 #else
@@ -340,6 +340,12 @@ enum MicroProfileBoxType
 	MicroProfileBoxTypeFlat,
 };
 
+enum MicroProfileDumpType
+{
+	MicroProfileDumpTypeHtml,
+	MicroProfileDumpTypeCsv
+};
+
 #ifdef __GNUC__
 #define MICROPROFILE_FORMAT(a, b) __attribute__((format(printf, a, b)))
 #else
@@ -392,7 +398,7 @@ MICROPROFILE_API void MicroProfileStartContextSwitchTrace();
 MICROPROFILE_API void MicroProfileStopContextSwitchTrace();
 MICROPROFILE_API bool MicroProfileIsLocalThread(uint32_t nThreadId);
 
-MICROPROFILE_API void MicroProfileDumpFile(const char* pHtml, const char* pCsv);
+MICROPROFILE_API void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames);
 MICROPROFILE_API uint32_t MicroProfileWebServerPort();
 
 MICROPROFILE_API uint32_t MicroProfileGpuInsertTimer();
@@ -664,8 +670,9 @@ struct MicroProfile
 	uint32_t nMaxGroupSize;
 	uint32_t nDumpFileNextFrame;
 	uint32_t nAutoClearFrames;
-	char HtmlDumpPath[512];
-	char CsvDumpPath[512];
+	MicroProfileDumpType eDumpType;
+	uint32_t nDumpFrames;
+	char DumpPath[512];
 
 	int64_t nPauseTicks;
 
@@ -2128,29 +2135,17 @@ uint32_t MicroProfileWebServerPort()
 	return S.nWebServerPort;
 }
 
-void MicroProfileDumpFile(const char* pHtml, const char* pCsv)
+void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames)
 {
-	S.nDumpFileNextFrame = 0;
-	if(pHtml)
+	uint32_t nLen = strlen(pPath);
+	if(nLen > sizeof(S.DumpPath)-1)
 	{
-		uint32_t nLen = strlen(pHtml);
-		if(nLen > sizeof(S.HtmlDumpPath)-1)
-		{
-			return;
-		}
-		memcpy(S.HtmlDumpPath, pHtml, nLen+1);
-		S.nDumpFileNextFrame |= 1;
+		return;
 	}
-	if(pCsv)
-	{
-		uint32_t nLen = strlen(pCsv);
-		if(nLen > sizeof(S.CsvDumpPath)-1)
-		{
-			return;
-		}
-		memcpy(S.CsvDumpPath, pCsv, nLen+1);
-		S.nDumpFileNextFrame |= 2;
-	}
+	memcpy(S.DumpPath, pPath, nLen+1);
+	S.nDumpFileNextFrame = 1;
+	S.eDumpType = eType;
+	S.nDumpFrames = nFrames;
 }
 
 MICROPROFILE_FORMAT(3, 4) void MicroProfilePrintf(MicroProfileWriteCallback CB, void* Handle, const char* pFmt, ...)
@@ -2698,23 +2693,16 @@ void MicroProfileWriteFile(void* Handle, size_t nSize, const char* pData)
 void MicroProfileDumpToFile()
 {
 	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
-	if(S.nDumpFileNextFrame&1)
+
+	FILE* F = fopen(S.DumpPath, "w");
+	if(F)
 	{
-		FILE* F = fopen(S.HtmlDumpPath, "w");
-		if(F)
-		{
-			MicroProfileDumpHtml(MicroProfileWriteFile, F, MICROPROFILE_WEBSERVER_MAXFRAMES, S.HtmlDumpPath);
-			fclose(F);
-		}
-	}
-	if(S.nDumpFileNextFrame&2)
-	{
-		FILE* F = fopen(S.CsvDumpPath, "w");
-		if(F)
-		{
-			MicroProfileDumpCsv(MicroProfileWriteFile, F, MICROPROFILE_WEBSERVER_MAXFRAMES);
-			fclose(F);
-		}
+		if(S.eDumpType == MicroProfileDumpTypeHtml)
+			MicroProfileDumpHtml(MicroProfileWriteFile, F, S.nDumpFrames, S.DumpPath);
+		else if(S.eDumpType == MicroProfileDumpTypeCsv)
+			MicroProfileDumpCsv(MicroProfileWriteFile, F, S.nDumpFrames);
+
+		fclose(F);
 	}
 }
 
