@@ -1936,6 +1936,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 	pMenuText[nNumMenuItems++] = "Timers";
 	pMenuText[nNumMenuItems++] = "Options";
 	pMenuText[nNumMenuItems++] = "Preset";
+	pMenuText[nNumMenuItems++] = "Dump";
 	const int nPauseIndex = nNumMenuItems;
 	pMenuText[nNumMenuItems++] = S.nRunning ? "Pause" : "Unpause";
 	pMenuText[nNumMenuItems++] = "Help";
@@ -2205,6 +2206,20 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		},
 
 		[] (int index, bool& bSelected) -> const char*{
+			static char buf[128];
+			bSelected = false;
+
+			if(index < 5)
+			{
+				snprintf(buf, sizeof(buf)-1, "%d frames", 32 << index);
+				return buf;
+			}
+			else
+			{
+				return 0;
+			}
+		},
+		[] (int index, bool& bSelected) -> const char*{
 			return 0;
 		},
 		[] (int index, bool& bSelected) -> const char*{
@@ -2348,6 +2363,32 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 			{
 				MicroProfileLoadPreset(g_MicroProfilePresetNames[nIndex]);
 			}
+		},
+		[](int nIndex)
+		{
+			time_t t = time(0);
+
+			char Name[128];
+			strftime(Name, sizeof(Name), "microprofile-%Y%m%d-%H%M%S.html", localtime(&t));
+
+			char Path[512] = {};
+			const char* pHome = getenv("HOME");
+			const char* pHomeDrive = getenv("HOMEDRIVE");
+			const char* pHomePath = getenv("HOMEPATH");
+			if(pHome)
+			{
+				snprintf(Path, sizeof(Path)-1, "%s/%s", pHome, Name);
+			}
+			else if(pHomeDrive && pHomePath)
+			{
+				snprintf(Path, sizeof(Path)-1, "%s%s/%s", pHomeDrive, pHomePath, Name);
+			}
+			else
+			{
+				snprintf(Path, sizeof(Path)-1, "%s", Name);
+			}
+
+			MicroProfileDumpFile(Path, MicroProfileDumpTypeHtml, 32 << nIndex);
 		},
 		[](int nIndex)
 		{
@@ -2571,7 +2612,7 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 				}
 			}
 
-			if(UI.nActiveMenu == 7)
+			if(UI.nActiveMenu == 8)
 			{
 				if(S.nDisplay & MP_DRAW_DETAILED)
 				{
