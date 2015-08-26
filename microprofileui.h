@@ -934,6 +934,8 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 		MicroProfileContextSwitchSearch(&nContextSwitchStart, &nContextSwitchEnd, nBaseTicksCpu, nBaseTicksEndCpu);
 	}
 
+	uint64_t nActiveGroup = S.nAllGroupsWanted ? S.nGroupMask : S.nActiveGroupWanted;
+
 	bool bSkipBarView = S.bContextSwitchRunning && S.bContextSwitchNoBars;
 
 	if(!bSkipBarView)
@@ -1055,6 +1057,11 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 						int64_t nTickEnd = MicroProfileLogGetTick(*pEntry);
 						uint64_t nTimerIndex = MicroProfileLogTimerIndex(*pEntry);
 						uint32_t nColor = S.TimerInfo[nTimerIndex].nColor;
+						if(!(nActiveGroup & (1ull << S.TimerInfo[nTimerIndex].nGroupIndex)))
+						{
+							nStackPos--;
+							continue;
+						}
 						if(nMouseOverToken == nTimerIndex)
 						{
 							if(pEntry == pMouseOver)
