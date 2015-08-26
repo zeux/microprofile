@@ -317,6 +317,10 @@ typedef uint32_t ThreadIdType;
 #define MICROPROFILE_LABEL_MAX_LEN 256
 #endif
 
+#ifndef MICROPROFILE_EMBED_HTML
+#define MICROPROFILE_EMBED_HTML 1
+#endif
+
 #define MICROPROFILE_FORCEENABLECPUGROUP(s) MicroProfileForceEnableGroup(s, MicroProfileTokenTypeCpu)
 #define MICROPROFILE_FORCEDISABLECPUGROUP(s) MicroProfileForceDisableGroup(s, MicroProfileTokenTypeCpu)
 #define MICROPROFILE_FORCEENABLEGPUGROUP(s) MicroProfileForceEnableGroup(s, MicroProfileTokenTypeGpu)
@@ -918,13 +922,11 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 
 void MicroProfileWebServerStart();
 void MicroProfileWebServerStop();
-void MicroProfileDumpToFile();
 
 #else
 
 #define MicroProfileWebServerStart() do{}while(0)
 #define MicroProfileWebServerStop() do{}while(0)
-#define MicroProfileDumpToFile() do{} while(0)
 #endif 
 
 #include <stdlib.h>
@@ -1496,6 +1498,8 @@ void MicroProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2])
 		nRange[1][1] = nPut;
 	}
 }
+
+void MicroProfileDumpToFile();
 
 void MicroProfileFlip()
 {
@@ -2115,25 +2119,7 @@ void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pC
 	*pContextSwitchEnd = nContextSwitchEnd;
 }
 
-
-
-#if MICROPROFILE_WEBSERVER
-
-#define MICROPROFILE_EMBED_HTML
-
-extern const char* g_MicroProfileHtml_begin[];
-extern size_t g_MicroProfileHtml_begin_sizes[];
-extern size_t g_MicroProfileHtml_begin_count;
-extern const char* g_MicroProfileHtml_end[];
-extern size_t g_MicroProfileHtml_end_sizes[];
-extern size_t g_MicroProfileHtml_end_count;
-
 typedef void MicroProfileWriteCallback(void* Handle, size_t size, const char* pData);
-
-uint32_t MicroProfileWebServerPort()
-{
-	return S.nWebServerPort;
-}
 
 void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames)
 {
@@ -2295,6 +2281,14 @@ void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFra
 		}
 	}
 }
+
+#if MICROPROFILE_EMBED_HTML
+extern const char* g_MicroProfileHtml_begin[];
+extern size_t g_MicroProfileHtml_begin_sizes[];
+extern size_t g_MicroProfileHtml_begin_count;
+extern const char* g_MicroProfileHtml_end[];
+extern size_t g_MicroProfileHtml_end_sizes[];
+extern size_t g_MicroProfileHtml_end_count;
 
 void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost)
 {
@@ -2681,9 +2675,13 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	float fMs = fToMsCpu * (nTicksEnd - S.nPauseTicks);
 	printf("html dump took %6.2fms\n", fMs);
 #endif
-
-
 }
+#else
+void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost)
+{
+	MicroProfilePrintString("HTML output is disabled because MICROPROFILE_EMBED_HTML is 0\n");
+}
+#endif
 
 void MicroProfileWriteFile(void* Handle, size_t nSize, const char* pData)
 {
@@ -2704,6 +2702,12 @@ void MicroProfileDumpToFile()
 
 		fclose(F);
 	}
+}
+
+#if MICROPROFILE_WEBSERVER
+uint32_t MicroProfileWebServerPort()
+{
+	return S.nWebServerPort;
 }
 
 void MicroProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
@@ -3062,10 +3066,6 @@ void* MicroProfileWebServerUpdate(void*)
 	return 0;
 }
 #else
-void MicroProfileDumpFile(const char* pHtml, const char* pCsv)
-{
-}
-
 uint32_t MicroProfileWebServerPort()
 {
 	return 0;
@@ -3584,14 +3584,10 @@ void MicroProfileGpuShutdown()
 #pragma warning(pop)
 #endif
 
-
-
-
-
-#endif
-#endif
-
-
-#ifdef MICROPROFILE_EMBED_HTML
+#if MICROPROFILE_EMBED_HTML
 #include "microprofilehtml.h"
 #endif //MICROPROFILE_EMBED_HTML
+
+#endif
+#endif
+
