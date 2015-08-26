@@ -1112,10 +1112,12 @@ void MicroProfileOnThreadCreate(const char* pThreadName)
 	g_bUseLock = true;
 	MicroProfileInit();
 	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
-	MP_ASSERT(MicroProfileGetThreadLog() == 0);
-	MicroProfileThreadLog* pLog = MicroProfileCreateThreadLog(pThreadName ? pThreadName : MicroProfileGetThreadName());
-	MP_ASSERT(pLog);
-	MicroProfileSetThreadLog(pLog);
+	if(MicroProfileGetThreadLog() == 0)
+	{
+		MicroProfileThreadLog* pLog = MicroProfileCreateThreadLog(pThreadName ? pThreadName : MicroProfileGetThreadName());
+		MP_ASSERT(pLog);
+		MicroProfileSetThreadLog(pLog);
+	}
 }
 
 void MicroProfileOnThreadExit()
@@ -1145,6 +1147,8 @@ void MicroProfileOnThreadExit()
 		}
 		memset(pLog->nGroupStackPos, 0, sizeof(pLog->nGroupStackPos));
 		memset(pLog->nGroupTicks, 0, sizeof(pLog->nGroupTicks));
+
+		MicroProfileSetThreadLog(0);
 	}
 }
 
