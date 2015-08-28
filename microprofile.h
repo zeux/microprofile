@@ -1235,6 +1235,9 @@ uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
 	S.nGroupMask |= 1ll << nGroupIndex;
 	S.nGroupMaskGpu |= uint64_t(Type == MicroProfileTokenTypeGpu) << nGroupIndex;
 
+	if ((S.nRunning || S.nForceEnable) && S.nAllGroupsWanted)
+		S.nActiveGroup |= 1ll << nGroupIndex;
+
 	return nGroupIndex;
 }
 
