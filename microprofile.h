@@ -2865,6 +2865,7 @@ void MicroProfileCompressedWriteSocket(void* Handle, size_t nSize, const char* p
 #endif
 
 void* MicroProfileWebServerUpdate(void*);
+void MicroProfileWebServerUpdateStop();
 
 void MicroProfileWebServerHello(int nPort)
 {
@@ -2902,37 +2903,7 @@ void MicroProfileWebServerStart()
 {
 	MP_ASSERT(S.nWebServerPort == 0);
 
-#ifdef _WIN32
-	WSADATA wsa;
-	if(WSAStartup(MAKEWORD(2, 2), &wsa))
-		return;
-#endif
-
-	S.WebServerSocket = socket(PF_INET, SOCK_STREAM, 6);
-	MP_ASSERT(!MP_INVALID_SOCKET(S.WebServerSocket));
-
-	uint32_t nPortBegin = MICROPROFILE_WEBSERVER_PORT;
-	uint32_t nPortEnd = nPortBegin + 20;
-
-	struct sockaddr_in Addr; 
-	Addr.sin_family = AF_INET; 
-	Addr.sin_addr.s_addr = INADDR_ANY; 
-	for(uint32_t nPort = nPortBegin; nPort < nPortEnd; ++nPort)
-	{
-		Addr.sin_port = htons(nPort);
-		if(0 == ::bind(S.WebServerSocket, (sockaddr*)&Addr, sizeof(Addr)))
-		{
-			S.nWebServerPort = nPort;
-			MicroProfileWebServerHello(S.nWebServerPort);
-
-			listen(S.WebServerSocket, 8);
-
-			MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
-			return;
-		}
-	}
-
-	MICROPROFILE_PRINTF("MicroProfile: Web server could not start: no free ports in range [%d..%d)\n", nPortBegin, nPortEnd);
+	MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
 }
 
 void MicroProfileWebServerStop()
@@ -2940,13 +2911,7 @@ void MicroProfileWebServerStop()
 	if(!S.nWebServerPort)
 		return;
 
-#ifdef _WIN32
-	closesocket(S.WebServerSocket);
-	WSACleanup();
-#else
-	close(S.WebServerSocket);
-#endif
-
+	MicroProfileWebServerUpdateStop();
 	MicroProfileThreadJoin(&S.WebServerThread);
 
 	S.nWebServerPort = 0;
@@ -3050,28 +3015,78 @@ void MicroProfileWebServerHandleRequest(MpSocket Connection)
 #endif
 }
 
+void MicroProfileWebServerCloseSocket(MpSocket Connection)
+{
+#ifdef _WIN32
+	closesocket(Connection);
+#else
+	close(Connection);
+#endif
+}
+
 void* MicroProfileWebServerUpdate(void*)
 {
-	for (;;)
+#ifdef _WIN32
+	WSADATA wsa;
+	if(WSAStartup(MAKEWORD(2, 2), &wsa))
+		return 0;
+#endif
+
+	S.WebServerSocket = socket(PF_INET, SOCK_STREAM, 6);
+	MP_ASSERT(!MP_INVALID_SOCKET(S.WebServerSocket));
+
+	uint32_t nPortBegin = MICROPROFILE_WEBSERVER_PORT;
+	uint32_t nPortEnd = nPortBegin + 20;
+
+	struct sockaddr_in Addr; 
+	Addr.sin_family = AF_INET; 
+	Addr.sin_addr.s_addr = INADDR_ANY; 
+	for(uint32_t nPort = nPortBegin; nPort < nPortEnd; ++nPort)
 	{
-		MpSocket Connection = accept(S.WebServerSocket, 0, 0);
-		if(MP_INVALID_SOCKET(Connection)) break;
-
-	#ifdef SO_NOSIGPIPE
-		int nConnectionOption = 1;
-		setsockopt(Connection, SOL_SOCKET, SO_NOSIGPIPE, &nConnectionOption, sizeof(nConnectionOption));
-	#endif
-
-		MicroProfileWebServerHandleRequest(Connection);
-
-	#ifdef _WIN32
-		closesocket(Connection);
-	#else
-		close(Connection);
-	#endif
+		Addr.sin_port = htons(nPort);
+		if(0 == ::bind(S.WebServerSocket, (sockaddr*)&Addr, sizeof(Addr)))
+		{
+			S.nWebServerPort = nPort;
+			break;
+		}
 	}
 
+	if(S.nWebServerPort)
+	{
+		MicroProfileWebServerHello(S.nWebServerPort);
+
+		listen(S.WebServerSocket, 8);
+
+		for (;;)
+		{
+			MpSocket Connection = accept(S.WebServerSocket, 0, 0);
+			if(MP_INVALID_SOCKET(Connection)) break;
+
+		#ifdef SO_NOSIGPIPE
+			int nConnectionOption = 1;
+			setsockopt(Connection, SOL_SOCKET, SO_NOSIGPIPE, &nConnectionOption, sizeof(nConnectionOption));
+		#endif
+
+			MicroProfileWebServerHandleRequest(Connection);
+
+			MicroProfileWebServerCloseSocket(Connection);
+		}
+	}
+	else
+	{
+		MICROPROFILE_PRINTF("MicroProfile: Web server could not start: no free ports in range [%d..%d)\n", nPortBegin, nPortEnd);
+	}
+
+#ifdef _WIN32
+	WSACleanup();
+#endif
+
 	return 0;
+}
+
+void MicroProfileWebServerUpdateStop()
+{
+	MicroProfileWebServerCloseSocket(S.WebServerSocket);
 }
 #else
 uint32_t MicroProfileWebServerPort()
