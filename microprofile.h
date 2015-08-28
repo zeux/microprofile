@@ -2952,6 +2952,25 @@ void MicroProfileWebServerStop()
 	S.nWebServerPort = 0;
 }
 
+const char* MicroProfileParseHeader(char* pRequest, int nRequestSize, const char* pPrefix)
+{
+	int nPrefixSize = strlen(pPrefix);
+
+	for(int i = 0; i < nRequestSize - nPrefixSize; ++i)
+	{
+		if((i == 0 || pRequest[i-1] == '\n') && strncmp(&pRequest[i], pPrefix, nPrefixSize) == 0)
+		{
+			char* pResult = &pRequest[i + nPrefixSize];
+			size_t nResultSize = strcspn(pResult, " \r\n");
+
+			pResult[nResultSize] = '\0';
+			return pResult;
+		}
+	}
+
+	return 0;
+}
+
 int MicroProfileParseGet(const char* pGet)
 {
 	const char* pStart = pGet;
@@ -2972,6 +2991,64 @@ int MicroProfileParseGet(const char* pGet)
 	}
 }
 
+void MicroProfileWebServerHandleRequest(MpSocket Connection)
+{
+	char Request[8192];
+	int nReceived = recv(Connection, Request, sizeof(Request)-1, 0);
+	if(nReceived <= 0)
+		return;
+	Request[nReceived] = 0;
+
+	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
+
+	MICROPROFILE_SCOPE(g_MicroProfileWebServerUpdate);
+
+#if MICROPROFILE_MINIZ
+#define MICROPROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Encoding: deflate\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
+#else
+#define MICROPROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
+#endif
+
+	const char* pUrl = MicroProfileParseHeader(Request, nReceived, "GET /");
+	if(!pUrl)
+		return;
+
+	int nFrames = MicroProfileParseGet(pUrl);
+	if(nFrames < 0)
+		return;
+
+	const char* pHost = MicroProfileParseHeader(Request, nReceived, "Host: ");
+
+	uint64_t nTickStart = MP_TICK();
+	MicroProfileSendSocket(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1);
+	uint64_t nDataStart = S.nWebServerDataSent;
+	S.nWebServerPut = 0;
+#if 0 == MICROPROFILE_MINIZ
+	MicroProfileDumpHtml(MicroProfileWriteSocket, &Connection, nFrames, pHost);
+	uint64_t nDataEnd = S.nWebServerDataSent;
+	uint64_t nTickEnd = MP_TICK();
+	uint64_t nDiff = (nTickEnd - nTickStart);
+	float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
+	int nKb = ((nDataEnd-nDataStart)>>10) + 1;
+	MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
+	MicroProfileFlushSocket(Connection);
+#else
+	MicroProfileCompressedSocketState CompressState;
+	MicroProfileCompressedSocketStart(&CompressState, Connection);
+	MicroProfileDumpHtml(MicroProfileCompressedWriteSocket, &CompressState, nFrames, pHost);
+	S.nWebServerDataSent += CompressState.nSize;
+	uint64_t nDataEnd = S.nWebServerDataSent;
+	uint64_t nTickEnd = MP_TICK();
+	uint64_t nDiff = (nTickEnd - nTickStart);
+	float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
+	int nKb = ((nDataEnd-nDataStart)>>10) + 1;
+	int nCompressedKb = ((CompressState.nCompressedSize)>>10) + 1;
+	MicroProfilePrintf(MicroProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
+	MicroProfileCompressedSocketFinish(&CompressState);
+	MicroProfileFlushSocket(Connection);
+#endif
+}
+
 void* MicroProfileWebServerUpdate(void*)
 {
 	for (;;)
@@ -2984,86 +3061,13 @@ void* MicroProfileWebServerUpdate(void*)
 		setsockopt(Connection, SOL_SOCKET, SO_NOSIGPIPE, &nConnectionOption, sizeof(nConnectionOption));
 	#endif
 
-		char Req[8192];
-		int nReceived = recv(Connection, Req, sizeof(Req)-1, 0);
-		if(nReceived > 0)
-		{
-			std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
+		MicroProfileWebServerHandleRequest(Connection);
 
-			MICROPROFILE_SCOPE(g_MicroProfileWebServerUpdate);
-
-			Req[nReceived] = '\0';
-#if MICROPROFILE_MINIZ
-#define MICROPROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Encoding: deflate\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
-#else
-#define MICROPROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
-#endif
-			char* pHttp = strstr(Req, "HTTP/");
-			char* pGet = strstr(Req, "GET /");
-			char* pHost = strstr(Req, "Host: ");
-			auto Terminate = [](char* pString)
-			{
-				char* pEnd = pString;
-				while(*pEnd != '\0')
-				{
-					if(*pEnd == '\r' || *pEnd == '\n' || *pEnd == ' ')
-					{
-						*pEnd = '\0';
-						return;
-					}
-					pEnd++;
-				}
-			};
-			if(pHost)
-			{
-				pHost += sizeof("Host: ")-1;
-				Terminate(pHost);
-			}
-
-			if(pHttp && pGet)
-			{
-				*pHttp = '\0';
-				pGet += sizeof("GET /")-1;
-				Terminate(pGet);
-				int nFrames = MicroProfileParseGet(pGet);
-				if(nFrames)
-				{
-					uint64_t nTickStart = MP_TICK();
-					MicroProfileSendSocket(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1);
-					uint64_t nDataStart = S.nWebServerDataSent;
-					S.nWebServerPut = 0;
-	#if 0 == MICROPROFILE_MINIZ
-					MicroProfileDumpHtml(MicroProfileWriteSocket, &Connection, nFrames, pHost);
-					uint64_t nDataEnd = S.nWebServerDataSent;
-					uint64_t nTickEnd = MP_TICK();
-					uint64_t nDiff = (nTickEnd - nTickStart);
-					float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
-					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
-					MicroProfilePrintf(MicroProfileWriteSocket, &Connection, "\n<!-- Sent %dkb in %.2fms-->\n\n",nKb, fMs);
-					MicroProfileFlushSocket(Connection);
-	#else
-					MicroProfileCompressedSocketState CompressState;
-					MicroProfileCompressedSocketStart(&CompressState, Connection);
-					MicroProfileDumpHtml(MicroProfileCompressedWriteSocket, &CompressState, nFrames, pHost);
-					S.nWebServerDataSent += CompressState.nSize;
-					uint64_t nDataEnd = S.nWebServerDataSent;
-					uint64_t nTickEnd = MP_TICK();
-					uint64_t nDiff = (nTickEnd - nTickStart);
-					float fMs = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu()) * nDiff;
-					int nKb = ((nDataEnd-nDataStart)>>10) + 1;
-					int nCompressedKb = ((CompressState.nCompressedSize)>>10) + 1;
-					MicroProfilePrintf(MicroProfileCompressedWriteSocket, &CompressState, "\n<!-- Sent %dkb(compressed %dkb) in %.2fms-->\n\n", nKb, nCompressedKb, fMs);
-					MicroProfileCompressedSocketFinish(&CompressState);
-					MicroProfileFlushSocket(Connection);
-	#endif
-				}
-			}
-		}
-#ifdef _WIN32
+	#ifdef _WIN32
 		closesocket(Connection);
-#else
+	#else
 		close(Connection);
-#endif
+	#endif
 	}
 
 	return 0;
