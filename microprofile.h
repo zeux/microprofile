@@ -1533,8 +1533,8 @@ void MicroProfileFlip()
 	}
 	if(S.bWebServerStart)
 	{
-		MicroProfileWebServerStart();
 		S.bWebServerStart = false;
+		MicroProfileWebServerStart();
 	}
 
 	if(S.nAutoClearFrames)
