@@ -2894,7 +2894,7 @@ void MicroProfileWebServerHello(int nPort)
 
 	if(nInterfaces == 0)
 	{
-		MICROPROFILE_PRINTF("MicroProfile: Web server started on port %d", nPort);
+		MICROPROFILE_PRINTF("MicroProfile: Web server started on port %d\n", nPort);
 	}
 }
 
@@ -2911,15 +2911,18 @@ void MicroProfileWebServerStart()
 	S.WebServerSocket = socket(PF_INET, SOCK_STREAM, 6);
 	MP_ASSERT(!MP_INVALID_SOCKET(S.WebServerSocket));
 
+	uint32_t nPortBegin = MICROPROFILE_WEBSERVER_PORT;
+	uint32_t nPortEnd = nPortBegin + 20;
+
 	struct sockaddr_in Addr; 
 	Addr.sin_family = AF_INET; 
 	Addr.sin_addr.s_addr = INADDR_ANY; 
-	for(int i = 0; i < 20; ++i)
+	for(uint32_t nPort = nPortBegin; nPort < nPortEnd; ++nPort)
 	{
-		Addr.sin_port = htons(MICROPROFILE_WEBSERVER_PORT+i); 
+		Addr.sin_port = htons(nPort);
 		if(0 == ::bind(S.WebServerSocket, (sockaddr*)&Addr, sizeof(Addr)))
 		{
-			S.nWebServerPort = MICROPROFILE_WEBSERVER_PORT+i;
+			S.nWebServerPort = nPort;
 			MicroProfileWebServerHello(S.nWebServerPort);
 
 			listen(S.WebServerSocket, 8);
@@ -2929,7 +2932,7 @@ void MicroProfileWebServerStart()
 		}
 	}
 
-	MICROPROFILE_PRINTF("MicroProfile: Web server could not start: no free ports");
+	MICROPROFILE_PRINTF("MicroProfile: Web server could not start: no free ports in range [%d..%d)\n", nPortBegin, nPortEnd);
 }
 
 void MicroProfileWebServerStop()
