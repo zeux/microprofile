@@ -3015,7 +3015,7 @@ void MicroProfileWebServerHandleRequest(MpSocket Connection)
 		return;
 
 	int nFrames = MicroProfileParseGet(pUrl);
-	if(nFrames < 0)
+	if(nFrames <= 0)
 		return;
 
 	const char* pHost = MicroProfileParseHeader(Request, "Host: ");
