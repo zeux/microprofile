@@ -2952,11 +2952,12 @@ void MicroProfileWebServerStop()
 	S.nWebServerPort = 0;
 }
 
-const char* MicroProfileParseHeader(char* pRequest, int nRequestSize, const char* pPrefix)
+const char* MicroProfileParseHeader(char* pRequest, const char* pPrefix)
 {
-	int nPrefixSize = strlen(pPrefix);
+	uint32_t nRequestSize = strlen(pRequest);
+	uint32_t nPrefixSize = strlen(pPrefix);
 
-	for(int i = 0; i < nRequestSize - nPrefixSize; ++i)
+	for(uint32_t i = 0; i < nRequestSize; ++i)
 	{
 		if((i == 0 || pRequest[i-1] == '\n') && strncmp(&pRequest[i], pPrefix, nPrefixSize) == 0)
 		{
@@ -3009,7 +3010,7 @@ void MicroProfileWebServerHandleRequest(MpSocket Connection)
 #define MICROPROFILE_HTML_HEADER "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nExpires: Tue, 01 Jan 2199 16:00:00 GMT\r\n\r\n"
 #endif
 
-	const char* pUrl = MicroProfileParseHeader(Request, nReceived, "GET /");
+	const char* pUrl = MicroProfileParseHeader(Request, "GET /");
 	if(!pUrl)
 		return;
 
@@ -3017,7 +3018,7 @@ void MicroProfileWebServerHandleRequest(MpSocket Connection)
 	if(nFrames < 0)
 		return;
 
-	const char* pHost = MicroProfileParseHeader(Request, nReceived, "Host: ");
+	const char* pHost = MicroProfileParseHeader(Request, "Host: ");
 
 	uint64_t nTickStart = MP_TICK();
 	MicroProfileSendSocket(Connection, MICROPROFILE_HTML_HEADER, sizeof(MICROPROFILE_HTML_HEADER)-1);
