@@ -2368,10 +2368,10 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		{
 			time_t t = time(0);
 
-			char Name[128];
+			static char Name[128];
 			strftime(Name, sizeof(Name), "microprofile-%Y%m%d-%H%M%S.html", localtime(&t));
 
-			char Path[512] = {};
+			static char Path[512];
 			const char* pHome = getenv("HOME");
 			const char* pHomeDrive = getenv("HOMEDRIVE");
 			const char* pHomePath = getenv("HOMEPATH");
