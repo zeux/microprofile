@@ -2699,7 +2699,7 @@ void MicroProfileDumpToFile()
 	if(F)
 	{
 		if(S.eDumpType == MicroProfileDumpTypeHtml)
-			MicroProfileDumpHtml(MicroProfileWriteFile, F, S.nDumpFrames, S.DumpPath);
+			MicroProfileDumpHtml(MicroProfileWriteFile, F, S.nDumpFrames, 0);
 		else if(S.eDumpType == MicroProfileDumpTypeCsv)
 			MicroProfileDumpCsv(MicroProfileWriteFile, F, S.nDumpFrames);
 
