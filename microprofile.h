@@ -586,7 +586,7 @@ struct MicroProfileFrameState
 
 struct MicroProfileThreadLog
 {
-	MicroProfileLogEntry	Log[MICROPROFILE_BUFFER_SIZE];
+	MicroProfileLogEntry*	Log;
 
 	std::atomic<uint32_t>	nPut;
 	std::atomic<uint32_t>	nGet;
@@ -607,6 +607,7 @@ struct MicroProfileThreadLog
 		THREAD_MAX_LEN = 64,
 	};
 	char					ThreadName[64];
+
 	int 					nFreeListNext;
 };
 
@@ -1157,6 +1158,13 @@ void MicroProfileOnThreadExit()
 		memset(pLog->nGroupStackPos, 0, sizeof(pLog->nGroupStackPos));
 		memset(pLog->nGroupTicks, 0, sizeof(pLog->nGroupTicks));
 
+		if(pLog->Log)
+		{
+			delete[] pLog->Log;
+			pLog->Log = 0;
+			S.nMemUsage -= sizeof(MicroProfileLogEntry) * MICROPROFILE_BUFFER_SIZE;
+		}
+
 		MicroProfileSetThreadLog(0);
 	}
 }
@@ -1341,6 +1349,12 @@ inline void MicroProfileLogPut(MicroProfileToken nToken_, uint64_t nTick, uint64
 	}
 	else
 	{
+		if(!pLog->Log)
+		{
+			pLog->Log = new MicroProfileLogEntry[MICROPROFILE_BUFFER_SIZE];
+			memset(pLog->Log, 0, sizeof(MicroProfileLogEntry) * MICROPROFILE_BUFFER_SIZE);
+			S.nMemUsage += sizeof(MicroProfileLogEntry) * MICROPROFILE_BUFFER_SIZE;
+		}
 		pLog->Log[nPos] = MicroProfileMakeLogIndex(nBegin, nToken_, nTick);
 		pLog->nPut.store(nNextPos, std::memory_order_release);
 	}
