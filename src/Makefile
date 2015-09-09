@@ -19,7 +19,7 @@ embed.o: embed.c
 	$(CC) embed.c -o embed.o
 
 ../microprofilehtml.h: embed.o microprofile.html
-	./embed.o $@ microprofile.html ____embed____ g_MicroProfileHtml
+	./embed.o $@ microprofile.html ____embed____ g_MicroProfileHtml MICROPROFILE_EMBED_HTML
 
 .INTERMEDIATE: embed.o $(TEST_BIN)
 .PHONY: all test

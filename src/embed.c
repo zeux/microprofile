@@ -83,15 +83,16 @@ void DumpFile(FILE* pOut, const char* pEmbedData, const char* pPrefix, const cha
 
 int main(int argc, char* argv[])
 {
-	if(5 != argc)
+	if(6 != argc)
 	{
-		printf("Syntax: %s dest embedsource pattern symbol\n", argv[0]);
+		printf("Syntax: %s dest embedsource pattern symbol define\n", argv[0]);
 		return 1;
 	}
 	const char* pDestArg = argv[1];
 	const char* pEmbedSourceArg = argv[2];
 	const char* pPatternArg = argv[3];
 	const char* pSymbolArg = argv[4];
+	const char* pDefineArg = argv[5];
 
 	char* pEmbedSrc = ReadFile(pEmbedSourceArg);
 	
@@ -111,9 +112,12 @@ int main(int argc, char* argv[])
 		free(pEmbedSrc);
 		return 1;		
 	}
+	fprintf(pOut, "///start file generated from %s\n", pEmbedSourceArg);
+	fprintf(pOut, "#ifdef %s\n", pDefineArg);
 	DumpFile(pOut, pEmbedStart, pSymbolArg, "_begin");
 	DumpFile(pOut, pEmbedEnd, pSymbolArg, "_end");
-
+    fprintf(pOut, "#endif //%s\n", pDefineArg);
+    fprintf(pOut, "\n///end file generated from  %s\n", pEmbedSourceArg);
 	fclose(pOut);
 	free(pEmbedSrc);
 
