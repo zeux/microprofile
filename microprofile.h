@@ -2363,7 +2363,7 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 		{
 			if (nSeperate)
 			{
-				*pTmp++ = '.';
+				*pTmp++ = ' ';
 			}
 			nSeperate = 1;
 			for (uint32_t i = 0; nCounter && i < 3; ++i)
