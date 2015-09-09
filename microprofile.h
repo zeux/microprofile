@@ -1545,7 +1545,7 @@ uint64_t MicroProfileEnter(MicroProfileToken nToken_)
 			if(nTimer != (uint32_t)-1)
 			{
 				MicroProfileLogPut(nToken_, nTimer, MP_LOG_ENTER, g_MicroProfileGpuLog);
-				// MicroProfileLogPut(nToken_, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
+				MicroProfileLogPut(nToken_, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
 				return 0;
 			}
 		}
@@ -1675,7 +1675,7 @@ void MicroProfileLeave(MicroProfileToken nToken_, uint64_t nTickStart)
 		{
 			uint32_t nTimer = MicroProfileGpuInsertTimer();
 			MicroProfileLogPut(nToken_, nTimer, MP_LOG_LEAVE, g_MicroProfileGpuLog);
-			// MicroProfileLogPut(nToken_, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
+			MicroProfileLogPut(nToken_, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
 		}
 		else if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
 		{
