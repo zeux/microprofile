@@ -2850,7 +2850,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-				uint64_t nTick = (nLogType == MP_LOG_META || nLogType == MP_LOG_LABEL) ? 0 : MicroProfileLogTickDifference(nStartTick, pLog->Log[k]);
+				uint64_t nTick = (nLogType == MP_LOG_ENTER || nLogType == MP_LOG_LEAVE) ? MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) : 0;
 				MicroProfilePrintUIntComma(CB, Handle, nTick);
 			}
 			MicroProfilePrintString(CB, Handle, "]),\n");
@@ -2870,8 +2870,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				if(nLogType == MP_LOG_META)
 				{
-					//for meta, store the count + 4, which is the tick part
-					nLogType = 4 + MicroProfileLogGetTick(pLog->Log[k]);
+					//for meta, store the count + 8, which is the tick part
+					nLogType = 8 + MicroProfileLogGetTick(pLog->Log[k]);
 				}
 				MicroProfilePrintUIntComma(CB, Handle, nLogType);
 			}
