@@ -3387,6 +3387,7 @@ void MicroProfileWebServerCloseSocket(MpSocket Connection)
 #ifdef _WIN32
 	closesocket(Connection);
 #else
+	shutdown(Connection,SHUT_RDWR);
 	close(Connection);
 #endif
 }
