@@ -2810,14 +2810,13 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	const int64_t nTickEnd = S.Frames[nLastFrame].nFrameStartCpu;
 	int64_t nTickStartGpu = S.Frames[nFirstFrame].nFrameStartGpu;
 
-	int64_t nTickReferenceCpu, nTickReferenceGpu;
 	int64_t nTicksPerSecondCpu = MicroProfileTicksPerSecondCpu();
 	int64_t nTicksPerSecondGpu = MicroProfileTicksPerSecondGpu();
-	int nTickReference = 0;
+
+	int64_t nTickReferenceCpu = 0, nTickReferenceGpu = 0;
 	if(MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
 	{
 		nTickStartGpu = (nTickStart - nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + nTickReferenceGpu;
-		nTickReference = 1;
 	}
 
 
@@ -2942,17 +2941,15 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 
 		int64_t nFrameStart = S.Frames[nFrameIndex].nFrameStartCpu;
 		int64_t nFrameEnd = S.Frames[nFrameIndexNext].nFrameStartCpu;
+		int64_t nFrameStartGpu = S.Frames[nFrameIndex].nFrameStartGpu;
+		int64_t nFrameEndGpu = S.Frames[nFrameIndexNext].nFrameStartGpu;
 
 		float fToMs = MicroProfileTickToMsMultiplier(nTicksPerSecondCpu);
 		float fFrameMs = MicroProfileLogTickDifference(nTickStart, nFrameStart) * fToMs;
 		float fFrameEndMs = MicroProfileLogTickDifference(nTickStart, nFrameEnd) * fToMs;
-		float fFrameGpuMs = 0;
-		float fFrameGpuEndMs = 0;
-		if(nTickReference)
-		{
-			fFrameGpuMs = MicroProfileLogTickDifference(nTickStartGpu, S.Frames[nFrameIndex].nFrameStartGpu) * fToMsGPU;
-			fFrameGpuEndMs = MicroProfileLogTickDifference(nTickStartGpu, S.Frames[nFrameIndexNext].nFrameStartGpu) * fToMsGPU;
-		}
+		float fFrameGpuMs = MicroProfileLogTickDifference(nTickStartGpu, nFrameStartGpu) * fToMsGPU;
+		float fFrameGpuEndMs = MicroProfileLogTickDifference(nTickStartGpu, nFrameEndGpu) * fToMsGPU;
+
 		MicroProfilePrintf(CB, Handle, "Frames[%d] = MakeFrame(%d, %f, %f, %f, %f, ts%d, tt%d, ti%d, tl%d);\n", i, 0, fFrameMs, fFrameEndMs, fFrameGpuMs, fFrameGpuEndMs, i, i, i, i);
 	}
 
