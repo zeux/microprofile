@@ -2836,27 +2836,6 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		uint32_t nFrameIndex = (nFirstFrame + i) % MICROPROFILE_MAX_FRAME_HISTORY;
 		uint32_t nFrameIndexNext = (nFrameIndex + 1) % MICROPROFILE_MAX_FRAME_HISTORY;
 
-		MicroProfilePrintf(CB, Handle, "var ts%d = [\n", i);
-		for(uint32_t j = 0; j < S.nNumLogs; ++j)
-		{
-			MicroProfileThreadLog* pLog = S.Pool[j];
-			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
-			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
-
-			int64_t nStartTick = pLog->nGpu ? nTickStartGpu : nTickStart;
-			float fToMs = pLog->nGpu ? fToMsGPU : fToMsCPU;
-
-			MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
-			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
-			{
-				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-				uint64_t nTick = (nLogType == MP_LOG_ENTER || nLogType == MP_LOG_LEAVE) ? MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) : 0;
-				MicroProfilePrintUIntComma(CB, Handle, nTick);
-			}
-			MicroProfilePrintString(CB, Handle, "]),\n");
-		}
-		MicroProfilePrintString(CB, Handle, "];\n");
-
 		MicroProfilePrintf(CB, Handle, "var tt%d = [\n", i);
 		for(uint32_t j = 0; j < S.nNumLogs; ++j)
 		{
@@ -2876,6 +2855,27 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 				MicroProfilePrintUIntComma(CB, Handle, nLogType);
 			}
 			MicroProfilePrintString(CB, Handle, "],\n");
+		}
+		MicroProfilePrintString(CB, Handle, "];\n");
+
+		MicroProfilePrintf(CB, Handle, "var ts%d = [\n", i);
+		for(uint32_t j = 0; j < S.nNumLogs; ++j)
+		{
+			MicroProfileThreadLog* pLog = S.Pool[j];
+			uint32_t nLogStart = S.Frames[nFrameIndex].nLogStart[j];
+			uint32_t nLogEnd = S.Frames[nFrameIndexNext].nLogStart[j];
+
+			int64_t nStartTick = pLog->nGpu ? nTickStartGpu : nTickStart;
+			float fToMs = pLog->nGpu ? fToMsGPU : fToMsCPU;
+
+			MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
+			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
+			{
+				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
+				uint64_t nTick = (nLogType == MP_LOG_ENTER || nLogType == MP_LOG_LEAVE) ? MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) : 0;
+				MicroProfilePrintUIntComma(CB, Handle, nTick);
+			}
+			MicroProfilePrintString(CB, Handle, "]),\n");
 		}
 		MicroProfilePrintString(CB, Handle, "];\n");
 
