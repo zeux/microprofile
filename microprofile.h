@@ -848,10 +848,10 @@ struct MicroProfile
 };
 
 #define MP_LOG_TICK_MASK  0x0000ffffffffffff
-#define MP_LOG_INDEX_MASK 0x3fff000000000000
-#define MP_LOG_BEGIN_MASK 0xc000000000000000
+#define MP_LOG_INDEX_MASK 0x1fff000000000000
+#define MP_LOG_BEGIN_MASK 0xe000000000000000
+#define MP_LOG_GPU_EXTRA 0x4
 #define MP_LOG_LABEL 0x3
-#define MP_LOG_GPU_EXTRA 0x3
 #define MP_LOG_META 0x2
 #define MP_LOG_ENTER 0x1
 #define MP_LOG_LEAVE 0x0
@@ -859,20 +859,17 @@ struct MicroProfile
 
 inline int MicroProfileLogType(MicroProfileLogEntry Index)
 {
-	return ((MP_LOG_BEGIN_MASK & Index)>>62) & 0x3;
+	return ((MP_LOG_BEGIN_MASK & Index)>>61) & 0x7;
 }
 
 inline uint64_t MicroProfileLogTimerIndex(MicroProfileLogEntry Index)
 {
-	return (0x3fff&(Index>>48));
+	return (MP_LOG_INDEX_MASK & Index)>>48;
 }
 
 inline MicroProfileLogEntry MicroProfileMakeLogIndex(uint64_t nBegin, MicroProfileToken nToken, int64_t nTick)
 {
-	MicroProfileLogEntry Entry =  (nBegin<<62) | ((0x3fff&nToken)<<48) | (MP_LOG_TICK_MASK&nTick);
-	MP_ASSERT(MicroProfileLogType(Entry) == int(nBegin));
-	MP_ASSERT(MicroProfileLogTimerIndex(Entry) == (nToken&0x3fff));
-	return Entry;
+	return (nBegin<<61) | (MP_LOG_INDEX_MASK&(nToken<<48)) | (MP_LOG_TICK_MASK&nTick);
 } 
 
 inline int64_t MicroProfileLogTickDifference(MicroProfileLogEntry Start, MicroProfileLogEntry End)
