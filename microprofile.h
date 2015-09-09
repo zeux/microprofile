@@ -1452,7 +1452,8 @@ const char* MicroProfileCounterFullName(int nCounter)
 	}
 	return &Buffer[0];
 }
-MicroProfileToken MicroProfileGetCounterTokenByParent(int nParent, const char* pName)
+
+int MicroProfileGetCounterTokenByParent(int nParent, const char* pName)
 {
 	for(uint32_t i = 0; i < S.nNumCounters; ++i)
 	{
@@ -1496,7 +1497,7 @@ MicroProfileToken MicroProfileGetCounterToken(const char* pName)
 	MicroProfileInit();
 	MicroProfileScopeLock L(MicroProfileMutex());
 	char SubName[MICROPROFILE_NAME_MAX_LEN];
-	MicroProfileToken nResult = MICROPROFILE_INVALID_TOKEN;
+	int nResult = -1;
 	do
 	{
 		uint32_t nLen = 0;
@@ -1509,7 +1510,7 @@ MicroProfileToken MicroProfileGetCounterToken(const char* pName)
 
 	}while(pName != 0);
 
-	MP_ASSERT((int)nResult >= 0);
+	MP_ASSERT(nResult >= 0);
 	return nResult;
 }
 
