@@ -1215,7 +1215,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 									uint32_t nCpuEnd = (k + 1) % MICROPROFILE_BUFFER_SIZE;
 									MicroProfileLogEntry LogCpuBegin = pLog->Log[nCpuBegin];
 									MicroProfileLogEntry LogCpuEnd = pLog->Log[nCpuEnd];
-									if(MicroProfileLogType(LogCpuBegin)==3 && MicroProfileLogType(LogCpuEnd) == 3)
+									if(MicroProfileLogType(LogCpuBegin) == MP_LOG_GPU_EXTRA && MicroProfileLogType(LogCpuEnd) == MP_LOG_GPU_EXTRA)
 									{
 										UI.nRangeBegin = LogCpuBegin;
 										UI.nRangeEnd = LogCpuEnd;

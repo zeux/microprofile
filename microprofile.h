@@ -3932,7 +3932,7 @@ bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 	if(!S.GPU.bInitialized) return false;
 	if(!S.GPU.nTimestampBits) return false;
 
-	int64_t nGpuTimeStamp;
+	int64_t nGpuTimeStamp = 0;
 	glGetInteger64v(GL_TIMESTAMP, &nGpuTimeStamp);
 
 	if(nGpuTimeStamp)
