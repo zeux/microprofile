@@ -1392,7 +1392,7 @@ MicroProfileToken MicroProfileGetMetaToken(const char* pName)
 
 const char* MicroProfileNextName(const char* pName, char* pNameOut, uint32_t* nSubNameLen)
 {
-	int nMaxLen = MICROPROFILE_NAME_MAX_LEN-1;
+	uint32_t nMaxLen = MICROPROFILE_NAME_MAX_LEN-1;
 	const char* pRet = 0;
 	bool bDone = false;
 	uint32_t nChars = 0;
@@ -2759,7 +2759,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 
 
 	MicroProfilePrintString(CB, Handle, "\nvar CounterInfo = [");
-	for(int i = 0; i < S.nNumCounters; ++i)
+	for(uint32_t i = 0; i < S.nNumCounters; ++i)
 	{
 		uint64_t nCounter = S.Counters[i].load();
 		uint64_t nLimit = S.CounterInfo[i].nLimit;

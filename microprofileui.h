@@ -2263,7 +2263,7 @@ const char* MicroProfileUIMenuGroups(int nIndex, bool* bSelected)
 	else
 	{
 		nIndex = nIndex-1;
-		if(nIndex < UI.GroupMenuCount)
+		if(nIndex < (int)UI.GroupMenuCount)
 		{
 			MicroProfileGroupMenuItem& Item = UI.GroupMenu[nIndex];
 			static char buffer[MICROPROFILE_NAME_MAX_LEN+32];
@@ -2407,7 +2407,7 @@ const char* MicroProfileUIMenuCustom(int nIndex, bool* bSelected)
 	case 1: return "--";
 	default:
 		nIndex -= 2;
-		if(nIndex < UI.nCustomCount)
+		if(nIndex < (int)UI.nCustomCount)
 		{
 			return UI.Custom[nIndex].pName;
 		}
@@ -2473,7 +2473,7 @@ void MicroProfileUIClickGroups(int nIndex)
 	else
 	{
 		nIndex -= 1;
-		if(nIndex < UI.GroupMenuCount)
+		if(nIndex < (int)UI.GroupMenuCount)
 		{
 			MicroProfileGroupMenuItem& Item = UI.GroupMenu[nIndex];
 			if(Item.nIsCategory)
