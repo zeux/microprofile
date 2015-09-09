@@ -2227,15 +2227,18 @@ const char* MicroProfileUIMenuMode(int nIndex, bool* bSelected)
 			*bSelected = S.nDisplay == MP_DRAW_COUNTERS; 
 			return "Counters";
 		case 3:
+			*bSelected = S.nDisplay == MP_DRAW_FRAME; 
+			return "Frame";
+		case 4:
 			*bSelected = S.nDisplay == MP_DRAW_HIDDEN; 
 			return "Hidden";
-		case 4:
+		case 5:
 			*bSelected = false; 
 			return "Off";
-		case 5:
+		case 6:
 			*bSelected = false;
 			return "------";
-		case 6:
+		case 7:
 			*bSelected = S.nForceEnable != 0;
 			return "Force Enable";
 
@@ -2425,12 +2428,6 @@ const char* MicroProfileUIMenuDump(int nIndex, bool* bSelected)
 	}
 }
 
-const char* MicroProfileUIMenuEmpty(int nIndex, bool* bSelected)
-{
-	return 0;
-}
-
-
 void MicroProfileUIClickMode(int nIndex)
 {
 	MicroProfile& S = *MicroProfileGet();			
@@ -2446,14 +2443,17 @@ void MicroProfileUIClickMode(int nIndex)
 			S.nDisplay = MP_DRAW_COUNTERS;
 			break;
 		case 3:
-			S.nDisplay = MP_DRAW_HIDDEN;
+			S.nDisplay = MP_DRAW_FRAME;
 			break;
 		case 4:
-			S.nDisplay = 0;
+			S.nDisplay = MP_DRAW_HIDDEN;
 			break;
 		case 5:
+			S.nDisplay = 0;
 			break;
 		case 6:
+			break;
+		case 7:
 			S.nForceEnable = !S.nForceEnable;
 			break;
 	}
@@ -2578,14 +2578,34 @@ void MicroProfileUIClickCustom(int nIndex)
 	{
 		MicroProfileCustomGroupEnable(nIndex-2);
 	}
-
 }
 
-void MicroProfileUIClickEmpty(int nIndex)
+void MicroProfileUIClickDump(int nIndex)
 {
+	time_t t = time(0);
 
+	char Name[128] = {};
+	strftime(Name, sizeof(Name), "microprofile-%Y%m%d-%H%M%S.html", localtime(&t));
+
+	char Path[512] = {};
+	const char* pHome = getenv("HOME");
+	const char* pHomeDrive = getenv("HOMEDRIVE");
+	const char* pHomePath = getenv("HOMEPATH");
+	if(pHome)
+	{
+		snprintf(Path, sizeof(Path)-1, "%s/%s", pHome, Name);
+	}
+	else if(pHomeDrive && pHomePath)
+	{
+		snprintf(Path, sizeof(Path)-1, "%s%s/%s", pHomeDrive, pHomePath, Name);
+	}
+	else
+	{
+		snprintf(Path, sizeof(Path)-1, "%s", Name);
+	}
+
+	MicroProfileDumpFile(Path, MicroProfileDumpTypeHtml, 32 << nIndex);
 }
-
 
 void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 {
@@ -2615,6 +2635,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 	pMenuText[nNumMenuItems++] = "Options";
 	pMenuText[nNumMenuItems++] = "Preset";
 	pMenuText[nNumMenuItems++] = "Custom";
+	pMenuText[nNumMenuItems++] = "Dump";
 	const int nPauseIndex = nNumMenuItems;
 	pMenuText[nNumMenuItems++] = S.nRunning ? "Pause" : "Unpause";
 	pMenuText[nNumMenuItems++] = "Help";
@@ -2672,9 +2693,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		MicroProfileUIMenuOptions,
 		MicroProfileUIMenuPreset,
 		MicroProfileUIMenuCustom,
-		MicroProfileUIMenuEmpty,
-		MicroProfileUIMenuEmpty,
-		MicroProfileUIMenuEmpty,
+		MicroProfileUIMenuDump,
 	};
 
 	MicroProfileClickCallback CBClick[MICROPROFILE_MENU_MAX] =
@@ -2686,9 +2705,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		MicroProfileUIClickOptions,
 		MicroProfileUIClickPreset,
 		MicroProfileUIClickCustom,
-		MicroProfileUIClickEmpty,
-		MicroProfileUIClickEmpty,
-		MicroProfileUIClickEmpty,
+		MicroProfileUIClickDump,
 	};
 
 
@@ -2712,7 +2729,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 	}
 	uint32_t nMenu = nSelectMenu != (uint32_t)-1 ? nSelectMenu : UI.nActiveMenu;
 	UI.nActiveMenu = nMenu;
-	if((uint32_t)-1 != nMenu)
+	if((uint32_t)-1 != nMenu && GroupCallback[nMenu])
 	{
 		nX = nMenuX[nMenu];
 		nY += MICROPROFILE_TEXT_HEIGHT+1;
@@ -2745,7 +2762,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 			if(UI.nMouseY >= nY && UI.nMouseY < nY + MICROPROFILE_TEXT_HEIGHT + 1)
 			{
 				bMouseOver = true;
-				if(UI.nMouseLeft || UI.nMouseRight)
+				if((UI.nMouseLeft || UI.nMouseRight) && CBClick[nMenu])
 				{
 					CBClick[nMenu](i);
 				}
@@ -3005,7 +3022,7 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 				}
 			}
 
-			if(UI.nActiveMenu == 8)
+			if(UI.nActiveMenu == 9)
 			{
 				if(S.nDisplay & MP_DRAW_DETAILED)
 				{
