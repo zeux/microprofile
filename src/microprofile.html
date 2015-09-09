@@ -173,6 +173,15 @@ function MakeTimes(scale, ts)
 	return ts;
 }
 
+function MakeTimesExtra(scale, scaleextra, tt, ts)
+{
+	for(var i = 0; i < ts.length; ++i)
+	{
+		ts[i] *= (tt[i] == 4) ? scaleextra : scale;
+	}
+	return ts;
+}
+
 function MakeFrame(id, framestart, frameend, framestartgpu, frameendgpu, ts, tt, ti, tl)
 {
 	var frame = {"id":id, "framestart":framestart, "frameend":frameend, "framestartgpu":framestartgpu, "frameendgpu":frameendgpu, "ts":ts, "tt":tt, "ti":ti, "tl":tl};
@@ -3805,7 +3814,7 @@ function PreprocessGlobalArray()
 			var DiscardLast = 0;
 			for(var xx = 0; xx < len; ++xx)
 			{
-				var Skip = (tt[i] == 4) ? DiscardLast : ts[xx] > FrameDiscard;
+				var Skip = (tt[xx] == 4) ? DiscardLast : ts[xx] > FrameDiscard;
 				if(Skip)
 				{
 					Discard++;

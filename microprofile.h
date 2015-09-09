@@ -2868,11 +2868,19 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			int64_t nStartTick = pLog->nGpu ? nTickStartGpu : nTickStart;
 			float fToMs = pLog->nGpu ? fToMsGPU : fToMsCPU;
 
-			MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
+			if(pLog->nGpu)
+				MicroProfilePrintf(CB, Handle, "MakeTimesExtra(%e,%e,tt%d[%d],[", fToMs, fToMsCPU, i, j);
+			else
+				MicroProfilePrintf(CB, Handle, "MakeTimes(%e,[", fToMs);
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-				uint64_t nTick = (nLogType == MP_LOG_ENTER || nLogType == MP_LOG_LEAVE) ? MicroProfileLogTickDifference(nStartTick, pLog->Log[k]) : 0;
+				uint64_t nTick =
+					(nLogType == MP_LOG_ENTER || nLogType == MP_LOG_LEAVE)
+					? MicroProfileLogTickDifference(nStartTick, pLog->Log[k])
+					: (nLogType == MP_LOG_GPU_EXTRA)
+					? MicroProfileLogTickDifference(nTickStart, pLog->Log[k])
+					: 0;
 				MicroProfilePrintUIntComma(CB, Handle, nTick);
 			}
 			MicroProfilePrintString(CB, Handle, "]),\n");
