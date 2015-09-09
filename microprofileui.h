@@ -972,24 +972,13 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	int64_t nBaseTicksCpu = nDetailedOffsetTicksCpu + nFrameStartCpu;
 	int64_t nBaseTicksGpu = nDetailedOffsetTicksGpu + nFrameStartGpu;
 	int64_t nBaseTicksEndCpu = nBaseTicksCpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondCpu());
+	int64_t nBaseTicksEndGpu = nBaseTicksGpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondGpu());
 
 	int64_t nTickReferenceCpu = 0, nTickReferenceGpu = 0;
-	static int64_t nRefCpu = 0, nRefGpu = 0;
 	if(MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
 	{
-		if(0 == nRefCpu || abs(nRefCpu-nBaseTicksCpu) > abs(nTickReferenceCpu-nBaseTicksCpu))
-		{
-			nRefCpu = nTickReferenceCpu;
-			nRefGpu = nTickReferenceGpu;
-		}
-		else
-		{
-			nTickReferenceCpu = nRefCpu;
-			nTickReferenceGpu = nRefGpu;
-		}
 		nBaseTicksGpu = (nBaseTicksCpu - nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + nTickReferenceGpu;
 	}
-	int64_t nBaseTicksEndGpu = nBaseTicksCpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondCpu());
 
 	MicroProfileFrameState* pFrameFirst = pFrameCurrent;
 	int64_t nGapTime = MicroProfileTicksPerSecondCpu() * MICROPROFILE_GAP_TIME / 1000;
