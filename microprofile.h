@@ -2408,7 +2408,7 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 		}
 		else
 		{
-			nLen = snprintf(pOut, nBufferSize - 1, "%d%s", nCounter, pExt[nShift]);
+			nLen = snprintf(pOut, nBufferSize - 1, "%lld%s", (long long)nCounter, pExt[nShift]);
 		}
 	}
 	break;
