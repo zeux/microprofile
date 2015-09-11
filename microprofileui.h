@@ -1097,7 +1097,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 				MP_ASSERT(pFrameLogFirst >= &S.Frames[0] && pFrameLogFirst < &S.Frames[MICROPROFILE_MAX_FRAME_HISTORY]);
 				uint32_t nNewGet = pFrameLogFirst->nLogStart[i];
 				bool bIsValid = false;
-				if(nPut < nFront)
+				if(nPut <= nFront)
 				{
 					bIsValid = nNewGet <= nPut || nNewGet >= nFront;
 				}
