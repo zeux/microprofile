@@ -1050,9 +1050,9 @@ void MicroProfileInit()
 	static bool bOnce = true;
 	if(bOnce)
 	{
-		S.nMemUsage += sizeof(S);
 		bOnce = false;
 		memset(&S, 0, sizeof(S));
+		S.nMemUsage = sizeof(S);
 		for(int i = 0; i < MICROPROFILE_MAX_GROUPS; ++i)
 		{
 			S.GroupInfo[i].pName[0] = '\0';
