@@ -835,7 +835,7 @@ struct MicroProfile
 	uint32_t					nWebServerPut;
 	uint64_t 					nWebServerDataSent;
 
-	char						LabelBuffer[MICROPROFILE_LABEL_BUFFER_SIZE + MICROPROFILE_LABEL_MAX_LEN];
+	std::atomic<char*>			LabelBuffer;
 	std::atomic<uint64_t>		nLabelPut;
 
 	char 						CounterNames[MICROPROFILE_MAX_COUNTER_NAME_CHARS];
@@ -1561,13 +1561,29 @@ uint64_t MicroProfileEnter(MicroProfileToken nToken_)
 
 uint64_t MicroProfileAllocateLabel(const char* pName)
 {
+	char* pLabelBuffer = S.LabelBuffer.load(std::memory_order_consume);
+	if(!pLabelBuffer)
+	{
+		MicroProfileScopeLock L(MicroProfileMutex());
+
+		pLabelBuffer = S.LabelBuffer.load(std::memory_order_consume);
+		if(!pLabelBuffer)
+		{
+			pLabelBuffer = new char[MICROPROFILE_LABEL_BUFFER_SIZE + MICROPROFILE_LABEL_MAX_LEN];
+			memset(pLabelBuffer, 0, MICROPROFILE_LABEL_BUFFER_SIZE + MICROPROFILE_LABEL_MAX_LEN);
+			S.nMemUsage += MICROPROFILE_LABEL_BUFFER_SIZE + MICROPROFILE_LABEL_MAX_LEN;
+
+			S.LabelBuffer.store(pLabelBuffer, std::memory_order_release);
+		}
+	}
+
 	uint32_t nLen = strlen(pName);
 
 	if(nLen > MICROPROFILE_LABEL_MAX_LEN - 1)
 		nLen = MICROPROFILE_LABEL_MAX_LEN - 1;
 
 	uint64_t nLabel = S.nLabelPut.fetch_add(nLen + 1, std::memory_order_relaxed);
-	char* pLabel = &S.LabelBuffer[nLabel % MICROPROFILE_LABEL_BUFFER_SIZE];
+	char* pLabel = &pLabelBuffer[nLabel % MICROPROFILE_LABEL_BUFFER_SIZE];
 
 	memcpy(pLabel, pName, nLen);
 	pLabel[nLen] = 0;
@@ -1613,14 +1629,15 @@ void MicroProfileCounterConfig(const char* pName, uint32_t eFormat, int64_t nLim
 
 const char* MicroProfileGetLabel(uint64_t nLabel)
 {
+	char* pLabelBuffer = S.LabelBuffer.load(std::memory_order_relaxed);
 	uint64_t nLabelPut = S.nLabelPut.load(std::memory_order_relaxed);
 
-	MP_ASSERT(nLabel < nLabelPut);
+	MP_ASSERT(pLabelBuffer && nLabel < nLabelPut);
 
 	if (nLabelPut - nLabel > MICROPROFILE_LABEL_BUFFER_SIZE)
 		return 0;
 	else
-		return &S.LabelBuffer[nLabel % MICROPROFILE_LABEL_BUFFER_SIZE];
+		return &pLabelBuffer[nLabel % MICROPROFILE_LABEL_BUFFER_SIZE];
 }
 
 void MicroProfileLabel(MicroProfileToken nToken_, const char* pName)
