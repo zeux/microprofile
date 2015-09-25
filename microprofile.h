@@ -857,7 +857,7 @@ struct MicroProfile
 #define MP_LOG_LEAVE 0x0
 
 
-inline int MicroProfileLogType(MicroProfileLogEntry Index)
+inline uint64_t MicroProfileLogType(MicroProfileLogEntry Index)
 {
 	return ((MP_LOG_BEGIN_MASK & Index)>>61) & 0x7;
 }
@@ -1396,7 +1396,7 @@ const char* MicroProfileNextName(const char* pName, char* pNameOut, uint32_t* nS
 	const char* pRet = 0;
 	bool bDone = false;
 	uint32_t nChars = 0;
-	for(uint32_t i = 0; i < nMaxLen && !bDone; ++i)
+	for(int i = 0; i < nMaxLen && !bDone; ++i)
 	{
 		char c = *pName++;
 		switch(c)
@@ -1434,7 +1434,7 @@ const char* MicroProfileCounterFullName(int nCounter)
 		nCounter = S.CounterInfo[nCounter].nParent;
 	}while(nCounter >= 0);
 	int nOffset = 0;
-	while(nIndex >= 0 && nOffset < sizeof(Buffer)-2)
+	while(nIndex >= 0 && nOffset < (int)sizeof(Buffer)-2)
 	{
 		uint32_t nLen = S.CounterInfo[nNodes[nIndex]].nNameLen + nOffset;// < sizeof(Buffer)-1 
 		nLen = MicroProfileMin((uint32_t)(sizeof(Buffer) - 2 - nOffset), nLen);
@@ -1467,7 +1467,7 @@ int MicroProfileGetCounterTokenByParent(int nParent, const char* pName)
 	S.CounterInfo[nResult].nFlags = 0;
 	S.CounterInfo[nResult].eFormat = MICROPROFILE_COUNTER_FORMAT_DEFAULT;
 	S.CounterInfo[nResult].nLimit = 0;
-	int nLen = strlen(pName)+1;
+	int nLen = (int)strlen(pName)+1;
 
 	MP_ASSERT(nLen + S.nCounterNamePos <= MICROPROFILE_MAX_COUNTER_NAME_CHARS);
 	uint32_t nPos = S.nCounterNamePos;
@@ -1483,7 +1483,7 @@ int MicroProfileGetCounterTokenByParent(int nParent, const char* pName)
 	}
 	else
 	{
-		S.CounterInfo[nParent].nLevel = 0;
+		S.CounterInfo[nResult].nLevel = 0;
 	}
 
 	return nResult;
@@ -1925,7 +1925,7 @@ void MicroProfileFlip()
 						for(uint32_t k = nStart; k < nEnd; ++k)
 						{
 							MicroProfileLogEntry LE = pLog->Log[k];
-							int nType = MicroProfileLogType(LE);
+							uint64_t nType = MicroProfileLogType(LE);
 
 							if(MP_LOG_ENTER == nType)
 							{
@@ -2375,6 +2375,12 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 	{
 	case MICROPROFILE_COUNTER_FORMAT_DEFAULT:
 	{
+		int nNegative = 0;
+		if(nCounter < 0)
+		{
+			nCounter = -nCounter;
+			nNegative = 1;
+		}
 		int nSeperate = 0;
 		while (nCounter)
 		{
@@ -2389,6 +2395,10 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 				nCounter /= 10;
 				*pTmp++ = '0' + nDigit;
 			}
+		}
+		if(nNegative)
+		{
+			*pTmp++ = '-';
 		}
 		nLen = pTmp - pOut;
 		--pTmp;
@@ -2416,7 +2426,7 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 			nCountShifted >>= 10;
 			nShift++;
 		}
-		MP_ASSERT(nShift < nNumExt);
+		MP_ASSERT(nShift < (int64_t)nNumExt);
 		if (nShift)
 		{
 			nLen = snprintf(pOut, nBufferSize - 1, "%3.2f%s", (double)nCounter / nDivisor, pExt[nShift]);
