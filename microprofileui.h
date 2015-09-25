@@ -563,7 +563,7 @@ void MicroProfileToolTipMeta(MicroProfileStringArray* pToolTip)
 			for(uint32_t j = nStart; j < nEnd; ++j)
 			{
 				MicroProfileLogEntry LE = pLog->Log[j];
-        uint64_t nType = MicroProfileLogType(LE);
+				uint64_t nType = MicroProfileLogType(LE);
 				switch(nType)
 				{
 				case MP_LOG_META:
@@ -834,7 +834,7 @@ void MicroProfileDebugDumpRange()
 	
 			const char* pTimerName = S.TimerInfo[nTimerId].pName;
 			char buffer[256];
-      uint64_t type = MicroProfileLogType(*pStart);
+			uint64_t type = MicroProfileLogType(*pStart);
 
 			const char* pBegin = type == MP_LOG_LEAVE ? "END" : 
 				(type == MP_LOG_ENTER ? "BEGIN" : "META");
@@ -1279,7 +1279,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 								int nCharacters = (nTextWidth - MICROPROFILE_TEXT_WIDTH) / (MICROPROFILE_TEXT_WIDTH+1);
 								if(nCharacters>0)
 								{
-									MicroProfileDrawText((int)(fXStartText+1), (int)(fYStart+1), -1, pName, MicroProfileMin<uint32_t>(S.TimerInfo[nTimerIndex].nNameLen, nCharacters));
+									MicroProfileDrawText((int)(fXStartText+1), (int)(fYStart+1), -1, pName, MicroProfileMin<uint32_t>(nNameLen, nCharacters));
 								}
 							}
 #endif
