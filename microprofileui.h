@@ -614,9 +614,9 @@ void MicroProfileToolTipMeta(MicroProfileStringArray* pToolTip)
 					MicroProfileStringArrayAddLiteral(pToolTip, "");					
 				}
 				MicroProfileStringArrayFormat(pToolTip, "%s excl", S.MetaCounters[i].pName);
-				MicroProfileStringArrayFormat(pToolTip, "%5llu", nMetaSum[i]);
+				MicroProfileStringArrayFormat(pToolTip, "%5lld", (long long)nMetaSum[i]);
 				MicroProfileStringArrayFormat(pToolTip, "%s incl", S.MetaCounters[i].pName);
-				MicroProfileStringArrayFormat(pToolTip, "%5llu", nMetaSum[i] + nMetaSumInclusive[i]);
+				MicroProfileStringArrayFormat(pToolTip, "%5lld", (long long)(nMetaSum[i] + nMetaSumInclusive[i]));
 			}
 		}
 	}

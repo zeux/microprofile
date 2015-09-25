@@ -1396,7 +1396,7 @@ const char* MicroProfileNextName(const char* pName, char* pNameOut, uint32_t* nS
 	const char* pRet = 0;
 	bool bDone = false;
 	uint32_t nChars = 0;
-	for(int i = 0; i < nMaxLen && !bDone; ++i)
+	for(uint32_t i = 0; i < nMaxLen && !bDone; ++i)
 	{
 		char c = *pName++;
 		switch(c)
@@ -2788,8 +2788,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	MicroProfilePrintString(CB, Handle, "\nvar CounterInfo = [");
 	for(uint32_t i = 0; i < S.nNumCounters; ++i)
 	{
-		uint64_t nCounter = S.Counters[i].load();
-		uint64_t nLimit = S.CounterInfo[i].nLimit;
+		int64_t nCounter = S.Counters[i].load();
+		int64_t nLimit = S.CounterInfo[i].nLimit;
 		float fCounterPrc = 0.f;
 		float fBoxPrc = 1.f;
 		if(nLimit)
@@ -2813,9 +2813,9 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
  	 		S.CounterInfo[i].nFirstChild,
  	 		S.CounterInfo[i].nLevel,
 			S.CounterInfo[i].pName,
-			nCounter,
+			(long long)nCounter,
 			Formatted,
-			nLimit,
+			(long long)nLimit,
 			FormattedLimit,
 			fCounterPrc,
 			fBoxPrc
