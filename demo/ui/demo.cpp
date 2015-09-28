@@ -109,10 +109,17 @@ void HandleEvent(SDL_Event* pEvt)
 		{
 			MicroProfileDumpTimers();
 		}
+#if MICROPROFILE_WEBSERVER
 		if(pEvt->key.keysym.sym == 'd')
 		{
 			MicroProfileDumpFile("../dump.html", "../dump.csv");
 		}
+#endif
+		if(pEvt->key.keysym.sym == 'l')
+		{
+			MicroProfileCustomGroupToggle("Custom1");
+		}
+
 		if(pEvt->key.keysym.sym == 't')
 		{
 			static bool toggle = false;
@@ -232,16 +239,61 @@ int main(int argc, char* argv[])
 	MicroProfileDrawInit();
 	MP_ASSERT(glGetError() == 0);
 	MicroProfileToggleDisplayMode();
-#endif
+	
+	MicroProfileInitUI();
 
+	MicroProfileCustomGroup("Custom1", 2, 47, 2.f, MICROPROFILE_CUSTOM_BARS);
+	MicroProfileCustomGroupAddTimer("Custom1", "MicroProfile", "Draw");
+	MicroProfileCustomGroupAddTimer("Custom1", "MicroProfile", "Detailed View");
+
+	MicroProfileCustomGroup("Custom2", 2, 100, 20.f, MICROPROFILE_CUSTOM_BARS|MICROPROFILE_CUSTOM_BAR_SOURCE_MAX);
+	MicroProfileCustomGroupAddTimer("Custom2", "MicroProfile", "Draw");
+	MicroProfileCustomGroupAddTimer("Custom2", "MicroProfile", "Detailed View");
+
+
+	MicroProfileCustomGroup("Custom3", 2, 0, 5.f, MICROPROFILE_CUSTOM_STACK|MICROPROFILE_CUSTOM_STACK_SOURCE_MAX);
+	MicroProfileCustomGroupAddTimer("Custom3", "MicroProfile", "Draw");
+	MicroProfileCustomGroupAddTimer("Custom3", "MicroProfile", "Detailed View");
+
+
+
+	MicroProfileCustomGroup("ThreadSafe", 6, 10, 600.f, MICROPROFILE_CUSTOM_BARS | MICROPROFILE_CUSTOM_STACK);
+	MicroProfileCustomGroupAddTimer("ThreadSafe", "ThreadSafe", "main");
+	MicroProfileCustomGroupAddTimer("ThreadSafe", "ThreadSafe", "inner0");
+	MicroProfileCustomGroupAddTimer("ThreadSafe", "ThreadSafe", "inner1");
+	MicroProfileCustomGroupAddTimer("ThreadSafe", "ThreadSafe", "inner2");
+	MicroProfileCustomGroupAddTimer("ThreadSafe", "ThreadSafe", "inner3");
+	MicroProfileCustomGroupAddTimer("ThreadSafe", "ThreadSafe", "inner4");
+#endif
+	MICROPROFILE_COUNTER_CONFIG("memory/main", MICROPROFILE_COUNTER_FORMAT_BYTES, 10ll<<30ll);
+	MICROPROFILE_COUNTER_CONFIG("memory/gpu/indexbuffers", MICROPROFILE_COUNTER_FORMAT_BYTES, 0);
+	MICROPROFILE_COUNTER_CONFIG("memory/gpu/vertexbuffers", MICROPROFILE_COUNTER_FORMAT_BYTES, 0);
+	MICROPROFILE_COUNTER_CONFIG("memory/mainx", MICROPROFILE_COUNTER_FORMAT_BYTES, 10000);
+
+	MICROPROFILE_COUNTER_ADD("memory/main", 1000);
+	MICROPROFILE_COUNTER_ADD("memory/gpu/vertexbuffers", 1000);
+	MICROPROFILE_COUNTER_ADD("memory/gpu/indexbuffers", 200);
+	MICROPROFILE_COUNTER_ADD("memory//", 10<<10);
+	MICROPROFILE_COUNTER_ADD("memory//main", (32ll<<30ll) + (1ll <<29ll));
+	MICROPROFILE_COUNTER_ADD("//memory//mainx/\\//", 1000);
+	MICROPROFILE_COUNTER_ADD("//memoryx//mainx/", 1000);
+	MICROPROFILE_COUNTER_ADD("//memoryy//main/", -1000000);
+	MICROPROFILE_COUNTER_ADD("//\\\\///lala////lelel", 1000);
+	MICROPROFILE_COUNTER_CONFIG("engine/frames", MICROPROFILE_COUNTER_FORMAT_DEFAULT, 1000);
+	MICROPROFILE_COUNTER_SET("fisk/geder/", 42);
+	MICROPROFILE_COUNTER_SET("fisk/aborre/", -2002);
+	MICROPROFILE_COUNTER_SET_LIMIT("fisk/aborre/", 120);
+	//MICROPROFILE_COUNTER_ADD("//\\\\///", 1000); // this should assert as theres only delimiters
 	StartFakeWork();
 	while(!g_nQuit)
 	{
 		MICROPROFILE_SCOPE(MAIN);
+		MICROPROFILE_COUNTER_ADD("engine/frames", 1);
 
 		SDL_Event Evt;
 		while(SDL_PollEvent(&Evt))
 		{
+			MICROPROFILE_COUNTER_ADD("engine/sdl_events", 1);
 			HandleEvent(&Evt);
 		}
 
