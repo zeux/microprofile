@@ -1577,7 +1577,7 @@ uint64_t MicroProfileAllocateLabel(const char* pName)
 		}
 	}
 
-	uint32_t nLen = strlen(pName);
+	uint32_t nLen = (uint32_t)strlen(pName);
 
 	if(nLen > MICROPROFILE_LABEL_MAX_LEN - 1)
 		nLen = MICROPROFILE_LABEL_MAX_LEN - 1;
@@ -2447,7 +2447,7 @@ typedef void MicroProfileWriteCallback(void* Handle, size_t size, const char* pD
 
 void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames)
 {
-	uint32_t nLen = strlen(pPath);
+	uint32_t nLen = (uint32_t)strlen(pPath);
 	if(nLen > sizeof(S.DumpPath)-1)
 	{
 		return;
@@ -3109,7 +3109,7 @@ void MicroProfileSendSocket(MpSocket Socket, const char* pData, size_t nSize)
 	int nFlags = 0;
 #endif
 
-	send(Socket, pData, nSize, nFlags);
+	send(Socket, pData, (int)nSize, nFlags);
 }
 
 void MicroProfileFlushSocket(MpSocket Socket)
@@ -3132,7 +3132,7 @@ void MicroProfileWriteSocket(void* Handle, size_t nSize, const char* pData)
 	else
 	{
 		memcpy(&S.WebServerBuffer[S.nWebServerPut], pData, nSize);
-		S.nWebServerPut += nSize;
+		S.nWebServerPut += (uint32_t)nSize;
 		if(S.nWebServerPut > MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE/2)
 		{
 			MicroProfileFlushSocket(Socket);
@@ -3310,8 +3310,8 @@ void MicroProfileWebServerStop()
 
 const char* MicroProfileParseHeader(char* pRequest, const char* pPrefix)
 {
-	uint32_t nRequestSize = strlen(pRequest);
-	uint32_t nPrefixSize = strlen(pPrefix);
+	uint32_t nRequestSize = (uint32_t)strlen(pRequest);
+	uint32_t nPrefixSize = (uint32_t)strlen(pPrefix);
 
 	for(uint32_t i = 0; i < nRequestSize; ++i)
 	{
