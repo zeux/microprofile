@@ -1279,12 +1279,12 @@ uint16_t MicroProfileGetGroup(const char* pGroup, MicroProfileTokenType Type)
 	uint16_t nGroupIndex = S.nGroupCount++;
 	MP_ASSERT(nGroupIndex < MICROPROFILE_MAX_GROUPS);
 
-	uint32_t nLen = (uint32_t)strlen(pGroup);
+	size_t nLen = strlen(pGroup);
 	if(nLen > MICROPROFILE_NAME_MAX_LEN-1)
 		nLen = MICROPROFILE_NAME_MAX_LEN-1;
 	memcpy(&S.GroupInfo[nGroupIndex].pName[0], pGroup, nLen);
 	S.GroupInfo[nGroupIndex].pName[nLen] = '\0';
-	S.GroupInfo[nGroupIndex].nNameLen = nLen;
+	S.GroupInfo[nGroupIndex].nNameLen = (uint32_t)nLen;
 
 	S.GroupInfo[nGroupIndex].nNumTimers = 0;
 	S.GroupInfo[nGroupIndex].nGroupIndex = nGroupIndex;
@@ -1577,7 +1577,7 @@ uint64_t MicroProfileAllocateLabel(const char* pName)
 		}
 	}
 
-	uint32_t nLen = (uint32_t)strlen(pName);
+	size_t nLen = strlen(pName);
 
 	if(nLen > MICROPROFILE_LABEL_MAX_LEN - 1)
 		nLen = MICROPROFILE_LABEL_MAX_LEN - 1;
@@ -2447,7 +2447,7 @@ typedef void MicroProfileWriteCallback(void* Handle, size_t size, const char* pD
 
 void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames)
 {
-	uint32_t nLen = (uint32_t)strlen(pPath);
+	size_t nLen = strlen(pPath);
 	if(nLen > sizeof(S.DumpPath)-1)
 	{
 		return;
@@ -3310,8 +3310,8 @@ void MicroProfileWebServerStop()
 
 const char* MicroProfileParseHeader(char* pRequest, const char* pPrefix)
 {
-	uint32_t nRequestSize = (uint32_t)strlen(pRequest);
-	uint32_t nPrefixSize = (uint32_t)strlen(pPrefix);
+	size_t nRequestSize = strlen(pRequest);
+	size_t nPrefixSize = strlen(pPrefix);
 
 	for(uint32_t i = 0; i < nRequestSize; ++i)
 	{
