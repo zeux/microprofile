@@ -4659,7 +4659,7 @@ const char g_MicroProfileHtml_end_3[] =
 "		{\n"
 "			var Frame_ = Frames[i];	\n"
 "			Frame_.LogStart[nLog] = TimeArray.length;\n"
-"			var FrameDiscard = Frame_.frameend + 33;//if timestamps are more than 33ms after current frame, we assume buffer has wrapped.\n"
+"			var FrameDiscard = (ThreadGpu[nLog] ? Frame_.frameendgpu : Frame_.frameend) + 33;//if timestamps are more than 33ms after current frame, we assume buffer has wrapped.\n"
 "			var tt = Frame_.tt[nLog];\n"
 "			var ts = Frame_.ts[nLog];\n"
 "			var ti = Frame_.ti[nLog];\n"

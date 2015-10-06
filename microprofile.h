@@ -2988,6 +2988,24 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	MicroProfilePrintString(CB, Handle, "];\n\n");
 
 
+	MicroProfilePrintString(CB, Handle, "\nvar ThreadIds = [");
+	for(uint32_t i = 0; i < S.nNumLogs; ++i)
+	{
+		MicroProfileThreadIdType nThreadId = S.Pool[i] ? S.Pool[i]->nThreadId : 0;
+		MicroProfilePrintUIntComma(CB, Handle, nThreadId);
+	}
+	MicroProfilePrintString(CB, Handle, "];\n\n");
+
+
+	MicroProfilePrintString(CB, Handle, "\nvar ThreadGpu = [");
+	for(uint32_t i = 0; i < S.nNumLogs; ++i)
+	{
+		uint32_t nGpu = S.Pool[i] ? S.Pool[i]->nGpu : 0;
+		MicroProfilePrintUIntComma(CB, Handle, nGpu);
+	}
+	MicroProfilePrintString(CB, Handle, "];\n\n");
+
+
 	MicroProfilePrintString(CB, Handle, "\nvar ThreadGroupTimeArray = [\n");
 	for(uint32_t i = 0; i < S.nNumLogs; ++i)
 	{
@@ -3003,15 +3021,6 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		}
 	}
 	MicroProfilePrintString(CB, Handle, "];");
-
-
-	MicroProfilePrintString(CB, Handle, "\nvar ThreadIds = [");
-	for(uint32_t i = 0; i < S.nNumLogs; ++i)
-	{
-		MicroProfileThreadIdType nThreadId = S.Pool[i] ? S.Pool[i]->nThreadId : 0;
-		MicroProfilePrintUIntComma(CB, Handle, nThreadId);
-	}
-	MicroProfilePrintString(CB, Handle, "];\n\n");
 
 
 	MicroProfilePrintString(CB, Handle, "\nvar MetaNames = [");
