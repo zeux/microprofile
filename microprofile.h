@@ -128,6 +128,7 @@ typedef uint16_t MicroProfileGroupId;
 #define MICROPROFILE_LABEL(group, name) do{}while(0)
 #define MICROPROFILE_LABELF(group, name, ...) do{}while(0)
 #define MICROPROFILE_COUNTER_ADD(name, count) do{} while(0)
+#define MICROPROFILE_COUNTER_SUB(name, count) do{} while(0)
 #define MICROPROFILE_COUNTER_SET(name, count) do{} while(0)
 #define MICROPROFILE_COUNTER_SET_LIMIT(name, count) do{} while(0)
 
@@ -267,6 +268,7 @@ typedef uint32_t ThreadIdType;
 #define MICROPROFILE_LABEL(group, name) static MicroProfileToken MICROPROFILE_TOKEN_PASTE(g_mp,__LINE__) = MicroProfileGetLabelToken(group); MicroProfileLabel(MICROPROFILE_TOKEN_PASTE(g_mp,__LINE__), name)
 #define MICROPROFILE_LABELF(group, name, ...) static MicroProfileToken MICROPROFILE_TOKEN_PASTE(g_mp,__LINE__) = MicroProfileGetLabelToken(group); MicroProfileLabelFormat(MICROPROFILE_TOKEN_PASTE(g_mp,__LINE__), name, ## __VA_ARGS__)
 #define MICROPROFILE_COUNTER_ADD(name, count) static MicroProfileToken MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__) = MicroProfileGetCounterToken(name); MicroProfileCounterAdd(MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__), count)
+#define MICROPROFILE_COUNTER_SUB(name, count) static MicroProfileToken MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__) = MicroProfileGetCounterToken(name); MicroProfileCounterAdd(MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__), -(int64_t)count)
 #define MICROPROFILE_COUNTER_SET(name, count) static MicroProfileToken MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__) = MicroProfileGetCounterToken(name); MicroProfileCounterSet(MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__), count)
 #define MICROPROFILE_COUNTER_SET_LIMIT(name, count) static MicroProfileToken MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__) = MicroProfileGetCounterToken(name); MicroProfileCounterSetLimit(MICROPROFILE_TOKEN_PASTE(g_mp_counter,__LINE__), count)
 #define MICROPROFILE_COUNTER_CONFIG(name, type, limit) MicroProfileCounterConfig(name, type, limit)
@@ -457,7 +459,7 @@ struct MicroProfileScopeHandler
 
 #define MICROPROFILE_MAX_COUNTERS 512
 #define MICROPROFILE_MAX_COUNTER_NAME_CHARS (MICROPROFILE_MAX_COUNTERS*16)
-#define MICROPROFILE_MAX_TIMERS 1024
+
 #define MICROPROFILE_MAX_GROUPS 48 //dont bump! no. of bits used it bitmask
 #define MICROPROFILE_MAX_CATEGORIES 16
 #define MICROPROFILE_MAX_GRAPHS 5
@@ -469,6 +471,10 @@ struct MicroProfileScopeHandler
 #define MICROPROFILE_ANIM_DELAY_PRC 0.5f
 #define MICROPROFILE_GAP_TIME 50 //extra ms to fetch to close timers from earlier frames
 
+
+#ifndef MICROPROFILE_MAX_TIMERS
+#define MICROPROFILE_MAX_TIMERS 1024
+#endif
 
 #ifndef MICROPROFILE_MAX_THREADS
 #define MICROPROFILE_MAX_THREADS 32
