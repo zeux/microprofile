@@ -3551,12 +3551,12 @@ bool MicroProfileIsLocalThread(uint32_t nThreadId);
 
 void MicroProfileStartContextSwitchTrace()
 {
-	if(!S.bContextSwitchRunning)
-	{
-		S.bContextSwitchRunning    = true;
-		S.bContextSwitchStop = false;
-		MicroProfileThreadStart(&S.ContextSwitchThread, MicroProfileTraceThread);
-	}
+    if(!S.bContextSwitchRunning)
+    {
+        S.bContextSwitchRunning = true;
+        S.bContextSwitchStop = false;
+        MicroProfileThreadStart(&S.ContextSwitchThread, MicroProfileTraceThread);
+    }
 }
 
 void MicroProfileStopContextSwitchTrace()
@@ -3661,7 +3661,6 @@ void MicroProfileContextSwitchShutdownTrace()
 
 void* MicroProfileTraceThread(void* unused)
 {
-
 	MicroProfileContextSwitchShutdownTrace();
 	ULONG status = ERROR_SUCCESS;
 	TRACEHANDLE SessionHandle = 0;
