@@ -2575,6 +2575,7 @@ function DrawDetailedView(context, MinWidth, bDrawEnabled)
 										//cpu tick is stored following
 										RangeCpuNext.Begin = TimeArray[globstart+1];
 										RangeCpuNext.End = TimeArray[glob+1];
+										RangeCpuNext.Thread = IndexArray[globstart+1];
 									}
 									else
 									{
@@ -2909,10 +2910,7 @@ function DrawDetailed(Animation)
 	RangeSet(RangeCpu);
 	RangeSet(RangeGpu);
 	var Offset = 0;
-	// Offset = DrawRange(context, fRangeBeginSelect, fRangeEndSelect, '#59d0ff', '#00ddff', 0, nHeight, "Selection");
-	// Offset = DrawRange(context, fRangeBegin, fRangeEnd, '#009900', '#00ff00', YBegin, YEnd, "Cpu");
-	// Offset = DrawRange(context, fRangeBeginGpu, fRangeEndGpu, '#996600', '#775500', YBeginGpu, YEndGpu, "Gpu");
-	Offset = DrawRange(context, RangeSelect,  '#59d0ff', '#00ddff', "Selection");
+	Offset = DrawRange(context, RangeSelect, '#59d0ff', '#00ddff', "Selection");
 	Offset = DrawRange(context, RangeCpu, '#009900', '#00ff00', "Cpu");
 	Offset = DrawRange(context, RangeGpu, '#996600', '#775500', "Gpu");
 

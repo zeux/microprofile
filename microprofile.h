@@ -663,6 +663,7 @@ struct MicroProfileThreadLog
 	uint32_t 				nActive;
 	uint32_t 				nGpu;
 	MicroProfileThreadIdType nThreadId;
+	uint32_t 				nLogIndex;
 
 	uint32_t				nStack[MICROPROFILE_STACK_MAX];
 	int64_t					nChildTickStack[MICROPROFILE_STACK_MAX];
@@ -1181,9 +1182,11 @@ inline void MicroProfileSetThreadLog(MicroProfileThreadLog* pLog)
 MicroProfileThreadLog* MicroProfileCreateThreadLog(const char* pName)
 {
 	MicroProfileThreadLog* pLog = 0;
+	uint32_t nLogIndex = 0;
 	if(S.nFreeListHead != -1)
 	{
-		pLog = S.Pool[S.nFreeListHead];
+		nLogIndex = S.nFreeListHead;
+		pLog = S.Pool[nLogIndex];
 		MP_ASSERT(pLog->nPut.load() == 0);
 		MP_ASSERT(pLog->nGet.load() == 0);
 		S.nFreeListHead = S.Pool[S.nFreeListHead]->nFreeListNext;
@@ -1194,11 +1197,13 @@ MicroProfileThreadLog* MicroProfileCreateThreadLog(const char* pName)
 	}
 	else
 	{
+		nLogIndex = S.nNumLogs;
 		pLog = new MicroProfileThreadLog;
 		S.nMemUsage += sizeof(MicroProfileThreadLog);
 		S.Pool[S.nNumLogs++] = pLog;	
 	}
 	memset(pLog, 0, sizeof(*pLog));
+	pLog->nLogIndex = nLogIndex;
 	int len = (int)strlen(pName);
 	int maxlen = sizeof(pLog->ThreadName)-1;
 	len = len < maxlen ? len : maxlen;
@@ -1584,7 +1589,8 @@ uint64_t MicroProfileEnter(MicroProfileToken nToken_)
 			if(nTimer != (uint32_t)-1)
 			{
 				MicroProfileLogPut(nToken_, nTimer, MP_LOG_ENTER, g_MicroProfileGpuLog);
-				MicroProfileLogPut(nToken_, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
+				MicroProfileThreadLog* pLog = MicroProfileGetThreadLog();
+				MicroProfileLogPut(pLog ? pLog->nLogIndex : 0, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
 				return 0;
 			}
 		}
@@ -1731,7 +1737,8 @@ void MicroProfileLeave(MicroProfileToken nToken_, uint64_t nTickStart)
 		{
 			uint32_t nTimer = MicroProfileGpuInsertTimer();
 			MicroProfileLogPut(nToken_, nTimer, MP_LOG_LEAVE, g_MicroProfileGpuLog);
-			MicroProfileLogPut(nToken_, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
+			MicroProfileThreadLog* pLog = MicroProfileGetThreadLog();
+			MicroProfileLogPut(pLog ? pLog->nLogIndex : 0, MP_TICK(), MP_LOG_GPU_EXTRA, g_MicroProfileGpuLog);
 		}
 		else if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
 		{

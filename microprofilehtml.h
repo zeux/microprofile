@@ -2593,6 +2593,7 @@ const char g_MicroProfileHtml_end_1[] =
 "										//cpu tick is stored following\n"
 "										RangeCpuNext.Begin = TimeArray[globstart+1];\n"
 "										RangeCpuNext.End = TimeArray[glob+1];\n"
+"										RangeCpuNext.Thread = IndexArray[globstart+1];\n"
 "									}\n"
 "									else\n"
 "									{\n"
@@ -2835,13 +2836,13 @@ const char g_MicroProfileHtml_end_1[] =
 "	RangeGpu = RangeInit();\n"
 "\n"
 "	var start = new Date();\n"
-"	nDrawCount++;\n"
-"\n"
-"	var context = CanvasDetailedView.getContext(";
+"	nDr";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"\'2d\');\n"
+"awCount++;\n"
+"\n"
+"	var context = CanvasDetailedView.getContext(\'2d\');\n"
 "	var offscreen = CanvasDetailedOffscreen.getContext(\'2d\');\n"
 "	var fScaleX = nWidth / fDetailedRange; \n"
 "	var fOffsetY = -nOffsetY + BoxHeight;\n"
@@ -2931,10 +2932,7 @@ const char g_MicroProfileHtml_end_2[] =
 "	RangeSet(RangeCpu);\n"
 "	RangeSet(RangeGpu);\n"
 "	var Offset = 0;\n"
-"	// Offset = DrawRange(context, fRangeBeginSelect, fRangeEndSelect, \'#59d0ff\', \'#00ddff\', 0, nHeight, \"Selection\");\n"
-"	// Offset = DrawRange(context, fRangeBegin, fRangeEnd, \'#009900\', \'#00ff00\', YBegin, YEnd, \"Cpu\");\n"
-"	// Offset = DrawRange(context, fRangeBeginGpu, fRangeEndGpu, \'#996600\', \'#775500\', YBeginGpu, YEndGpu, \"Gpu\");\n"
-"	Offset = DrawRange(context, RangeSelect,  \'#59d0ff\', \'#00ddff\', \"Selection\");\n"
+"	Offset = DrawRange(context, RangeSelect, \'#59d0ff\', \'#00ddff\', \"Selection\");\n"
 "	Offset = DrawRange(context, RangeCpu, \'#009900\', \'#00ff00\', \"Cpu\");\n"
 "	Offset = DrawRange(context, RangeGpu, \'#996600\', \'#775500\', \"Gpu\");\n"
 "\n"
