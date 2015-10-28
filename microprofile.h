@@ -2757,12 +2757,13 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 
 		uint32_t nColor = S.TimerInfo[i].nColor;
 		uint32_t nColorDark = (nColor >> 1) & ~0x80808080;
-		MicroProfilePrintf(CB, Handle, "TimerInfo[%d] = MakeTimer(%d, \"%s\", %d, '#%06x','#%06x', %f, %f, %f, %f, %f, %d, %f,\n",
+		MicroProfilePrintf(CB, Handle, "TimerInfo[%d] = MakeTimer(%d, \"%s\", %d, '#%06x','#%06x', %f, %f, %f, %f, %f, %f, %d, %f,\n",
 			S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].nTimerIndex, S.TimerInfo[i].pName, S.TimerInfo[i].nGroupIndex, 
 			((MICROPROFILE_UNPACK_RED(nColor) & 0xff) << 16) | ((MICROPROFILE_UNPACK_GREEN(nColor) & 0xff) << 8) | (MICROPROFILE_UNPACK_BLUE(nColor) & 0xff),
 			((MICROPROFILE_UNPACK_RED(nColorDark) & 0xff) << 16) | ((MICROPROFILE_UNPACK_GREEN(nColorDark) & 0xff) << 8) | (MICROPROFILE_UNPACK_BLUE(nColorDark) & 0xff),
 			pAverage[nIdx],
 			pMax[nIdx],
+			pMin[nIdx],
 			pAverageExclusive[nIdx],
 			pMaxExclusive[nIdx],
 			pCallAverage[nIdx],
