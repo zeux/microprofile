@@ -377,6 +377,8 @@ const char g_MicroProfileHtml_end_0[] =
 "var MetaLengthsAvg = Array();\n"
 "var MetaLengthsMax = Array();\n"
 "\n"
+"var ZoomActive = 0;\n"
+"\n"
 "\n"
 "function ProfileModeClear()\n"
 "{\n"
@@ -1644,12 +1646,12 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"\");\n"
 "\n"
 "			StringArray.push(\"Exclusive Average:\");\n"
-"			StringArray.push(Timer.exclaverage.toFixed(3)+\"ms\");\n"
-"			";
+"			StringArray.push(Timer.exclaverage.";
 
 const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
 const char g_MicroProfileHtml_end_1[] =
-"StringArray.push(\"Exclusive Max:\");\n"
+"toFixed(3)+\"ms\");\n"
+"			StringArray.push(\"Exclusive Max:\");\n"
 "			StringArray.push(Timer.exclmax.toFixed(3)+\"ms\");\n"
 "\n"
 "			StringArray.push(\"\");\n"
@@ -2836,12 +2838,12 @@ const char g_MicroProfileHtml_end_1[] =
 "				}\n"
 "				context.strokeStyle = ColorFront;\n"
 "				context.beginPath();\n"
-"				context.moveTo(X, Y0);\n"
-"				cont";
+"				context.mo";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"ext.lineTo(X+W, Y0);\n"
+"veTo(X, Y0);\n"
+"				context.lineTo(X+W, Y0);\n"
 "				context.stroke();\n"
 "			}\n"
 "		}\n"
@@ -2909,7 +2911,7 @@ const char g_MicroProfileHtml_end_2[] =
 "		DrawDetailedView(context, nMinWidth, false);\n"
 "	}\n"
 "\n"
-"	if(KeyShiftDown || KeyCtrlDown || MouseDragButton || MouseDragSelectRange())\n"
+"	if(KeyShiftDown || KeyCtrlDown || MouseDragButton || MouseDragSelectRange() || ZoomActive)\n"
 "	{\n"
 "		nHoverToken = -1;\n"
 "		nHoverTokenIndex = -1;\n"
@@ -3026,6 +3028,7 @@ const char g_MicroProfileHtml_end_2[] =
 "		var count = 0;\n"
 "		function ZoomFunc(Timestamp)\n"
 "		{\n"
+"			ZoomActive = 1;\n"
 "			var fPrc = (new Date() - TimestampStart) / (ZOOM_TIME * 1000.0);\n"
 "			if(fPrc > 1.0)\n"
 "			{\n"
@@ -3487,6 +3490,7 @@ const char g_MicroProfileHtml_end_2[] =
 "function MouseMove(evt)\n"
 "{\n"
 "    evt.preventDefault();\n"
+"    ZoomActive = 0;\n"
 "    MouseDrag(MouseDragMove, evt);\n"
 " 	MouseHistory = 0;\n"
 "	MouseDetailed = 0;\n"
