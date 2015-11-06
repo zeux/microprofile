@@ -285,6 +285,7 @@ const char g_MicroProfileHtml_end_0[] =
 "var nHoverTokenLogIndexNext = -1;\n"
 "var nHoverTokenIndexNext = -1;\n"
 "var nHoverCounter = -1;\n"
+"var nHoverTokenDrawn = -1;\n"
 "var nHideHelp = 0;\n"
 "var fFrameScale = 33.33;\n"
 "\n"
@@ -338,6 +339,9 @@ const char g_MicroProfileHtml_end_0[] =
 "var DebugDrawQuadCount = 0;\n"
 "var DebugDrawTextCount = 0;\n"
 "var ProfileMode = 0;\n"
+"var ProfileRedraw0 = 0;\n"
+"var ProfileRedraw1 = 0;\n"
+"var ProfileRedraw2 = 0;\n"
 "var ProfileFps = 0;\n"
 "var ProfileFpsAggr = 0;\n"
 "var ProfileFpsCount = 0;\n"
@@ -474,6 +478,15 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"FPS\");\n"
 "			StringArray.push(\"\" + ProfileFps.toFixed(2));\n"
 "		}\n"
+"		StringArray.push(\"ProfileRedraw0\");\n"
+"		StringArray.push(\"\" + ProfileRedraw0);\n"
+"		StringArray.push(\"ProfileRedraw1\");\n"
+"		StringArray.push(\"\" + ProfileRedraw1);\n"
+"		StringArray.push(\"ProfileRedraw2\");\n"
+"		StringArray.push(\"\" + ProfileRedraw2);\n"
+"		ProfileRedraw0 = 0;\n"
+"		ProfileRedraw1 = 0;\n"
+"		ProfileRedraw2 = 0;\n"
 "\n"
 "\n"
 "		for(var i = 0; i < ProfileData.Plot; ++i)\n"
@@ -1625,6 +1638,10 @@ const char g_MicroProfileHtml_end_0[] =
 "			bShowTimers = !bShowTimers;\n"
 "		}\n"
 "		if(bShowTimers || nHoverFrame == -1)\n"
+"";
+
+const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
+const char g_MicroProfileHtml_end_1[] =
 "		{\n"
 "			StringArray.push(\"Timer:\");\n"
 "			StringArray.push(Timer.name);\n"
@@ -1641,11 +1658,7 @@ const char g_MicroProfileHtml_end_0[] =
 "			StringArray.push(\"\");\n"
 "\n"
 "			StringArray.push(\"Exclusive Average:\");\n"
-"			StringArray.push(Timer";
-
-const size_t g_MicroProfileHtml_end_0_size = sizeof(g_MicroProfileHtml_end_0);
-const char g_MicroProfileHtml_end_1[] =
-".exclaverage.toFixed(3)+\"ms\");\n"
+"			StringArray.push(Timer.exclaverage.toFixed(3)+\"ms\");\n"
 "			StringArray.push(\"Exclusive Max:\");\n"
 "			StringArray.push(Timer.exclmax.toFixed(3)+\"ms\");\n"
 "\n"
@@ -2817,7 +2830,11 @@ const char g_MicroProfileHtml_end_1[] =
 "				context.moveTo(X0, Y0-2);\n"
 "				context.lineTo(X0, Y0+2);\n"
 "				context.moveTo(X1, Y0-2);\n"
-"				context.lineTo(X1, Y0+2);\n"
+"		";
+
+const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
+const char g_MicroProfileHtml_end_2[] =
+"		context.lineTo(X1, Y0+2);\n"
 "				context.moveTo(X1, Y0);\n"
 "				context.lineTo(X + W, Y0);\n"
 "				context.stroke();\n"
@@ -2833,11 +2850,7 @@ const char g_MicroProfileHtml_end_1[] =
 "				}\n"
 "				context.strokeStyle = ColorFront;\n"
 "				context.beginPath();\n"
-"	";
-
-const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
-const char g_MicroProfileHtml_end_2[] =
-"			context.moveTo(X, Y0);\n"
+"				context.moveTo(X, Y0);\n"
 "				context.lineTo(X+W, Y0);\n"
 "				context.stroke();\n"
 "			}\n"
@@ -2862,11 +2875,6 @@ const char g_MicroProfileHtml_end_2[] =
 "\n"
 "	RangeCpuNext = RangeInit();\n"
 "	RangeGpuNext = RangeInit();\n"
-"	// fRangeBeginNext = fRangeEndNext = -1;\n"
-"	// fRangeBeginGpuNext = fRangeEndGpuNext = -1;\n"
-"	// fRangeThreadIdNext = -1;\n"
-"	// var fRangeBeginGpu = -1;\n"
-"	// var fRangeEndGpu = -1;\n"
 "	RangeGpu = RangeInit();\n"
 "\n"
 "	var start = new Date();\n"
@@ -2888,22 +2896,30 @@ const char g_MicroProfileHtml_end_2[] =
 "		DetailedRedrawState.fDetailedOffset = fDetailedOffset;\n"
 "		DetailedRedrawState.fDetailedRange = fDetailedRange;\n"
 "	}\n"
+"	if(nHoverTokenDrawn != nHoverToken)\n"
+"	{\n"
+"		Invalidate = 1;\n"
+"	}\n"
+"	nHoverTokenDrawn = nHoverToken;\n"
 "	if(Invalidate == 0) //when panning, only draw bars that are a certain width to keep decent framerate\n"
 "	{\n"
 "		context.clearRect(0, 0, CanvasDetailedView.width, CanvasDetailedView.height);\n"
 "		DrawDetailedView(context, nMinWidthPan, true);\n"
+"		ProfileRedraw0++;\n"
 "	}\n"
 "	else if(Invalidate == 1) //draw full and store\n"
 "	{\n"
 "		offscreen.clearRect(0, 0, CanvasDetailedView.width, CanvasDetailedView.height);\n"
 "		DrawDetailedView(offscreen, nMinWidth, true);\n"
 "		OffscreenData = offscreen.getImageData(0, 0, CanvasDetailedOffscreen.width, CanvasDetailedOffscreen.height);\n"
+"		ProfileRedraw1++;\n"
 "	}\n"
 "	else//reuse stored result untill next time viewport is changed.\n"
 "	{\n"
 "		context.clearRect(0, 0, CanvasDetailedView.width, CanvasDetailedView.height);\n"
 "		context.putImageData(OffscreenData, 0, 0);\n"
 "		DrawDetailedView(context, nMinWidth, false);\n"
+"		ProfileRedraw2++;\n"
 "	}\n"
 "\n"
 "	if(KeyShiftDown || KeyCtrlDown || MouseDragButton || MouseDragSelectRange() || ZoomActive)\n"
@@ -2919,7 +2935,6 @@ const char g_MicroProfileHtml_end_2[] =
 "		nHoverToken = nHoverTokenNext;\n"
 "		nHoverTokenIndex = nHoverTokenIndexNext;\n"
 "		nHoverTokenLogIndex = nHoverTokenLogIndexNext;\n"
-"		//if(fRangeBeginHistory < fRangeEndHistory)\n"
 "		if(RangeValid(RangeCpuHistory))\n"
 "		{\n"
 "			RangeCopy(RangeCpu, RangeCpuHistory);\n"
@@ -2929,10 +2944,6 @@ const char g_MicroProfileHtml_end_2[] =
 "		{\n"
 "			RangeCopy(RangeCpu, RangeCpuNext);\n"
 "			RangeCopy(RangeGpu, RangeGpuNext);\n"
-"			// fRangeBegin = fRangeBeginNext;\n"
-"			// fRangeEnd = fRangeEndNext;\n"
-"			// fRangeBeginGpu = fRangeBeginGpuNext;\n"
-"			// fRangeEndGpu = fRangeEndGpuNext;\n"
 "		}\n"
 "	}\n"
 "\n"
@@ -3891,7 +3902,6 @@ const char g_MicroProfileHtml_end_2[] =
 "	{\n"
 "		console.log(\"error!!\");\n"
 "	}\n"
-"	// debugger;\n"
 "	var o = new Object();\n"
 "	o.MinDelta = MinDelta;\n"
 "	o.GlobalArray = GlobalArray;\n"
@@ -4263,7 +4273,11 @@ const char g_MicroProfileHtml_end_2[] =
 "		{\n"
 "			var Len = FormatMeta(Timer.meta[j],0).length + 2;\n"
 "			var LenAvg = FormatMeta(Timer.meta[j],2).length + 2;\n"
-"			var LenMax = FormatMeta(Timer.meta[j],0).length + 2;\n"
+"			var LenMax = FormatMeta(Timer.m";
+
+const size_t g_MicroProfileHtml_end_2_size = sizeof(g_MicroProfileHtml_end_2);
+const char g_MicroProfileHtml_end_3[] =
+"eta[j],0).length + 2;\n"
 "			if(Len > MetaLengths[j])\n"
 "			{\n"
 "				MetaLengths[j] = Len;\n"
@@ -4272,11 +4286,7 @@ const char g_MicroProfileHtml_end_2[] =
 "			{\n"
 "				MetaLengthsAvg[j] = LenAvg;\n"
 "			}\n"
-"			if(L";
-
-const size_t g_MicroProfileHtml_end_2_size = sizeof(g_MicroProfileHtml_end_2);
-const char g_MicroProfileHtml_end_3[] =
-"enMax > MetaLengthsMax[j])\n"
+"			if(LenMax > MetaLengthsMax[j])\n"
 "			{\n"
 "				MetaLengthsMax[j] = LenMax;\n"
 "			}\n"
