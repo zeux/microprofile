@@ -2423,6 +2423,7 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 	char* pBase = pOut;
 	char* pTmp = pOut;
 	char* pEnd = pOut + nBufferSize;
+
 	switch (eFormat)
 	{
 	case MICROPROFILE_COUNTER_FORMAT_DEFAULT:
@@ -2467,7 +2468,7 @@ int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_
 	break;
 	case MICROPROFILE_COUNTER_FORMAT_BYTES:
 	{
-		const char* pExt[] = { "b","kb","mb","gb","tb","pb", };
+		const char* pExt[] = { "b","kb","mb","gb","tb","pb", "eb","zb", "yb" };
 		size_t nNumExt = sizeof(pExt) / sizeof(pExt[0]);
 		int64_t nShift = 0;
 		int64_t nDivisor = 1;
