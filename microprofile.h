@@ -3102,6 +3102,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 		MicroProfilePrintUIntComma(CB, Handle, nCpu);
 	}
 	MicroProfilePrintString(CB, Handle, "];\n");
+
 	MicroProfilePrintString(CB, Handle, "var CSwitchTime = [\n");
 	float fToMsCpu = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu());
 	for(uint32_t j = nContextSwitchStart; j != nContextSwitchEnd; j = (j+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
@@ -3112,6 +3113,70 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	}
 	MicroProfilePrintString(CB, Handle, "];\n");
 
+	struct MicroProfileThreadInfo
+	{
+		MicroProfileProcessIdType nProcessId;
+		MicroProfileThreadIdType nThreadId;
+	};
+	MicroProfileProcessIdType nCurrentProcessId = MP_GETCURRENTPROCESSID();
+	uint32_t nNumThreads = 0;
+	MicroProfileThreadInfo Threads[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS];
+	for(uint32_t i = 0; i < MICROPROFILE_MAX_THREADS && S.Pool[i]; ++i)
+	{
+		Threads[nNumThreads].nProcessId = nCurrentProcessId;
+		Threads[nNumThreads].nThreadId = S.Pool[i]->nThreadId;
+		nNumThreads++;
+	}
+	uint32_t nNumThreadsBase = nNumThreads;
+	for(uint32_t i = nContextSwitchStart; i != nContextSwitchEnd; i = (i+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
+	{
+		MicroProfileContextSwitch CS = S.ContextSwitch[i];
+		MicroProfileThreadIdType nThreadId = CS.nThreadIn;
+		if(nThreadId)
+		{
+			MicroProfileProcessIdType nProcessId = CS.nProcessIn;
+
+			bool bSeen = false;
+			for(uint32_t j = 0; j < nNumThreads; ++j)
+			{
+				if(Threads[j].nThreadId == nThreadId && Threads[j].nProcessId == nProcessId)
+				{
+					bSeen = true;
+					break;
+				}
+			}
+			if(!bSeen)
+			{
+				Threads[nNumThreads].nProcessId = nProcessId;
+				Threads[nNumThreads].nThreadId = nThreadId;
+				nNumThreads++;
+			}
+		}
+		if(nNumThreads == MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
+		{
+			break;
+		}
+	}
+
+	MicroProfilePrintString(CB, Handle, "var CSwitchThreads = {");
+
+	for (uint32_t i = 0; i < nNumThreads; ++i)
+	{
+		char Name[256];
+		const char* pProcessName = MicroProfileGetProcessName(Threads[i].nProcessId, Name, sizeof(Name));
+
+		const char* p1 = i < nNumThreadsBase ? S.Pool[i]->ThreadName : "?";
+		const char* p2 = pProcessName ? pProcessName : "?";
+
+		MicroProfilePrintf(CB, Handle, "%lld:{\'tid\':%lld,\'pid\':%lld,\'t\':\'%s\',\'p\':\'%s\'},",
+			(long long)Threads[i].nThreadId,
+			(long long)Threads[i].nThreadId,
+			(long long)Threads[i].nProcessId,
+			p1, p2
+			);
+	}
+
+	MicroProfilePrintString(CB, Handle, "};\n");
 
 	for(size_t i = 0; i < g_MicroProfileHtml_end_count; ++i)
 	{
