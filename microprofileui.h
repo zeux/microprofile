@@ -1247,9 +1247,9 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 						const char* pName = S.TimerInfo[nTimerIndex].pName;
 						uint32_t nNameLen = S.TimerInfo[nTimerIndex].nNameLen;
 
-						if (pName[0] == '$' && pEntryEnter < pEntry && MicroProfileLogType(pEntryEnter[1]) == MP_LOG_LABEL)
+						if (pName[0] == '$' && pEntryEnter < pEntry && MicroProfileLogType(pEntryEnter[1 + bGpu]) == MP_LOG_LABEL)
 						{
-							const char* pLabel = MicroProfileGetLabel(MicroProfileLogGetTick(pEntryEnter[1]));
+							const char* pLabel = MicroProfileGetLabel(MicroProfileLogGetTick(pEntryEnter[1 + bGpu]));
 
 							if (pLabel)
 							{
