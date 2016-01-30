@@ -176,9 +176,9 @@ MICROPROFILEUI_API void MicroProfileCustomGroupAddTimer(const char* pCustomName,
 #ifdef _WIN32
 #define snprintf _snprintf
 #endif
-#include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
+#include <cstdlib>
+#include <cstdarg>
+#include <cmath>
 #include <algorithm>
 
 MICROPROFILE_DEFINE(g_MicroProfileDetailed, "MicroProfile", "Detailed View", 0x8888000);
@@ -975,8 +975,19 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	int64_t nBaseTicksEndGpu = nBaseTicksGpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondGpu());
 
 	int64_t nTickReferenceCpu = 0, nTickReferenceGpu = 0;
-	if(MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
+	static int64_t nRefCpu = 0, nRefGpu = 0;
+	if(!S.nRunning && MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
 	{
+		if(0 == nRefCpu || std::abs(nRefCpu-nBaseTicksCpu) > std::abs(nTickReferenceCpu-nBaseTicksCpu))
+		{
+			nRefCpu = nTickReferenceCpu;
+			nRefGpu = nTickReferenceGpu;
+		}
+		else
+		{
+			nTickReferenceCpu = nRefCpu;
+			nTickReferenceGpu = nRefGpu;
+		}
 		nBaseTicksGpu = (nBaseTicksCpu - nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + nTickReferenceGpu;
 	}
 
