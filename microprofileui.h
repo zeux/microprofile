@@ -308,6 +308,9 @@ struct MicroProfileUI
 	uint32_t				nHoverColor;
 	uint32_t				nHoverColorShared;
 
+	int64_t					nTickReferenceCpu;
+	int64_t					nTickReferenceGpu;
+
 	MicroProfileStringArray LockedToolTips[MICROPROFILE_TOOLTIP_MAX_LOCKED];	
 	uint32_t  				nLockedToolTipColor[MICROPROFILE_TOOLTIP_MAX_LOCKED];	
 	int 					LockedToolTipFront;
@@ -974,21 +977,19 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	int64_t nBaseTicksEndCpu = nBaseTicksCpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondCpu());
 	int64_t nBaseTicksEndGpu = nBaseTicksGpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondGpu());
 
-	int64_t nTickReferenceCpu = 0, nTickReferenceGpu = 0;
-	static int64_t nRefCpu = 0, nRefGpu = 0;
-	if(!S.nRunning && MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
+	if(!S.nRunning && UI.nTickReferenceCpu < nFrameStartCpu)
 	{
-		if(0 == nRefCpu || std::abs(nRefCpu-nBaseTicksCpu) > std::abs(nTickReferenceCpu-nBaseTicksCpu))
+		int64_t nRefCpu = 0, nRefGpu = 0;
+		if(MicroProfileGetGpuTickReference(&nRefCpu, &nRefGpu))
 		{
-			nRefCpu = nTickReferenceCpu;
-			nRefGpu = nTickReferenceGpu;
+			UI.nTickReferenceCpu = nRefCpu;
+			UI.nTickReferenceGpu = nRefGpu;
 		}
-		else
-		{
-			nTickReferenceCpu = nRefCpu;
-			nTickReferenceGpu = nRefGpu;
-		}
-		nBaseTicksGpu = (nBaseTicksCpu - nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + nTickReferenceGpu;
+	}
+
+	if(UI.nTickReferenceCpu && UI.nTickReferenceGpu)
+	{
+		nBaseTicksGpu = (nBaseTicksCpu - UI.nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + UI.nTickReferenceGpu;
 	}
 
 	MicroProfileFrameState* pFrameFirst = pFrameCurrent;
