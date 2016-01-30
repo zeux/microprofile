@@ -672,6 +672,7 @@ struct MicroProfileGpuTimerState
 	uint32_t nQueryGet[MICROPROFILE_GPU_FRAME_DELAY];
 	uint32_t nNextFrame;
 	struct ID3D11Query* pRateQuery;
+	struct ID3D11Query* pSyncQuery;
 	uint32_t nRateQueryIssue;
 	uint64_t nQueryFrequency;
 };
@@ -3757,8 +3758,11 @@ void MicroProfileGpuInit(void* pContext)
 		MP_ASSERT(hr == S_OK);
 	}
 
+	HRESULT hr = pDevice->CreateQuery(&Desc, &S.GPU.pSyncQuery);
+	MP_ASSERT(hr == S_OK);
+
 	Desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
-	HRESULT hr = pDevice->CreateQuery(&Desc, &S.GPU.pRateQuery);
+	hr = pDevice->CreateQuery(&Desc, &S.GPU.pRateQuery);
 	MP_ASSERT(hr == S_OK);
 
 	pDevice->Release();
@@ -3777,6 +3781,9 @@ void MicroProfileGpuShutdown()
 
 	S.GPU.pRateQuery->Release();
 	S.GPU.pRateQuery = 0;
+
+	S.GPU.pSyncQuery->Release();
+	S.GPU.pSyncQuery = 0;
 
 	S.GPU.pDeviceContext = 0;
 }
@@ -3853,7 +3860,22 @@ uint64_t MicroProfileTicksPerSecondGpu()
 
 bool MicroProfileGetGpuTickReference(int64_t* pOutCPU, int64_t* pOutGpu)
 {
-	return false;
+	if(!S.GPU.pDeviceContext) return false;
+
+	S.GPU.pDeviceContext->End(S.GPU.pSyncQuery);
+
+	uint64_t nResult = 0;
+
+	HRESULT hr;
+	do hr = S.GPU.pDeviceContext->GetData(S.GPU.pSyncQuery, &nResult, sizeof(nResult), 0);
+	while(hr == S_FALSE);
+
+	if (hr != S_OK) return false;
+
+	*pOutCPU = MP_TICK();
+	*pOutGpu = nResult;
+
+	return true;
 }
 #elif MICROPROFILE_GPU_TIMERS_GL
 #ifndef GL_TIMESTAMP
