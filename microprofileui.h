@@ -2321,22 +2321,27 @@ const char* MicroProfileUIMenuAggregate(int nIndex, bool* bSelected)
 const char* MicroProfileUIMenuTimers(int nIndex, bool* bSelected)
 {
 	MicroProfile& S = *MicroProfileGet();
-	*bSelected = 0 != (S.nBars & (1 << nIndex));
-	switch(nIndex)
+
+	if(nIndex < 8)
 	{
-		case 0: return "Time";				
-		case 1: return "Average";				
-		case 2: return "Max";
-		case 3: return "Min";
-		case 4: return "Call Count";
-		case 5: return "Exclusive Timers";
-		case 6: return "Exclusive Average";
-		case 7: return "Exclusive Max";
+		static const char* kNames[] = { "Time", "Average", "Max", "Min", "Call Count", "Exclusive Timers", "Exclusive Average", "Exclusive Max" };
+
+		*bSelected = 0 != (S.nBars & (1 << nIndex));
+		return kNames[nIndex];
 	}
-	int nMetaIndex = nIndex - 7;
-	if(nMetaIndex < MICROPROFILE_META_MAX)
+	else if(nIndex == 8)
 	{
-		return S.MetaCounters[nMetaIndex].pName;
+		*bSelected = false;
+		return "------";
+	}
+	else
+	{
+		int nMetaIndex = nIndex - 9;
+		if(nMetaIndex < MICROPROFILE_META_MAX)
+		{
+			*bSelected = 0 != (S.nBars & (MP_DRAW_META_FIRST << nMetaIndex));
+			return S.MetaCounters[nMetaIndex].pName;
+		}
 	}
 	return 0;	
 }
@@ -2524,7 +2529,19 @@ void MicroProfileUIClickAggregate(int nIndex)
 void MicroProfileUIClickTimers(int nIndex)
 {
 	MicroProfile& S = *MicroProfileGet();
-	S.nBars ^= (1 << nIndex);
+
+	if(nIndex < 8)
+	{
+		S.nBars ^= (1 << nIndex);
+	}
+	else if(nIndex != 8)
+	{
+		int nMetaIndex = nIndex - 9;
+		if(nMetaIndex < MICROPROFILE_META_MAX)
+		{
+			S.nBars ^= (MP_DRAW_META_FIRST << nMetaIndex);
+		}
+	}
 }
 
 void MicroProfileUIClickOptions(int nIndex)
