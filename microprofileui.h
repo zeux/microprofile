@@ -2031,17 +2031,26 @@ uint32_t MicroProfileDrawCounterRecursive(uint32_t nIndex, uint32_t nY, uint32_t
 		nX += nLimitWidth;
 		nX += MICROPROFILE_COUNTER_WIDTH + 5;
 	}
+
 	if(bInside && (UI.nMouseLeft || UI.nMouseRight))
 	{
 		if(UI.nMouseX > nX)
 		{
 			if(UI.nMouseRight)
 			{
-				CI.nFlags ^= MICROPROFILE_COUNTER_FLAG_DETAILED;
+				CI.nFlags &= ~MICROPROFILE_COUNTER_FLAG_DETAILED;
 			}
 			else
 			{
-				CI.nFlags ^= MICROPROFILE_COUNTER_FLAG_DETAILED_GRAPH;
+				// toggle through detailed & detailed graph
+				if(CI.nFlags & MICROPROFILE_COUNTER_FLAG_DETAILED)
+				{
+					CI.nFlags ^= MICROPROFILE_COUNTER_FLAG_DETAILED_GRAPH;
+				}
+				else
+				{
+					CI.nFlags |= MICROPROFILE_COUNTER_FLAG_DETAILED;
+				}
 			}
 			if(0 == (CI.nFlags & MICROPROFILE_COUNTER_FLAG_DETAILED))
 			{
@@ -2052,9 +2061,7 @@ uint32_t MicroProfileDrawCounterRecursive(uint32_t nIndex, uint32_t nY, uint32_t
 		{
 			CI.nFlags ^= MICROPROFILE_COUNTER_FLAG_CLOSED;
 		}
-
 	}
-
 
 	if(0 != (CI.nFlags & MICROPROFILE_COUNTER_FLAG_DETAILED))
 	{
@@ -2098,7 +2105,7 @@ uint32_t MicroProfileDrawCounterRecursive(uint32_t nIndex, uint32_t nY, uint32_t
 		MicroProfileDrawLine2D(MICROPROFILE_GRAPH_HISTORY*2, pGraphFillData, 0x330088ff);
 		MicroProfileDrawLine2D(MICROPROFILE_GRAPH_HISTORY, pGraphData, 0xff0088ff);
 
-		if(nMouseGraph < MICROPROFILE_GRAPH_HISTORY && bInside)
+		if(nMouseGraph < MICROPROFILE_GRAPH_HISTORY && bInside && nCounterMin <= nCounterMax)
 		{
 			uint32_t nMouseX = nX + nMouseGraph;
 			float fMouseX = (float)nMouseX;
