@@ -1820,7 +1820,7 @@ function DrawBarView()
 		context.fillText(("      " + Value.toFixed(2)).slice(-TimerLen), X, YText);
 		X += nWidthMs;
 	}
-	function DrawMeta(Value, Width, Dec)
+	function DrawMeta(Value, Width, Dec, YText)
 	{
 		Value = FormatMeta(Value, Dec);
 		X += (FontWidth*Width);
@@ -1976,10 +1976,9 @@ function DrawBarView()
 							context.fillStyle = 'white';
 							for(var j = 0; j < nMetaLen; ++j)
 							{
-								// var Len = MetaNames[j].length + 1;
-								DrawMeta(Timer.meta[j], MetaLengths[j], 0);
-								DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2);
-								DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0);
+								DrawMeta(Timer.meta[j], MetaLengths[j], 0, YText);
+								DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2, YText);
+								DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0, YText);
 							}
 						}
 						context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];

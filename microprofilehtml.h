@@ -1838,7 +1838,7 @@ const char g_MicroProfileHtml_end_1[] =
 "		context.fillText((\"      \" + Value.toFixed(2)).slice(-TimerLen), X, YText);\n"
 "		X += nWidthMs;\n"
 "	}\n"
-"	function DrawMeta(Value, Width, Dec)\n"
+"	function DrawMeta(Value, Width, Dec, YText)\n"
 "	{\n"
 "		Value = FormatMeta(Value, Dec);\n"
 "		X += (FontWidth*Width);\n"
@@ -1994,10 +1994,9 @@ const char g_MicroProfileHtml_end_1[] =
 "							context.fillStyle = \'white\';\n"
 "							for(var j = 0; j < nMetaLen; ++j)\n"
 "							{\n"
-"								// var Len = MetaNames[j].length + 1;\n"
-"								DrawMeta(Timer.meta[j], MetaLengths[j], 0);\n"
-"								DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2);\n"
-"								DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0);\n"
+"								DrawMeta(Timer.meta[j], MetaLengths[j], 0, YText);\n"
+"								DrawMeta(Timer.metaagg[j]/AggregateInfo.Frames, MetaLengthsAvg[j], 2, YText);\n"
+"								DrawMeta(Timer.metamax[j], MetaLengthsMax[j], 0, YText);\n"
 "							}\n"
 "						}\n"
 "						context.fillStyle = bMouseIn ? nBackColorOffset : nBackColors[nColorIndex];\n"
@@ -2816,12 +2815,12 @@ const char g_MicroProfileHtml_end_1[] =
 "	if(KeyShiftDown || KeyCtrlDown || MouseDragButton || MouseDragSelectRange())\n"
 "	{\n"
 "		nHoverToken = -1;\n"
-"		nHoverTokenIndex";
+"		nHoverTokenIndex = -1;\n"
+"		nHoverTok";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-" = -1;\n"
-"		nHoverTokenLogIndex = -1;\n"
+"enLogIndex = -1;\n"
 "		fRangeBegin = fRangeEnd = -1;\n"
 "	}\n"
 "	else\n"
