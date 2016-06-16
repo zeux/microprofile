@@ -1340,7 +1340,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			for(uint32_t i = nContextSwitchStart; i != nContextSwitchEnd; i = (i+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
 			{
 				MicroProfileContextSwitch CS = S.ContextSwitch[i];
-				ThreadIdType nThreadId = CS.nThreadIn;
+				MicroProfileThreadIdType nThreadId = CS.nThreadIn;
 				if(nThreadId)
 				{
 					bool bSeen = false;
@@ -1370,7 +1370,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			nStart = 0;
 		for(uint32_t i = nStart; i < nNumThreads; ++i)
 		{
-			ThreadIdType nThreadId = nThreads[i];
+			MicroProfileThreadIdType nThreadId = nThreads[i];
 			if(nThreadId)
 			{
 				char ThreadName[MicroProfileThreadLog::THREAD_MAX_LEN + 16];
