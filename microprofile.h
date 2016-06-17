@@ -2848,48 +2848,6 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	}
 	MicroProfilePrintString(CB, Handle, "];\n\n");
 
-	for(uint32_t i = 0; i < S.nNumCounters; ++i)
-	{
-		if(0 != (S.CounterInfo[i].nFlags & MICROPROFILE_COUNTER_FLAG_DETAILED))
-		{
-			int64_t nCounterMax = S.nCounterMax[i];
-			int64_t nCounterMin = S.nCounterMin[i];
-			uint32_t nBaseIndex = S.nCounterHistoryPut;
-			MicroProfilePrintf(CB, Handle, "\nvar CounterHistoryArray%d =[", i);
-			for(uint32_t j = 0; j < MICROPROFILE_GRAPH_HISTORY; ++j)
-			{
-				uint32_t nHistoryIndex = (nBaseIndex + j) % MICROPROFILE_GRAPH_HISTORY;
-				int64_t nValue = MicroProfileClamp(S.nCounterHistory[nHistoryIndex][i], nCounterMin, nCounterMax);
-				MicroProfilePrintf(CB, Handle, "%lld,", (long long)nValue);
-			}
-			MicroProfilePrintf(CB, Handle, "];\n");
-
-			int64_t nCounterHeightBase = nCounterMax;
-			int64_t nCounterOffset = 0;
-			if(nCounterMin < 0)
-			{
-				nCounterHeightBase = nCounterMax - nCounterMin;
-				nCounterOffset = -nCounterMin;
-			}
-			double fRcp = 1.0 / nCounterHeightBase;
-
-			MicroProfilePrintf(CB, Handle, "\nvar CounterHistoryArrayPrc%d =[", i);
-			for(uint32_t j = 0; j < MICROPROFILE_GRAPH_HISTORY; ++j)
-			{
-				uint32_t nHistoryIndex = (nBaseIndex + j) % MICROPROFILE_GRAPH_HISTORY;
-				int64_t nValue = MicroProfileClamp(S.nCounterHistory[nHistoryIndex][i], nCounterMin, nCounterMax);
-				float fPrc = (nValue+nCounterOffset) * fRcp;
-				MicroProfilePrintf(CB, Handle, "%f,",fPrc);
-			}
-			MicroProfilePrintf(CB, Handle, "];\n");
-			MicroProfilePrintf(CB, Handle, "var CounterHistory%d = MakeCounterHistory(%d, CounterHistoryArray%d, CounterHistoryArrayPrc%d)\n", i, i, i, i);
-		}
-		else
-		{
-			MicroProfilePrintf(CB, Handle, "var CounterHistory%d;\n", i);
-		}
-	}	
-
 	MicroProfilePrintString(CB, Handle, "\nvar CounterInfo = [");
 	for(uint32_t i = 0; i < S.nNumCounters; ++i)
 	{
@@ -2907,11 +2865,18 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			}
 		}
 
+		int64_t nCounterMin = 0, nCounterMax = 0;
+
+	#if MICROPROFILE_COUNTER_HISTORY
+		nCounterMin = S.nCounterMin[i];
+		nCounterMax = S.nCounterMax[i];
+	#endif
+
 		char Formatted[64];
 		char FormattedLimit[64];
 		MicroProfileFormatCounter(S.CounterInfo[i].eFormat, nCounter, Formatted, sizeof(Formatted)-1);
 		MicroProfileFormatCounter(S.CounterInfo[i].eFormat, S.CounterInfo[i].nLimit, FormattedLimit, sizeof(FormattedLimit)-1);
-		MicroProfilePrintf(CB, Handle, "MakeCounter(%d, %d, %d, %d, %d, '%s', %lld, %lld, %lld, '%s', %lld, '%s', %f, %f, %d, CounterHistory%d),\n", 
+		MicroProfilePrintf(CB, Handle, "MakeCounter(%d, %d, %d, %d, %d, '%s', %lld, %lld, %lld, '%s', %lld, '%s', %d, %f, %f, [",
 			i,
 			S.CounterInfo[i].nParent,
 			S.CounterInfo[i].nSibling,
@@ -2919,16 +2884,30 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
  	 		S.CounterInfo[i].nLevel,
 			S.CounterInfo[i].pName,
 			(long long)nCounter,
-			(long long)S.nCounterMin[i],
-			(long long)S.nCounterMax[i],
+			(long long)nCounterMin,
+			(long long)nCounterMax,
 			Formatted,
 			(long long)nLimit,
 			FormattedLimit,
-			fCounterPrc,
-			fBoxPrc,
 			S.CounterInfo[i].eFormat == MICROPROFILE_COUNTER_FORMAT_BYTES ? 1 : 0, 
-			i
+			fCounterPrc,
+			fBoxPrc
 			);
+
+	#if MICROPROFILE_COUNTER_HISTORY
+		if(0 != (S.CounterInfo[i].nFlags & MICROPROFILE_COUNTER_FLAG_DETAILED))
+		{
+			uint32_t nBaseIndex = S.nCounterHistoryPut;
+			for(uint32_t j = 0; j < MICROPROFILE_GRAPH_HISTORY; ++j)
+			{
+				uint32_t nHistoryIndex = (nBaseIndex + j) % MICROPROFILE_GRAPH_HISTORY;
+				int64_t nValue = MicroProfileClamp(S.nCounterHistory[nHistoryIndex][i], nCounterMin, nCounterMax);
+				MicroProfilePrintUIntComma(CB, Handle, nValue - nCounterMin);
+			}
+		}
+	#endif
+
+		MicroProfilePrintString(CB, Handle, "]),\n");
 	}
 	MicroProfilePrintString(CB, Handle, "];\n\n");
 

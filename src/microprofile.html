@@ -204,14 +204,20 @@ function MakeFrame(id, framestart, frameend, framestartgpu, frameendgpu, ts, tt,
 	var frame = {"id":id, "framestart":framestart, "frameend":frameend, "framestartgpu":framestartgpu, "frameendgpu":frameendgpu, "ts":ts, "tt":tt, "ti":ti, "tl":tl};
 	return frame;
 }
-function MakeCounterHistory(id, history, prc)
+
+function MakeCounter(id, parent, sibling, firstchild, level, name, value, minvalue, maxvalue, formatted, limit, formattedlimit, format, counterprc, boxprc, historydata)
 {
-	var counterhistory = {"id":id, "history":history, "prc":prc};
-	return counterhistory;
-}
-function MakeCounter(id, parent, sibling, firstchild, level, name, value, minvalue, maxvalue, formatted, limit, formattedlimit, counterprc, boxprc, format, counterhistory)
-{
-	var counter = { "id":id, "parent":parent, "sibling":sibling, "firstchild":firstchild, "level": level, "name":name, "value":value, "formatted":formatted, "limit":limit, "formattedlimit":formattedlimit, "counterprc":counterprc, "boxprc":boxprc, "counterhistory":counterhistory, "format":format, "minvalue":minvalue, "maxvalue":maxvalue};
+	var historyprcoffset = (minvalue < 0) ? -minvalue : 0;
+	var historyprcscale = 1 / (maxvalue + historyprcoffset);
+
+	var historyprc = new Array(historydata.length);
+	for(var i = 0; i < historydata.length; ++i)
+	{
+		historydata[i] += minvalue;
+		historyprc[i] = (historydata[i] + historyprcoffset) * historyprcscale;
+	}
+
+	var counter = { "id":id, "parent":parent, "sibling":sibling, "firstchild":firstchild, "level": level, "name":name, "value":value, "formatted":formatted, "limit":limit, "formattedlimit":formattedlimit, "format":format, "counterprc":counterprc, "boxprc":boxprc, "historyprc": historyprc, "historydata":historydata, "minvalue":minvalue, "maxvalue":maxvalue};
 	return counter;
 }
 
@@ -2441,10 +2447,10 @@ function DrawCounterView()
 			X += CounterLimitWidth;
 			X += CounterWidth + 10;
 		}
-		var CounterHistory = Counter.counterhistory;
-		if(CounterHistory)
+		if(Counter.historydata.length > 0)
 		{
-			var Prc = CounterHistory.prc;
+			var Prc = Counter.historyprc;
+			var Data = Counter.historydata;
 
 			context.fillStyle = 'cyan';
 			context.strokeStyle = 'cyan';
@@ -2478,10 +2484,10 @@ function DrawCounterView()
 			if(bMouseIn)
 			{
 				var MouseGraphX = Math.floor(DetailedViewMouseX - X);
-				if(MouseGraphX >= 0 && MouseGraphX < CounterHistory.history.length)
+				if(MouseGraphX >= 0 && MouseGraphX < Data.length)
 				{
 					context.fillStyle = 'white';
-					var Formatted = FormatCounter(Counter.format, CounterHistory.history[MouseGraphX]);
+					var Formatted = FormatCounter(Counter.format, Data[MouseGraphX]);
 					context.fillText(Formatted, X, Y+Height-FontAscent);
 				}
 				context.strokeStyle = 'orange';

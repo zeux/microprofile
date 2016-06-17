@@ -2055,6 +2055,7 @@ uint32_t MicroProfileDrawCounterRecursive(uint32_t nIndex, uint32_t nY, uint32_t
 		}
 	}
 
+#if MICROPROFILE_COUNTER_HISTORY
 	if(0 != (CI.nFlags & MICROPROFILE_COUNTER_FLAG_DETAILED))
 	{
 		static float pGraphData[MICROPROFILE_GRAPH_HISTORY*2];
@@ -2131,6 +2132,7 @@ uint32_t MicroProfileDrawCounterRecursive(uint32_t nIndex, uint32_t nY, uint32_t
 		}
 
 	}
+#endif
 
 	nOffset += nRows;
 	if(0 == (CI.nFlags & MICROPROFILE_COUNTER_FLAG_CLOSED))
