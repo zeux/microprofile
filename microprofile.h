@@ -2860,7 +2860,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			{
 				uint32_t nHistoryIndex = (nBaseIndex + j) % MICROPROFILE_GRAPH_HISTORY;
 				int64_t nValue = MicroProfileClamp(S.nCounterHistory[nHistoryIndex][i], nCounterMin, nCounterMax);
-				MicroProfilePrintf(CB, Handle, "%lld,", nValue);
+				MicroProfilePrintf(CB, Handle, "%lld,", (long long)nValue);
 			}
 			MicroProfilePrintf(CB, Handle, "];\n");
 
