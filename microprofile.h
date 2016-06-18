@@ -406,7 +406,7 @@ MICROPROFILE_API void MicroProfileTogglePause();
 MICROPROFILE_API void MicroProfileForceEnableGroup(const char* pGroup, MicroProfileTokenType Type);
 MICROPROFILE_API void MicroProfileForceDisableGroup(const char* pGroup, MicroProfileTokenType Type);
 MICROPROFILE_API float MicroProfileGetTime(const char* pGroup, const char* pName);
-MICROPROFILE_API void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu);
+
 MICROPROFILE_API void MicroProfileOnThreadCreate(const char* pThreadName); //should be called from newly created threads
 MICROPROFILE_API void MicroProfileOnThreadExit(); //call on exit to reuse log
 MICROPROFILE_API void MicroProfileSetForceEnable(bool bForceEnable);
@@ -425,8 +425,18 @@ MICROPROFILE_API int MicroProfileGetCurrentAggregateFrames();
 MICROPROFILE_API MicroProfile* MicroProfileGet();
 MICROPROFILE_API void MicroProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2]);
 MICROPROFILE_API std::recursive_mutex& MicroProfileGetMutex();
+
 MICROPROFILE_API void MicroProfileContextSwitchTraceStart();
 MICROPROFILE_API void MicroProfileContextSwitchTraceStop();
+
+struct MicroProfileThreadInfo
+{
+	MicroProfileProcessIdType nProcessId;
+	MicroProfileThreadIdType nThreadId;
+};
+
+MICROPROFILE_API void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu);
+MICROPROFILE_API uint32_t MicroProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, MicroProfileThreadInfo* Threads, uint32_t* nNumThreadsBase);
 
 MICROPROFILE_API const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize);
 
@@ -2415,31 +2425,6 @@ float MicroProfileGetTime(const char* pGroup, const char* pName)
 }
 
 
-void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
-{
-	MICROPROFILE_SCOPE(g_MicroProfileContextSwitchSearch);
-	uint32_t nContextSwitchPut = S.nContextSwitchPut;
-	uint64_t nContextSwitchStart, nContextSwitchEnd;
-	nContextSwitchStart = nContextSwitchEnd = (nContextSwitchPut + MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE - 1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE;		
-	int64_t nSearchEnd = nBaseTicksEndCpu + MicroProfileMsToTick(30.f, MicroProfileTicksPerSecondCpu());
-	int64_t nSearchBegin = nBaseTicksCpu - MicroProfileMsToTick(30.f, MicroProfileTicksPerSecondCpu());
-	for(uint32_t i = 0; i < MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE; ++i)
-	{
-		uint32_t nIndex = (nContextSwitchPut + MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE - (i+1)) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE;
-		MicroProfileContextSwitch& CS = S.ContextSwitch[nIndex];
-		if(CS.nTicks > nSearchEnd)
-		{
-			nContextSwitchEnd = nIndex;
-		}
-		if(CS.nTicks > nSearchBegin)
-		{
-			nContextSwitchStart = nIndex;
-		}
-	}
-	*pContextSwitchStart = nContextSwitchStart;
-	*pContextSwitchEnd = nContextSwitchEnd;
-}
-
 int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBufferSize)
 {
 	if (!nCounter)
@@ -3113,50 +3098,9 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	}
 	MicroProfilePrintString(CB, Handle, "];\n");
 
-	struct MicroProfileThreadInfo
-	{
-		MicroProfileProcessIdType nProcessId;
-		MicroProfileThreadIdType nThreadId;
-	};
-	MicroProfileProcessIdType nCurrentProcessId = MP_GETCURRENTPROCESSID();
-	uint32_t nNumThreads = 0;
 	MicroProfileThreadInfo Threads[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS];
-	for(uint32_t i = 0; i < MICROPROFILE_MAX_THREADS && S.Pool[i]; ++i)
-	{
-		Threads[nNumThreads].nProcessId = nCurrentProcessId;
-		Threads[nNumThreads].nThreadId = S.Pool[i]->nThreadId;
-		nNumThreads++;
-	}
-	uint32_t nNumThreadsBase = nNumThreads;
-	for(uint32_t i = nContextSwitchStart; i != nContextSwitchEnd; i = (i+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
-	{
-		MicroProfileContextSwitch CS = S.ContextSwitch[i];
-		MicroProfileThreadIdType nThreadId = CS.nThreadIn;
-		if(nThreadId)
-		{
-			MicroProfileProcessIdType nProcessId = CS.nProcessIn;
-
-			bool bSeen = false;
-			for(uint32_t j = 0; j < nNumThreads; ++j)
-			{
-				if(Threads[j].nThreadId == nThreadId && Threads[j].nProcessId == nProcessId)
-				{
-					bSeen = true;
-					break;
-				}
-			}
-			if(!bSeen)
-			{
-				Threads[nNumThreads].nProcessId = nProcessId;
-				Threads[nNumThreads].nThreadId = nThreadId;
-				nNumThreads++;
-			}
-		}
-		if(nNumThreads == MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
-		{
-			break;
-		}
-	}
+	uint32_t nNumThreadsBase = 0;
+	uint32_t nNumThreads = MicroProfileContextSwitchGatherThreads(nContextSwitchStart, nContextSwitchEnd, Threads, &nNumThreadsBase);
 
 	MicroProfilePrintString(CB, Handle, "var CSwitchThreads = {");
 
@@ -3682,6 +3626,78 @@ void MicroProfileContextSwitchTraceStop()
 	}
 }
 
+void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
+{
+	MICROPROFILE_SCOPE(g_MicroProfileContextSwitchSearch);
+	uint32_t nContextSwitchPut = S.nContextSwitchPut;
+	uint64_t nContextSwitchStart, nContextSwitchEnd;
+	nContextSwitchStart = nContextSwitchEnd = (nContextSwitchPut + MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE - 1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE;		
+	int64_t nSearchEnd = nBaseTicksEndCpu + MicroProfileMsToTick(30.f, MicroProfileTicksPerSecondCpu());
+	int64_t nSearchBegin = nBaseTicksCpu - MicroProfileMsToTick(30.f, MicroProfileTicksPerSecondCpu());
+	for(uint32_t i = 0; i < MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE; ++i)
+	{
+		uint32_t nIndex = (nContextSwitchPut + MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE - (i+1)) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE;
+		MicroProfileContextSwitch& CS = S.ContextSwitch[nIndex];
+		if(CS.nTicks > nSearchEnd)
+		{
+			nContextSwitchEnd = nIndex;
+		}
+		if(CS.nTicks > nSearchBegin)
+		{
+			nContextSwitchStart = nIndex;
+		}
+	}
+	*pContextSwitchStart = nContextSwitchStart;
+	*pContextSwitchEnd = nContextSwitchEnd;
+}
+
+uint32_t MicroProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, MicroProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
+{
+	MicroProfileProcessIdType nCurrentProcessId = MP_GETCURRENTPROCESSID();
+
+	uint32_t nNumThreads = 0;
+	for(uint32_t i = 0; i < MICROPROFILE_MAX_THREADS && S.Pool[i]; ++i)
+	{
+		Threads[nNumThreads].nProcessId = nCurrentProcessId;
+		Threads[nNumThreads].nThreadId = S.Pool[i]->nThreadId;
+		nNumThreads++;
+	}
+
+	*nNumThreadsBase = nNumThreads;
+
+	for(uint32_t i = nContextSwitchStart; i != nContextSwitchEnd; i = (i+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
+	{
+		MicroProfileContextSwitch CS = S.ContextSwitch[i];
+		MicroProfileThreadIdType nThreadId = CS.nThreadIn;
+		if(nThreadId)
+		{
+			MicroProfileProcessIdType nProcessId = CS.nProcessIn;
+
+			bool bSeen = false;
+			for(uint32_t j = 0; j < nNumThreads; ++j)
+			{
+				if(Threads[j].nThreadId == nThreadId && Threads[j].nProcessId == nProcessId)
+				{
+					bSeen = true;
+					break;
+				}
+			}
+			if(!bSeen)
+			{
+				Threads[nNumThreads].nProcessId = nProcessId;
+				Threads[nNumThreads].nThreadId = nThreadId;
+				nNumThreads++;
+			}
+		}
+		if(nNumThreads == MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
+		{
+			break;
+		}
+	}
+
+	return nNumThreads;
+}
+
 #if defined(_WIN32)
 #define INITGUID
 #include <wmistr.h>
@@ -3896,6 +3912,18 @@ void MicroProfileContextSwitchTraceStart()
 
 void MicroProfileContextSwitchTraceStop()
 {
+}
+
+void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
+{
+	*pContextSwitchStart = 0;
+	*pContextSwitchEnd = 0;
+}
+
+uint32_t MicroProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, MicroProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
+{
+	*nNumThreadsBase = 0;
+	return 0;
 }
 
 const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)

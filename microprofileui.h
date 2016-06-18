@@ -1366,63 +1366,22 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	}
 	if(S.bContextSwitchRunning && (S.bContextSwitchAllThreads||S.bContextSwitchNoBars))
 	{
-		struct MicroProfileThreadInfo
-		{
-			MicroProfileProcessIdType nProcessId;
-			MicroProfileThreadIdType nThreadId;
-		};
-		MicroProfileProcessIdType nCurrentProcessId = MP_GETCURRENTPROCESSID();
-		uint32_t nNumThreads = 0;
-		MicroProfileThreadInfo Threads[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS];
-		for(uint32_t i = 0; i < MICROPROFILE_MAX_THREADS && S.Pool[i]; ++i)
-		{
-			Threads[nNumThreads].nProcessId = nCurrentProcessId;
-			Threads[nNumThreads].nThreadId = S.Pool[i]->nThreadId;
-			nNumThreads++;
-		}
-		uint32_t nNumThreadsBase = nNumThreads;
-		if(S.bContextSwitchAllThreads)
-		{
-			for(uint32_t i = nContextSwitchStart; i != nContextSwitchEnd; i = (i+1) % MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE)
-			{
-				MicroProfileContextSwitch CS = S.ContextSwitch[i];
-				MicroProfileThreadIdType nThreadId = CS.nThreadIn;
-				if(nThreadId)
-				{
-					MicroProfileProcessIdType nProcessId = CS.nProcessIn;
+		uint32_t nContextSwitchSearchEnd = S.bContextSwitchAllThreads ? nContextSwitchEnd : nContextSwitchStart;
 
-					bool bSeen = false;
-					for(uint32_t j = 0; j < nNumThreads; ++j)
-					{
-						if(Threads[j].nThreadId == nThreadId && Threads[j].nProcessId == nProcessId)
-						{
-							bSeen = true;
-							break;				
-						}
-					}
-					if(!bSeen)
-					{
-						Threads[nNumThreads].nProcessId = nProcessId;
-						Threads[nNumThreads].nThreadId = nThreadId;
-						nNumThreads++;
-					}
-				}
-				if(nNumThreads == MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
-				{
-					S.nOverflow = 10;
-					break;
-				}
-			}
-			std::sort(&Threads[nNumThreadsBase], &Threads[nNumThreads],
-						[](const MicroProfileThreadInfo& l, const MicroProfileThreadInfo& r)
-			{
-				return l.nProcessId == r.nProcessId ? l.nThreadId < r.nThreadId : l.nProcessId > r.nProcessId;
-			});
-		}
+		MicroProfileThreadInfo Threads[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS];
+		uint32_t nNumThreadsBase = 0;
+		uint32_t nNumThreads = MicroProfileContextSwitchGatherThreads(nContextSwitchStart, nContextSwitchSearchEnd, Threads, &nNumThreadsBase);
+
+		std::sort(&Threads[nNumThreadsBase], &Threads[nNumThreads],
+					[](const MicroProfileThreadInfo& l, const MicroProfileThreadInfo& r)
+		{
+			return l.nProcessId == r.nProcessId ? l.nThreadId < r.nThreadId : l.nProcessId > r.nProcessId;
+		});
+
 		uint32_t nStart = nNumThreadsBase;
 		if(S.bContextSwitchNoBars)
 			nStart = 0;
-		MicroProfileProcessIdType nLastProcessId = nCurrentProcessId;
+		MicroProfileProcessIdType nLastProcessId = MP_GETCURRENTPROCESSID();
 		for(uint32_t i = nStart; i < nNumThreads; ++i)
 		{
 			MicroProfileThreadInfo tt = Threads[i];
