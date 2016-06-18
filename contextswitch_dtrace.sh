@@ -8,5 +8,4 @@ do
 	mkfifo $MPPIPE
 	dtrace -q -n fbt::thread_dispatch:return'{printf("MPTD %x %x %x\n", cpu, tid, machtimestamp)}' -o $MPPIPE
 	rm $MPPIPE
-	read -p "DTrace run finished, press Enter to restart..."
 done
