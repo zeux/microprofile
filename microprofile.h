@@ -415,8 +415,8 @@ MICROPROFILE_API int MicroProfileGetCurrentAggregateFrames();
 MICROPROFILE_API MicroProfile* MicroProfileGet();
 MICROPROFILE_API void MicroProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2]);
 MICROPROFILE_API std::recursive_mutex& MicroProfileGetMutex();
-MICROPROFILE_API void MicroProfileStartContextSwitchTrace();
-MICROPROFILE_API void MicroProfileStopContextSwitchTrace();
+MICROPROFILE_API void MicroProfileContextSwitchTraceStart();
+MICROPROFILE_API void MicroProfileContextSwitchTraceStop();
 MICROPROFILE_API bool MicroProfileIsLocalThread(uint32_t nThreadId);
 
 MICROPROFILE_API void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames);
@@ -829,6 +829,7 @@ struct MicroProfile
 
 	MicroProfileThread 			ContextSwitchThread;
 	bool  						bContextSwitchRunning;
+	bool						bContextSwitchStart;
 	bool						bContextSwitchStop;
 	bool						bContextSwitchAllThreads;
 	bool						bContextSwitchNoBars;
@@ -1142,6 +1143,7 @@ void MicroProfileInit()
 		pGpu->nThreadId = 0;
 
 		S.bWebServerStart = true;
+		S.bContextSwitchStart = true;
 	}
 	if(bUseLock)
 		mutex.unlock();
@@ -1151,7 +1153,7 @@ void MicroProfileShutdown()
 {
 	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
 	MicroProfileWebServerStop();
-	MicroProfileStopContextSwitchTrace();
+	MicroProfileContextSwitchTraceStop();
 	MicroProfileGpuShutdown();
 }
 
@@ -1814,6 +1816,11 @@ void MicroProfileFlip()
 	{
 		S.bWebServerStart = false;
 		MicroProfileWebServerStart();
+	}
+	if(S.bContextSwitchStart)
+	{
+		S.bContextSwitchStart = false;
+		MicroProfileContextSwitchTraceStart();
 	}
 
 	if(S.nAutoClearFrames)
@@ -3581,22 +3588,21 @@ uint32_t MicroProfileWebServerPort()
 void* MicroProfileTraceThread(void* unused);
 bool MicroProfileIsLocalThread(uint32_t nThreadId);
 
-void MicroProfileStartContextSwitchTrace()
+void MicroProfileContextSwitchTraceStart()
 {
-    if(!S.bContextSwitchRunning)
-    {
-        S.bContextSwitchRunning = true;
-        S.bContextSwitchStop = false;
-        MicroProfileThreadStart(&S.ContextSwitchThread, MicroProfileTraceThread);
-    }
+	if(!S.ContextSwitchThread)
+	{
+		MicroProfileThreadStart(&S.ContextSwitchThread, MicroProfileTraceThread);
+	}
 }
 
-void MicroProfileStopContextSwitchTrace()
+void MicroProfileContextSwitchTraceStop()
 {
-	if(S.bContextSwitchRunning)
+	if(S.ContextSwitchThread)
 	{
 		S.bContextSwitchStop = true;
 		MicroProfileThreadJoin(&S.ContextSwitchThread);
+		S.bContextSwitchStop = false;
 	}
 }
 
@@ -3756,46 +3762,51 @@ bool MicroProfileIsLocalThread(uint32_t nThreadId)
 
 void* MicroProfileTraceThread(void* unused)
 {
-	FILE* pFile = fopen("/tmp/.microprofilecspipe", "r");
-	if(!pFile)
+	while(!S.bContextSwitchStop)
 	{
-		MICROPROFILE_PRINTF("MicroProfile: Context switch trace failed to open file (make sure to run DTrace script)\n");
-		S.bContextSwitchRunning = false;
-		return 0;
-	}
-
-	char* pLine = 0;
-	size_t cap = 0;
-	size_t len = 0;
-
-	uint32_t nLastThread[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS] = {0};
-
-	S.bContextSwitchRunning = true;
-
-	while((len = getline(&pLine, &cap, pFile))>0 && !S.bContextSwitchStop)
-	{
-		if (strncmp(pLine, "MPTD ", 5) != 0)
-			continue;
-
-		char* pos = pLine + 4;
-		uint32_t cpu = strtol(pos + 1, &pos, 16);
-		uint32_t thread = strtol(pos + 1, &pos, 16);
-		int64_t timestamp = strtoll(pos + 1, &pos, 16);
-
-		MicroProfileContextSwitch Switch;
-
-		if(cpu < MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
+		FILE* pFile = fopen("/tmp/.microprofilecspipe", "r");
+		if(!pFile)
 		{
-			Switch.nThreadOut = nLastThread[cpu];
-			Switch.nThreadIn = thread;
-			nLastThread[cpu] = thread;
-			Switch.nCpu = cpu;
-			Switch.nTicks = timestamp;
-			MicroProfileContextSwitchPut(&Switch);
+			usleep(1000000);
+			continue;
 		}
+
+		S.bContextSwitchRunning = true;
+
+		char* pLine = 0;
+		size_t cap = 0;
+		size_t len = 0;
+
+		uint32_t nLastThread[MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS] = {0};
+
+		while((len = getline(&pLine, &cap, pFile))>0 && !S.bContextSwitchStop)
+		{
+			if (strncmp(pLine, "MPTD ", 5) != 0)
+				continue;
+
+			char* pos = pLine + 4;
+			uint32_t cpu = strtol(pos + 1, &pos, 16);
+			uint32_t thread = strtol(pos + 1, &pos, 16);
+			int64_t timestamp = strtoll(pos + 1, &pos, 16);
+
+			MicroProfileContextSwitch Switch;
+
+			if(cpu < MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
+			{
+				Switch.nThreadOut = nLastThread[cpu];
+				Switch.nThreadIn = thread;
+				nLastThread[cpu] = thread;
+				Switch.nCpu = cpu;
+				Switch.nTicks = timestamp;
+				MicroProfileContextSwitchPut(&Switch);
+			}
+		}
+
+		fclose(pFile);
+
+		S.bContextSwitchRunning = false;
 	}
 
-	S.bContextSwitchRunning = false;
 	return 0;
 }
 
@@ -3810,11 +3821,11 @@ bool MicroProfileIsLocalThread(uint32_t nThreadId)
 	return false;
 }
 
-void MicroProfileStartContextSwitchTrace()
+void MicroProfileContextSwitchTraceStart()
 {
 }
 
-void MicroProfileStopContextSwitchTrace()
+void MicroProfileContextSwitchTraceStop()
 {
 }
 #endif

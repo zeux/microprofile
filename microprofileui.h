@@ -249,7 +249,7 @@ enum
 	MICROPROFILE_NUM_REFERENCE_PRESETS = sizeof(g_MicroProfileReferenceTimePresets)/sizeof(g_MicroProfileReferenceTimePresets[0]),
 	MICROPROFILE_NUM_OPACITY_PRESETS = sizeof(g_MicroProfileOpacityPresets)/sizeof(g_MicroProfileOpacityPresets[0]),
 #if MICROPROFILE_CONTEXT_SWITCH_TRACE
-	MICROPROFILE_OPTION_SIZE = MICROPROFILE_NUM_REFERENCE_PRESETS + MICROPROFILE_NUM_OPACITY_PRESETS * 2 + 2 + 7,
+	MICROPROFILE_OPTION_SIZE = MICROPROFILE_NUM_REFERENCE_PRESETS + MICROPROFILE_NUM_OPACITY_PRESETS * 2 + 2 + 6,
 #else
 	MICROPROFILE_OPTION_SIZE = MICROPROFILE_NUM_REFERENCE_PRESETS + MICROPROFILE_NUM_OPACITY_PRESETS * 2 + 2 + 3,
 #endif
@@ -404,9 +404,8 @@ void MicroProfileInitUI()
 
 #if MICROPROFILE_CONTEXT_SWITCH_TRACE
 		UI.Options[nIndex++] = SOptionDesc(0xff, 0, "%s", "CSwitch Trace");		
-		UI.Options[nIndex++] = SOptionDesc(4, 0, "%s", "  Enable");
-		UI.Options[nIndex++] = SOptionDesc(4, 1, "%s", "  All Threads");
-		UI.Options[nIndex++] = SOptionDesc(4, 2, "%s", "  No Bars");
+		UI.Options[nIndex++] = SOptionDesc(4, 0, "%s", "  All Threads");
+		UI.Options[nIndex++] = SOptionDesc(4, 1, "%s", "  No Bars");
 #endif
 		MP_ASSERT(nIndex == MICROPROFILE_OPTION_SIZE);
 
@@ -2492,12 +2491,9 @@ const char* MicroProfileUIMenuOptions(int nIndex, bool* bSelected)
 			switch(UI.Options[nIndex].nIndex)
 			{
 			case 0:
-				*bSelected = S.bContextSwitchRunning;
-				break;
-			case 1:
 				*bSelected = S.bContextSwitchAllThreads;
 				break;
-			case 2: 
+			case 1: 
 				*bSelected = S.bContextSwitchNoBars;
 				break;
 			}
@@ -2690,19 +2686,9 @@ void MicroProfileUIClickOptions(int nIndex)
 			switch(UI.Options[nIndex].nIndex)
 			{
 			case 0:
-				if(S.bContextSwitchRunning)
-				{
-					MicroProfileStopContextSwitchTrace();
-				}
-				else
-				{
-					MicroProfileStartContextSwitchTrace();
-				}
-				break;
-			case 1:
 				S.bContextSwitchAllThreads = !S.bContextSwitchAllThreads;
 				break;
-			case 2:
+			case 1:
 				S.bContextSwitchNoBars= !S.bContextSwitchNoBars;
 				break;
 
