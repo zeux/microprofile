@@ -1114,8 +1114,6 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 
 	uint32_t nLinesDrawn[MICROPROFILE_STACK_MAX]={0};
 
-	uint32_t nContextSwitchHoverThreadAfter = S.nContextSwitchHoverThreadAfter;
-	uint32_t nContextSwitchHoverThreadBefore = S.nContextSwitchHoverThreadBefore;
 	S.nContextSwitchHoverThread = S.nContextSwitchHoverThreadAfter = S.nContextSwitchHoverThreadBefore = -1;
 
 	uint32_t nContextSwitchStart = -1;
@@ -1192,12 +1190,8 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			int64_t nBaseTicks = bGpu ? nBaseTicksGpu : nBaseTicksCpu;
 			MicroProfileThreadIdType nThreadId = pLog->nThreadId;
 
-			MicroProfileWriteThreadHeader(nY, nThreadId, &pLog->ThreadName[0], nullptr);
-
 			nY += 3;
-			uint32_t nThreadColor = -1;
-			if(pLog->nThreadId == nContextSwitchHoverThreadAfter || pLog->nThreadId == nContextSwitchHoverThreadBefore)
-				nThreadColor = UI.nHoverColorShared|0x906060;
+			MicroProfileWriteThreadHeader(nY, nThreadId, &pLog->ThreadName[0], nullptr);
 			nY += 3;
 			nY += MICROPROFILE_TEXT_HEIGHT + 1;
 
@@ -1392,10 +1386,9 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 					nY = MicroProfileWriteProcessHeader(nY, (uint32_t)tt.nProcessId);
 					nLastProcessId = tt.nProcessId;
 				}
-				uint32_t nThreadColor = -1;
-				if (tt.nThreadId == nContextSwitchHoverThreadAfter || tt.nThreadId == nContextSwitchHoverThreadBefore)
-					nThreadColor = UI.nHoverColorShared | 0x906060;
+
 				MicroProfileDrawDetailedContextSwitchBars(nY + 2, tt.nThreadId, nContextSwitchStart, nContextSwitchEnd, nBaseTicksCpu, nBaseY);
+
 				MicroProfileWriteThreadHeader(nY, tt.nThreadId, i < nNumThreadsBase ? &S.Pool[i]->ThreadName[0] : nullptr, nullptr);
 				nY += MICROPROFILE_TEXT_HEIGHT + 1;
 			}
