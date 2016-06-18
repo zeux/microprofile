@@ -208,6 +208,8 @@ inline uint64_t MicroProfileGetCurrentThreadId()
 #define MP_STRCASECMP strcasecmp
 #define MP_GETCURRENTTHREADID() MicroProfileGetCurrentThreadId()
 typedef uint64_t MicroProfileThreadIdType;
+#define MP_GETCURRENTPROCESSID() getpid()
+typedef uint32_t MicroProfileProcessIdType;
 #elif defined(_WIN32)
 int64_t MicroProfileGetTick();
 #define MP_TICK() MicroProfileGetTick()
@@ -216,6 +218,8 @@ int64_t MicroProfileGetTick();
 #define MP_STRCASECMP _stricmp
 #define MP_GETCURRENTTHREADID() GetCurrentThreadId()
 typedef uint32_t MicroProfileThreadIdType;
+#define MP_GETCURRENTPROCESSID() GetCurrentProcessId()
+typedef uint32_t MicroProfileProcessIdType;
 
 #elif defined(__linux__)
 #include <unistd.h>
@@ -239,6 +243,8 @@ inline int64_t MicroProfileGetTick()
 #define MP_STRCASECMP strcasecmp
 #define MP_GETCURRENTTHREADID() (uint64_t)pthread_self()
 typedef uint64_t MicroProfileThreadIdType;
+#define MP_GETCURRENTPROCESSID() getpid()
+typedef uint32_t MicroProfileProcessIdType;
 #endif
 
 
@@ -247,6 +253,10 @@ typedef uint64_t MicroProfileThreadIdType;
 typedef uint32_t MicroProfileThreadIdType;
 #endif
 
+#ifndef MP_GETCURRENTPROCESSID
+#define MP_GETCURRENTPROCESSID() 0
+typedef uint32_t MicroProfileProcessIdType;
+#endif
 
 #ifndef MP_ASSERT
 #define MP_ASSERT(a) do{if(!(a)){MP_BREAK();} }while(0)
@@ -417,7 +427,8 @@ MICROPROFILE_API void MicroProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_
 MICROPROFILE_API std::recursive_mutex& MicroProfileGetMutex();
 MICROPROFILE_API void MicroProfileContextSwitchTraceStart();
 MICROPROFILE_API void MicroProfileContextSwitchTraceStop();
-MICROPROFILE_API bool MicroProfileIsLocalThread(uint32_t nThreadId);
+
+MICROPROFILE_API const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize);
 
 MICROPROFILE_API void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames);
 MICROPROFILE_API int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBufferSize);
@@ -641,6 +652,7 @@ struct MicroProfileContextSwitch
 {
 	MicroProfileThreadIdType nThreadOut;
 	MicroProfileThreadIdType nThreadIn;
+	MicroProfileProcessIdType nProcessIn;
 	int64_t nCpu : 8;
 	int64_t nTicks : 56;
 };
@@ -3586,7 +3598,6 @@ uint32_t MicroProfileWebServerPort()
 #if MICROPROFILE_CONTEXT_SWITCH_TRACE
 //functions that need to be implemented per platform.
 void* MicroProfileTraceThread(void* unused);
-bool MicroProfileIsLocalThread(uint32_t nThreadId);
 
 void MicroProfileContextSwitchTraceStart()
 {
@@ -3605,7 +3616,6 @@ void MicroProfileContextSwitchTraceStop()
 		S.bContextSwitchStop = false;
 	}
 }
-
 
 #if defined(_WIN32)
 #define INITGUID
@@ -3742,23 +3752,24 @@ void* MicroProfileTraceThread(void* unused)
 	S.bContextSwitchRunning = false;
 	return 0;
 }
-
-bool MicroProfileIsLocalThread(uint32_t nThreadId) 
-{
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
-	HANDLE h = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, nThreadId);
-	if(h == NULL)
-		return false;
-	DWORD hProcess = GetProcessIdOfThread(h);
-	CloseHandle(h);
-	return GetCurrentProcessId() == hProcess;
-#else
-	return false;
-#endif
-}
-
 #elif defined(__APPLE__)
 #include <sys/time.h>
+#include <libproc.h>
+
+const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)
+{
+	char Path[PATH_MAX];
+	if(proc_pidpath(nId, Path, sizeof(Path)) == 0)
+		return nullptr;
+
+	char* pSlash = strrchr(Path, '/');
+	char* pName = pSlash ? pSlash + 1 : Path;
+
+	strncpy(Buffer, pName, nSize-1);
+	Buffer[nSize-1] = 0;
+
+	return Buffer;
+}
 
 void* MicroProfileTraceThread(void* unused)
 {
@@ -3781,24 +3792,27 @@ void* MicroProfileTraceThread(void* unused)
 
 		while((len = getline(&pLine, &cap, pFile))>0 && !S.bContextSwitchStop)
 		{
-			if (strncmp(pLine, "MPTD ", 5) != 0)
+			if(strncmp(pLine, "MPTD ", 5) != 0)
 				continue;
 
 			char* pos = pLine + 4;
 			uint32_t cpu = strtol(pos + 1, &pos, 16);
-			uint32_t thread = strtol(pos + 1, &pos, 16);
+			uint32_t pid = strtol(pos + 1, &pos, 16);
+			uint32_t tid = strtol(pos + 1, &pos, 16);
 			int64_t timestamp = strtoll(pos + 1, &pos, 16);
-
-			MicroProfileContextSwitch Switch;
 
 			if(cpu < MICROPROFILE_MAX_CONTEXT_SWITCH_THREADS)
 			{
+				MicroProfileContextSwitch Switch;
+
 				Switch.nThreadOut = nLastThread[cpu];
-				Switch.nThreadIn = thread;
-				nLastThread[cpu] = thread;
+				Switch.nThreadIn = tid;
+				Switch.nProcessIn = pid;
 				Switch.nCpu = cpu;
 				Switch.nTicks = timestamp;
 				MicroProfileContextSwitchPut(&Switch);
+
+				nLastThread[cpu] = tid;
 			}
 		}
 
@@ -3809,24 +3823,19 @@ void* MicroProfileTraceThread(void* unused)
 
 	return 0;
 }
-
-bool MicroProfileIsLocalThread(uint32_t nThreadId) 
-{
-	return false;
-}
 #endif
 #else
-bool MicroProfileIsLocalThread(uint32_t nThreadId)
-{
-	return false;
-}
-
 void MicroProfileContextSwitchTraceStart()
 {
 }
 
 void MicroProfileContextSwitchTraceStop()
 {
+}
+
+const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)
+{
+	return nullptr;
 }
 #endif
 

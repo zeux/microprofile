@@ -6,6 +6,6 @@ while true;
 do
 	echo "DTrace run; output file: $MPPIPE"
 	mkfifo $MPPIPE
-	dtrace -q -n fbt::thread_dispatch:return'{printf("MPTD %x %x %x\n", cpu, tid, machtimestamp)}' -o $MPPIPE
+	dtrace -q -n fbt::thread_dispatch:return'{printf("MPTD %x %x %x %x\n", cpu, pid, tid, machtimestamp)}' -o $MPPIPE
 	rm $MPPIPE
 done
