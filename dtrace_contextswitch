@@ -1,4 +1,6 @@
 #!/bin/sh
+# DTrace is gated by system integrity protection starting from OSX 10.11 - it needs to be disabled for this script to work
+
 MPPIPE=/tmp/.microprofilecspipe
 while true;
 do

@@ -3753,6 +3753,7 @@ bool MicroProfileIsLocalThread(uint32_t nThreadId)
 
 #elif defined(__APPLE__)
 #include <sys/time.h>
+
 void* MicroProfileTraceThread(void* unused)
 {
 	FILE* pFile = fopen("/tmp/.microprofilecspipe", "r");
