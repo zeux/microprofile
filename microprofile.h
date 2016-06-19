@@ -3856,7 +3856,7 @@ void* MicroProfileTraceThread(void* unused)
 {
 	while(!S.bContextSwitchStop)
 	{
-		FILE* pFile = fopen("/tmp/.microprofilecspipe", "r");
+		FILE* pFile = fopen("/tmp/microprofile-contextswitch", "r");
 		if(!pFile)
 		{
 			usleep(1000000);
