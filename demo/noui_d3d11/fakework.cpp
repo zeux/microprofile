@@ -7,7 +7,7 @@
 #include <unistd.h>
 #endif
 
-extern uint32_t g_nQuit;
+uint32_t g_nQuit;
 
 #ifdef _WIN32
 #undef near
@@ -241,6 +241,7 @@ void StartFakeWork()
 }
 void StopFakeWork()
 {
+	g_nQuit = 1;
 	t0.join();
 	t1.join();
 	t2.join();
@@ -250,4 +251,5 @@ void StopFakeWork()
 	t44.join();
 	t45.join();
 	tlong.join();
+	g_nQuit = 0;
 }

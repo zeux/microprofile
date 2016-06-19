@@ -1,13 +1,14 @@
 //Modified version of Microsoft d3d11 tutorial 2
+#include <WinSock2.h>
 #include <windows.h>
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 #include <directxmath.h>
 #include <directxcolors.h>
 
+#define MICROPROFILE_GPU_TIMERS_D3D11 1
 #define MICROPROFILE_IMPL
 #include "microprofile.h"
-uint32_t g_nQuit = 0;
 
 using namespace DirectX;
 struct SimpleVertex
@@ -65,14 +66,8 @@ int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	MicroProfileSetForceEnable(true);
 	MicroProfileSetEnableAllGroups(true);
 	MicroProfileSetForceMetaCounters(true);
-	MicroProfileGpuInitD3D11(g_pd3dDevice, g_pImmediateContext);
-	MicroProfileStartContextSwitchTrace();
+	MicroProfileGpuInit(g_pImmediateContext);
 	StartFakeWork();
-	char buffer[256];
-	snprintf(buffer, sizeof(buffer)-1, "Webserver started in localhost:%d\n", MicroProfileWebServerPort());
-	OutputDebugString(buffer);
-
-
 
     // Main message loop
     MSG msg = {0};
@@ -92,6 +87,8 @@ int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
     CleanupDevice();
 	StopFakeWork();
+
+	MicroProfileShutdown();
 
     return ( int )msg.wParam;
 }
@@ -113,7 +110,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     wcex.hCursor = LoadCursor( nullptr, IDC_ARROW );
     wcex.hbrBackground = ( HBRUSH )( COLOR_WINDOW + 1 );
     wcex.lpszMenuName = nullptr;
-    wcex.lpszClassName = "TutorialWindowClass";
+    wcex.lpszClassName = L"TutorialWindowClass";
     wcex.hIconSm = 0;
     if( !RegisterClassEx( &wcex ) )
         return E_FAIL;
@@ -122,7 +119,7 @@ HRESULT InitWindow( HINSTANCE hInstance, int nCmdShow )
     g_hInst = hInstance;
     RECT rc = { 0, 0, 800, 600 };
     AdjustWindowRect( &rc, WS_OVERLAPPEDWINDOW, FALSE );
-    g_hWnd = CreateWindow( "TutorialWindowClass", "Direct3D 11 Tutorial 2: Rendering a Triangle",
+    g_hWnd = CreateWindowA( "TutorialWindowClass", "Direct3D 11 Tutorial 2: Rendering a Triangle",
                            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
                            CW_USEDEFAULT, CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, hInstance,
                            nullptr );
@@ -333,7 +330,7 @@ HRESULT InitDevice()
     hr = CompileShaderFromFile( L"Tutorial02.fx", "VS", "vs_4_0", &pVSBlob );
     if( FAILED( hr ) )
     {
-        MessageBox( nullptr,
+        MessageBoxA( nullptr,
                     "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", "Error", MB_OK );
         return hr;
     }
@@ -368,7 +365,7 @@ HRESULT InitDevice()
     hr = CompileShaderFromFile( L"Tutorial02.fx", "PS", "ps_4_0", &pPSBlob );
     if( FAILED( hr ) )
     {
-        MessageBox( nullptr,
+        MessageBoxA( nullptr,
                     "The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", "Error", MB_OK );
         return hr;
     }
