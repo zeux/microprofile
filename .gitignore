@@ -1,2 +1,5 @@
+/build/
+
 .vs/
-demo/build/
+*.VC.db
+*.VC.opendb
