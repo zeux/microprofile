@@ -1748,7 +1748,7 @@ const char g_MicroProfileHtml_end_1[] =
 "			StringArray.push(\"Timer:\");\n"
 "			StringArray.push(Timer.name);\n"
 "			StringArray.push(\"Time:\");\n"
-"			StringArray.push((RangeCpu.End-RangeCpu.Begin).toFixed(3)+\"ms\");\n"
+"			StringArray.push((Group.isgpu ? RangeGpu.End-RangeGpu.Begin : RangeCpu.End-RangeCpu.Begin).toFixed(3)+\"ms\");\n"
 "\n"
 "			StringArray.push(\"\");\n"
 "			StringArray.push(\"\");\n"
@@ -2886,12 +2886,12 @@ const char g_MicroProfileHtml_end_1[] =
 "							var W = (timeend-timestart)*fScaleX;\n"
 "\n"
 "							if(W > MinWidth && X < nWidth && X+W > 0)\n"
-"							{\n"
-"								if(bDrawEnabled || index == n";
+"		";
 
 const size_t g_MicroProfileHtml_end_1_size = sizeof(g_MicroProfileHtml_end_1);
 const char g_MicroProfileHtml_end_2[] =
-"HoverToken)\n"
+"					{\n"
+"								if(bDrawEnabled || index == nHoverToken)\n"
 "								{\n"
 "									Batches[index].push(X);\n"
 "									Batches[index].push(Y);\n"
@@ -4344,13 +4344,13 @@ const char g_MicroProfileHtml_end_2[] =
 "	document.cookie = cookie;\n"
 "}\n"
 "\n"
-"var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? \"DOMMouseScroll\" : \"mousewheel\" //FF doesn\'t recognize mousewheel as of FF3.x\n"
-"\n"
-"CanvasDetailedView";
+"var mousewheelevt = (/Firefox/i.test(navigator.userAgent)) ? \"DOMMouseScroll\" : \"mousewheel\" //FF doesn\'t recogniz";
 
 const size_t g_MicroProfileHtml_end_2_size = sizeof(g_MicroProfileHtml_end_2);
 const char g_MicroProfileHtml_end_3[] =
-".addEventListener(\'mousemove\', MouseMove, false);\n"
+"e mousewheel as of FF3.x\n"
+"\n"
+"CanvasDetailedView.addEventListener(\'mousemove\', MouseMove, false);\n"
 "CanvasDetailedView.addEventListener(\'mousedown\', function(evt) { MouseButton(true, evt); });\n"
 "CanvasDetailedView.addEventListener(\'mouseup\', function(evt) { MouseButton(false, evt); } );\n"
 "CanvasDetailedView.addEventListener(\'mouseout\', MouseOut);\n"
