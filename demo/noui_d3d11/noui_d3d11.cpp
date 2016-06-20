@@ -67,7 +67,6 @@ int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	MicroProfileSetEnableAllGroups(true);
 	MicroProfileSetForceMetaCounters(true);
 	MicroProfileGpuInit(g_pImmediateContext);
-	MicroProfileContextSwitchTraceStart();
 	StartFakeWork();
 
     // Main message loop
@@ -462,8 +461,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam 
 void Render()
 {
 	MICROPROFILE_SCOPEI("Main", "Render", 0);
-	MICROPROFILE_SCOPEGPUI("Draw Total", 0xff00ff);
 	{
+		MICROPROFILE_SCOPEGPUI("Draw Total", 0xff00ff);
+
 		// Clear the back buffer 
 		g_pImmediateContext->ClearRenderTargetView( g_pRenderTargetView, Colors::MidnightBlue );
 
