@@ -17,3 +17,4 @@
 - Enabling categories in ui should deactivate “ALL”
 - Dynamic/pluggable GPU implementation
 - Context switch: stop the thread as quickly as possible
+- Instead of automatically activating web server/context switch, expose public entrypoints
