@@ -3700,96 +3700,6 @@ uint32_t MicroProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, ui
 }
 
 #if defined(_WIN32)
-#define INITGUID
-#include <wmistr.h>
-#include <evntrace.h>
-#include <evntcons.h>
-#include <strsafe.h>
-
-
-static GUID g_MicroProfileThreadClassGuid = { 0x3d6fa8d1, 0xfe05, 0x11d0, 0x9d, 0xda, 0x00, 0xc0, 0x4f, 0xd7, 0xba, 0x7c };
-
-struct MicroProfileSCSwitch
-{
-	uint32_t NewThreadId;
-	uint32_t OldThreadId;
-	int8_t   NewThreadPriority;
-	int8_t   OldThreadPriority;
-	uint8_t  PreviousCState;
-	int8_t   SpareByte;
-	int8_t   OldThreadWaitReason;
-	int8_t   OldThreadWaitMode;
-	int8_t   OldThreadState;
-	int8_t   OldThreadWaitIdealProcessor;
-	uint32_t NewThreadWaitTime;
-	uint32_t Reserved;
-};
-
-
-VOID WINAPI MicroProfileContextSwitchCallback(PEVENT_TRACE pEvent)
-{
-	if (pEvent->Header.Guid == g_MicroProfileThreadClassGuid)
-	{
-		if (pEvent->Header.Class.Type == 36)
-		{
-			MicroProfileSCSwitch* pCSwitch = (MicroProfileSCSwitch*) pEvent->MofData;
-			if ((pCSwitch->NewThreadId != 0) || (pCSwitch->OldThreadId != 0))
-			{
-				MicroProfileContextSwitch Switch;
-				Switch.nThreadOut = pCSwitch->OldThreadId;
-				Switch.nThreadIn = pCSwitch->NewThreadId;
-				Switch.nProcessIn = pEvent->Header.ProcessId;
-				Switch.nCpu = pEvent->BufferContext.ProcessorNumber;
-				Switch.nTicks = pEvent->Header.TimeStamp.QuadPart;
-				MicroProfileContextSwitchPut(&Switch);
-			}
-		}
-	}
-}
-
-ULONG WINAPI MicroProfileBufferCallback(PEVENT_TRACE_LOGFILE Buffer)
-{
-	return (S.bContextSwitchStop || !S.bContextSwitchRunning) ? FALSE : TRUE;
-}
-
-
-struct MicroProfileKernelTraceProperties : public EVENT_TRACE_PROPERTIES
-{
-	char dummy[sizeof(KERNEL_LOGGER_NAME)];
-};
-
-void MicroProfileContextSwitchShutdownTrace()
-{
-	TRACEHANDLE SessionHandle = 0;
-	MicroProfileKernelTraceProperties sessionProperties;
-
-	ZeroMemory(&sessionProperties, sizeof(sessionProperties));
-	sessionProperties.Wnode.BufferSize = sizeof(sessionProperties);
-	sessionProperties.Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-	sessionProperties.Wnode.ClientContext = 1; //QPC clock resolution	
-	sessionProperties.Wnode.Guid = SystemTraceControlGuid;
-	sessionProperties.BufferSize = 1;
-	sessionProperties.NumberOfBuffers = 128;
-	sessionProperties.EnableFlags = EVENT_TRACE_FLAG_CSWITCH;
-	sessionProperties.LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-	sessionProperties.MaximumFileSize = 0;  
-	sessionProperties.LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-	sessionProperties.LogFileNameOffset = 0;
-
-	EVENT_TRACE_LOGFILE log;
-	ZeroMemory(&log, sizeof(log));
-	log.LoggerName = KERNEL_LOGGER_NAME;
-	log.ProcessTraceMode = 0;
-	TRACEHANDLE hLog = OpenTrace(&log);
-	if (hLog)
-	{
-		ControlTrace(SessionHandle, KERNEL_LOGGER_NAME, &sessionProperties, EVENT_TRACE_CONTROL_STOP);
-	}
-	CloseTrace(hLog);
-
-
-}
-
 const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)
 {
 	if(HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, nId))
@@ -3804,47 +3714,33 @@ const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buff
 
 void* MicroProfileTraceThread(void* unused)
 {
-	MicroProfileContextSwitchShutdownTrace();
-	ULONG status = ERROR_SUCCESS;
-	TRACEHANDLE SessionHandle = 0;
-	MicroProfileKernelTraceProperties sessionProperties;
-
-	ZeroMemory(&sessionProperties, sizeof(sessionProperties));
-	sessionProperties.Wnode.BufferSize = sizeof(sessionProperties);
-	sessionProperties.Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-	sessionProperties.Wnode.ClientContext = 1; //QPC clock resolution	
-	sessionProperties.Wnode.Guid = SystemTraceControlGuid;
-	sessionProperties.BufferSize = 1;
-	sessionProperties.NumberOfBuffers = 128;
-	sessionProperties.EnableFlags = EVENT_TRACE_FLAG_CSWITCH|EVENT_TRACE_FLAG_PROCESS;
-	sessionProperties.LogFileMode = EVENT_TRACE_REAL_TIME_MODE;
-	sessionProperties.MaximumFileSize = 0;  
-	sessionProperties.LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-	sessionProperties.LogFileNameOffset = 0;
-
-
-	status = StartTrace((PTRACEHANDLE) &SessionHandle, KERNEL_LOGGER_NAME, &sessionProperties);
-
-	if (ERROR_SUCCESS != status)
+	while(!S.bContextSwitchStop)
 	{
+		FILE* pFile = fopen("\\\\.\\pipe\\microprofile-contextswitch", "rb");
+		if(!pFile)
+		{
+			Sleep(1000);
+			continue;
+		}
+
+		S.bContextSwitchRunning = true;
+
+		MicroProfileContextSwitch Buffer[1024];
+		size_t nCount = 0;
+
+		while(!ferror(pFile) && !S.bContextSwitchStop)
+		{
+			size_t nCount = fread(Buffer, sizeof(MicroProfileContextSwitch), ARRAYSIZE(Buffer), pFile);
+
+			for(size_t i = 0; i < nCount; ++i)
+				MicroProfileContextSwitchPut(&Buffer[i]);
+		}
+
+		fclose(pFile);
+
 		S.bContextSwitchRunning = false;
-		return 0;
 	}
 
-	EVENT_TRACE_LOGFILE log;
-	ZeroMemory(&log, sizeof(log));
-
-	log.LoggerName = KERNEL_LOGGER_NAME;
-	log.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME | PROCESS_TRACE_MODE_RAW_TIMESTAMP;
-	log.EventCallback = MicroProfileContextSwitchCallback;
-	log.BufferCallback = MicroProfileBufferCallback;
-
-	TRACEHANDLE hLog = OpenTrace(&log);
-	ProcessTrace(&hLog, 1, 0, 0);
-	CloseTrace(hLog);
-	MicroProfileContextSwitchShutdownTrace();
-
-	S.bContextSwitchRunning = false;
 	return 0;
 }
 #elif defined(__APPLE__)
