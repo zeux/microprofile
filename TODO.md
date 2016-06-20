@@ -18,3 +18,4 @@
 - Dynamic/pluggable GPU implementation
 - Context switch: stop the thread as quickly as possible
 - Instead of automatically activating web server/context switch, expose public entrypoints
+- Sync CPU-GPU clocks for web server (naive method results in a race condition)

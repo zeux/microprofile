@@ -2918,7 +2918,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	int64_t nTicksPerSecondGpu = MicroProfileTicksPerSecondGpu();
 
 	int64_t nTickReferenceCpu = 0, nTickReferenceGpu = 0;
-	if(MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
+	// Can't just call GetGpuTickReference off main thread...
+	if(0 && MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
 	{
 		nTickStartGpu = (nTickStart - nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + nTickReferenceGpu;
 	}
