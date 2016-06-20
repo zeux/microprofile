@@ -197,7 +197,7 @@ inline int64_t MicroProfileTicksPerSecondCpu()
 inline uint64_t MicroProfileGetCurrentThreadId()
 {	
 	uint64_t tid;
-	pthread_threadid_np(pthread_self(), &tid);
+	pthread_threadid_np(nullptr, &tid);
 	return tid;
 }
 
