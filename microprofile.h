@@ -1008,6 +1008,7 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 {
 	(*pThread)->join();
 	delete *pThread;
+	*pThread = nullptr;
 }
 #endif
 
@@ -3409,20 +3410,19 @@ void MicroProfileWebServerHello(int nPort)
 
 void MicroProfileWebServerStart()
 {
-	MP_ASSERT(S.nWebServerPort == 0);
-
-	MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
+	if(!S.WebServerThread)
+	{
+		MicroProfileThreadStart(&S.WebServerThread, MicroProfileWebServerUpdate);
+	}
 }
 
 void MicroProfileWebServerStop()
 {
-	if(!S.nWebServerPort)
-		return;
-
-	MicroProfileWebServerUpdateStop();
-	MicroProfileThreadJoin(&S.WebServerThread);
-
-	S.nWebServerPort = 0;
+	if(S.WebServerThread)
+	{
+		MicroProfileWebServerUpdateStop();
+		MicroProfileThreadJoin(&S.WebServerThread);
+	}
 }
 
 const char* MicroProfileParseHeader(char* pRequest, const char* pPrefix)
@@ -3580,6 +3580,8 @@ void* MicroProfileWebServerUpdate(void*)
 
 			MicroProfileWebServerCloseSocket(Connection);
 		}
+
+		S.nWebServerPort = 0;
 	}
 	else
 	{
