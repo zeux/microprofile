@@ -155,6 +155,8 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileEnableMetaCounter(c) do{}while(0)
 #define MicroProfileDisableMetaCounter(c) do{}while(0)
 #define MicroProfileDumpFile(path,type,frames) do{} while(0)
+#define MicroProfileWebServerStart() do{} while(0)
+#define MicroProfileWebServerStop() do{} while(0)
 #define MicroProfileWebServerPort() 0
 
 #else
@@ -443,6 +445,8 @@ MICROPROFILE_API const char* MicroProfileGetProcessName(MicroProfileProcessIdTyp
 MICROPROFILE_API void MicroProfileDumpFile(const char* pPath, MicroProfileDumpType eType, uint32_t nFrames);
 MICROPROFILE_API int MicroProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBufferSize);
 
+MICROPROFILE_API void MicroProfileWebServerStart();
+MICROPROFILE_API void MicroProfileWebServerStop();
 MICROPROFILE_API uint32_t MicroProfileWebServerPort();
 
 MICROPROFILE_API uint32_t MicroProfileGpuInsertTimer();
@@ -873,7 +877,6 @@ struct MicroProfile
 
 	MpSocket 					WebServerSocket;
 	uint32_t					nWebServerPort;
-	bool						bWebServerStart;
 
 	char						WebServerBuffer[MICROPROFILE_WEBSERVER_SOCKET_BUFFER_SIZE];
 	uint32_t					nWebServerPut;
@@ -1031,13 +1034,6 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 #define MP_INVALID_SOCKET(f) (f < 0)
 #endif
 
-void MicroProfileWebServerStart();
-void MicroProfileWebServerStop();
-
-#else
-
-#define MicroProfileWebServerStart() do{}while(0)
-#define MicroProfileWebServerStop() do{}while(0)
 #endif 
 
 #include <stdlib.h>
@@ -1165,9 +1161,6 @@ void MicroProfileInit()
 		MP_ASSERT(S.Pool[0] == pGpu);
 		pGpu->nGpu = 1;
 		pGpu->nThreadId = 0;
-
-		S.bWebServerStart = true;
-		S.bContextSwitchStart = true;
 	}
 	if(bUseLock)
 		mutex.unlock();
@@ -1835,16 +1828,6 @@ void MicroProfileFlip()
 		MicroProfileDumpToFile();
 		S.nDumpFileNextFrame = 0;
 		S.nAutoClearFrames = MICROPROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
-	}
-	if(S.bWebServerStart)
-	{
-		S.bWebServerStart = false;
-		MicroProfileWebServerStart();
-	}
-	if(S.bContextSwitchStart)
-	{
-		S.bContextSwitchStart = false;
-		MicroProfileContextSwitchTraceStart();
 	}
 
 	if(S.nAutoClearFrames)
@@ -3600,6 +3583,14 @@ void MicroProfileWebServerUpdateStop()
 	MicroProfileWebServerCloseSocket(S.WebServerSocket);
 }
 #else
+void MicroProfileWebServerStart()
+{
+}
+
+void MicroProfileWebServerStop()
+{
+}
+
 uint32_t MicroProfileWebServerPort()
 {
 	return 0;
