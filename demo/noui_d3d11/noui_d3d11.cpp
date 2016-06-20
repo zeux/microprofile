@@ -67,6 +67,7 @@ int WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	MicroProfileSetEnableAllGroups(true);
 	MicroProfileSetForceMetaCounters(true);
 	MicroProfileGpuInit(g_pImmediateContext);
+	MicroProfileContextSwitchTraceStart();
 	StartFakeWork();
 
     // Main message loop
