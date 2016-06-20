@@ -974,6 +974,7 @@ inline uint16_t MicroProfileGetGroupIndex(MicroProfileToken t)
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <psapi.h>
 #define snprintf _snprintf
 
 #pragma warning(push)
@@ -3737,6 +3738,7 @@ VOID WINAPI MicroProfileContextSwitchCallback(PEVENT_TRACE pEvent)
 				MicroProfileContextSwitch Switch;
 				Switch.nThreadOut = pCSwitch->OldThreadId;
 				Switch.nThreadIn = pCSwitch->NewThreadId;
+				Switch.nProcessIn = pEvent->Header.ProcessId;
 				Switch.nCpu = pEvent->BufferContext.ProcessorNumber;
 				Switch.nTicks = pEvent->Header.TimeStamp.QuadPart;
 				MicroProfileContextSwitchPut(&Switch);
@@ -3786,6 +3788,18 @@ void MicroProfileContextSwitchShutdownTrace()
 	CloseTrace(hLog);
 
 
+}
+
+const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)
+{
+	if(HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, nId))
+	{
+		DWORD nResult = GetModuleBaseNameA(Handle, nullptr, Buffer, nSize);
+		CloseHandle(Handle);
+
+		return nResult ? Buffer : nullptr;
+	}
+	return nullptr;
 }
 
 void* MicroProfileTraceThread(void* unused)
