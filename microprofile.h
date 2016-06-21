@@ -88,11 +88,11 @@
 // 		OpenGL:
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_GL 1
-// 			call MicroProfileGpuInit(0) on startup
+// 			call MicroProfileGpuInitGL() on startup
 //		D3D11:
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_D3D11 1
-// 			call MicroProfileGpuInit(context) on startup; Pass a pointer to ImmediateContext
+// 			call MicroProfileGpuInitD3D11(device) on startup; Pass a pointer to Device
 //
 // Limitations:
 //  GPU timestamps can only be inserted from one thread.
@@ -449,12 +449,15 @@ MICROPROFILE_API void MicroProfileWebServerStart();
 MICROPROFILE_API void MicroProfileWebServerStop();
 MICROPROFILE_API uint32_t MicroProfileWebServerPort();
 
+MICROPROFILE_API void MicroProfileGpuInitGL();
+MICROPROFILE_API void MicroProfileGpuInitD3D11(struct ID3D11Device* pDevice);
+MICROPROFILE_API void MicroProfileGpuInitD3D12(struct ID3D12Device* pDevice);
+MICROPROFILE_API void MicroProfileGpuShutdown();
+
 MICROPROFILE_API uint32_t MicroProfileGpuInsertTimer();
 MICROPROFILE_API uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey);
 MICROPROFILE_API uint64_t MicroProfileTicksPerSecondGpu();
-MICROPROFILE_API void MicroProfileGpuInit(void* pContext);
 MICROPROFILE_API void MicroProfileGpuFlip();
-MICROPROFILE_API void MicroProfileGpuShutdown();
 MICROPROFILE_API bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu);
 
 #if MICROPROFILE_USE_THREAD_NAME_CALLBACK
@@ -3842,16 +3845,13 @@ const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buff
 #include <d3d11.h>
 #endif
 
-void MicroProfileGpuInit(void* pContext)
+void MicroProfileGpuInitD3D11(ID3D11Device* pDevice)
 {
 	MP_ASSERT(!S.GPU.pDeviceContext);
 
 	memset(&S.GPU, 0, sizeof(S.GPU));
 
-	S.GPU.pDeviceContext = (ID3D11DeviceContext*)pContext;
-
-	ID3D11Device* pDevice = 0;
-	S.GPU.pDeviceContext->GetDevice(&pDevice);
+	pDevice->GetImmediateContext(&S.GPU.pDeviceContext);
 
 	D3D11_QUERY_DESC Desc;
 	Desc.MiscFlags = 0;
@@ -3868,8 +3868,6 @@ void MicroProfileGpuInit(void* pContext)
 	Desc.Query = D3D11_QUERY_TIMESTAMP_DISJOINT;
 	hr = pDevice->CreateQuery(&Desc, &S.GPU.pRateQuery);
 	MP_ASSERT(hr == S_OK);
-
-	pDevice->Release();
 }
 
 void MicroProfileGpuShutdown()
@@ -3889,6 +3887,7 @@ void MicroProfileGpuShutdown()
 	S.GPU.pSyncQuery->Release();
 	S.GPU.pSyncQuery = 0;
 
+	S.GPU.pDeviceContext->Release();
 	S.GPU.pDeviceContext = 0;
 }
 
@@ -3996,7 +3995,7 @@ uint64_t MicroProfileGetGpuTimeOffset()
 	return MP_TICK() * (MicroProfileTicksPerSecondGpu() / 1000) / (MicroProfileTicksPerSecondCpu() / 1000);
 }
 
-void MicroProfileGpuInit(void* pContext)
+void MicroProfileGpuInitGL()
 {
 	MP_ASSERT(!S.GPU.bInitialized);
 
@@ -4114,10 +4113,6 @@ bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 	return false;
 }
 #elif !MICROPROFILE_GPU_TIMERS_CUSTOM
-void MicroProfileGpuInit(void* pContext)
-{
-}
-
 void MicroProfileGpuShutdown()
 {
 }
