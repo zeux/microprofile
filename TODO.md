@@ -12,3 +12,4 @@
 - Add Vulkan support
 - Add support for multiple GPU queues
 - Fix issue with GPU markers being cut in web view (upstream 5a99977)
+- It may make sense to have GpuBegin/End/Submit only work in MT API and SetContext only in ST?
