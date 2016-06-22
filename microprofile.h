@@ -716,7 +716,7 @@ struct MicroProfileThreadLog
 
 	MicroProfileLogEntry*	LogGpu;
 	std::atomic<uint32_t>	nPutGpu;
-	std::atomic<uint32_t>	nStartGpu;
+	uint32_t				nStartGpu;
 	void*					pContextGpu;
 
 	uint32_t 				nActive;
@@ -1912,6 +1912,7 @@ void MicroProfileFlip()
 		if (S.Pool[i])
 		{
 			S.Pool[i]->nPutGpu.store(0);
+			S.Pool[i]->nStartGpu = 0;
 		}
 	}
 
@@ -2353,13 +2354,16 @@ uint64_t MicroProfileGpuEnd()
 {
 	if(MicroProfileThreadLog* pLog = MicroProfileGetThreadLog())
 	{
-		MP_ASSERT(MICROPROFILE_GPU_BUFFER_SIZE <= 1 << 20);
+		MP_ASSERT(MICROPROFILE_GPU_BUFFER_SIZE <= 1 << 24);
+
+		uint32_t nStartGpu = pLog->nStartGpu;
+		uint32_t nPutGpu = pLog->nPutGpu.load();
+		MP_ASSERT(nPutGpu >= nStartGpu);
 
 		pLog->pContextGpu = 0;
+		pLog->nStartGpu = nPutGpu;
 
-		uint32_t nCount = pLog->nPutGpu.load() - pLog->nStartGpu;
-
-		return (uint64_t(pLog->nLogIndex) << 40) | (uint64_t(pLog->nStartGpu) << 20) | uint64_t(nCount);
+		return (uint64_t(pLog->nLogIndex) << 48) | (uint64_t(nStartGpu) << 24) | uint64_t(nPutGpu);
 	}
 	return 0;
 }
@@ -2369,15 +2373,15 @@ void MicroProfileGpuSubmit(uint64_t nWork)
 	if (!nWork)
 		return;
 
-	uint32_t nLogIndex = (nWork >> 40) & 0xfffff;
-	uint32_t nStart = (nWork >> 20) & 0xfffff;
-	uint32_t nCount = nWork & 0xfffff;
+	uint32_t nLogIndex = (nWork >> 48) & 0xffff;
+	uint32_t nStart = (nWork >> 24) & 0xffffff;
+	uint32_t nEnd = nWork & 0xffffff;
 
 	MicroProfileThreadLog* pLog = S.Pool[nLogIndex];
 	if (!pLog)
 		return;
 
-	for (uint32_t i = nStart; i < nStart + nCount; ++i)
+	for (uint32_t i = nStart; i < nEnd; ++i)
 	{
 		MicroProfileLogEntry LE = pLog->LogGpu[i];
 
