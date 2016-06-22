@@ -4232,9 +4232,48 @@ uint32_t MicroProfileGpuFlip()
 {
 	if (!S.GPU.pDevice) return (uint32_t)-1;
 
-	if (S.GPU.nFrame >= MICROPROFILE_GPU_FRAME_DELAY - 1)
+	uint32_t nFrameIndex = S.GPU.nFrame % MICROPROFILE_GPU_FRAME_DELAY;
+	ID3D12GraphicsCommandList* pCommandList = S.GPU.Frames[nFrameIndex].pCommandList;
+	ID3D12CommandAllocator* pCommandAllocator = S.GPU.Frames[nFrameIndex].pCommandAllocator;
+
+	pCommandAllocator->Reset();
+	pCommandList->Reset(pCommandAllocator, nullptr);
+
+	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandList);
+
+	uint32_t nFrameCount = S.GPU.nFrameCount.load();
+	uint32_t nFrameStart = S.GPU.nFrameStart;
+	uint32_t nFrameEnd = (nFrameStart + nFrameCount) % MICROPROFILE_GPU_MAX_QUERIES;
+
+	if (nFrameCount)
 	{
-		uint64_t nPendingFrame = S.GPU.nFrame - (MICROPROFILE_GPU_FRAME_DELAY - 1);
+		if (nFrameStart < nFrameEnd)
+		{
+			pCommandList->ResolveQueryData(S.GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nFrameStart, nFrameEnd - nFrameStart, S.GPU.pBuffer, nFrameStart * sizeof(int64_t));
+		}
+		else
+		{
+			pCommandList->ResolveQueryData(S.GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nFrameStart, MICROPROFILE_GPU_MAX_QUERIES - nFrameStart, S.GPU.pBuffer, nFrameStart * sizeof(int64_t));
+			pCommandList->ResolveQueryData(S.GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, nFrameEnd, S.GPU.pBuffer, 0);
+		}
+	}
+
+	pCommandList->Close();
+
+	ID3D12CommandList* pList = pCommandList;
+	S.GPU.pCommandQueue->ExecuteCommandLists(1, &pList);
+	S.GPU.pCommandQueue->Signal(S.GPU.pFence, S.GPU.nFrame + 1);
+
+	S.GPU.Frames[nFrameIndex].nBegin = nFrameStart;
+	S.GPU.Frames[nFrameIndex].nCount = nFrameCount;
+	S.GPU.nFrame++;
+
+	S.GPU.nFrameStart = nFrameEnd;
+	S.GPU.nFrameCount = 0;
+
+	if (S.GPU.nFrame >= MICROPROFILE_GPU_FRAME_DELAY)
+	{
+		uint64_t nPendingFrame = S.GPU.nFrame - MICROPROFILE_GPU_FRAME_DELAY;
 		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAME_DELAY;
 
 		S.GPU.pFence->SetEventOnCompletion(nPendingFrame + 1, S.GPU.pFenceEvent);
@@ -4257,42 +4296,6 @@ uint32_t MicroProfileGpuFlip()
 
 		S.GPU.pBuffer->Unmap(0, 0);
 	}
-
-	uint32_t nFrameIndex = S.GPU.nFrame % MICROPROFILE_GPU_FRAME_DELAY;
-	ID3D12GraphicsCommandList* pCommandList = S.GPU.Frames[nFrameIndex].pCommandList;
-	ID3D12CommandAllocator* pCommandAllocator = S.GPU.Frames[nFrameIndex].pCommandAllocator;
-
-	pCommandAllocator->Reset();
-	pCommandList->Reset(pCommandAllocator, nullptr);
-
-	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandList);
-
-	uint32_t nFrameCount = S.GPU.nFrameCount.load();
-	uint32_t nFrameStart = S.GPU.nFrameStart;
-	uint32_t nFrameEnd = (nFrameStart + nFrameCount) % MICROPROFILE_GPU_MAX_QUERIES;
-
-	if (nFrameStart < nFrameEnd)
-	{
-		pCommandList->ResolveQueryData(S.GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nFrameStart, nFrameEnd - nFrameStart, S.GPU.pBuffer, nFrameStart * sizeof(int64_t));
-	}
-	else
-	{
-		pCommandList->ResolveQueryData(S.GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, nFrameStart, MICROPROFILE_GPU_MAX_QUERIES - nFrameStart, S.GPU.pBuffer, nFrameStart * sizeof(int64_t));
-		pCommandList->ResolveQueryData(S.GPU.pHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, nFrameEnd, S.GPU.pBuffer, 0);
-	}
-
-	pCommandList->Close();
-
-	ID3D12CommandList* pList = pCommandList;
-	S.GPU.pCommandQueue->ExecuteCommandLists(1, &pList);
-	S.GPU.pCommandQueue->Signal(S.GPU.pFence, S.GPU.nFrame + 1);
-
-	S.GPU.Frames[nFrameIndex].nBegin = nFrameStart;
-	S.GPU.Frames[nFrameIndex].nCount = nFrameCount;
-	S.GPU.nFrame++;
-
-	S.GPU.nFrameStart = nFrameEnd;
-	S.GPU.nFrameCount = 0;
 
 	return nFrameTimeStamp;
 }
