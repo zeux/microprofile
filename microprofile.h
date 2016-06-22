@@ -4283,8 +4283,9 @@ uint32_t MicroProfileGpuFlip()
 		uint32_t nCount = S.GPU.Frames[nPendingFrameIndex].nCount;
 
 		void* pData = 0;
+		D3D12_RANGE Range = { 0, MICROPROFILE_GPU_MAX_QUERIES };
 
-		HRESULT hr = S.GPU.pBuffer->Map(0, nullptr, &pData);
+		HRESULT hr = S.GPU.pBuffer->Map(0, &Range, &pData);
 		MP_ASSERT(hr == S_OK);
 
 		for (uint32_t i = 0; i < nCount; ++i)
