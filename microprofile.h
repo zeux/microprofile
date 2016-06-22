@@ -1043,7 +1043,6 @@ inline uint16_t MicroProfileGetGroupIndex(MicroProfileToken t)
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <psapi.h>
 #define snprintf _snprintf
 
 #pragma warning(push)
@@ -1088,6 +1087,7 @@ inline void MicroProfileThreadJoin(MicroProfileThread* pThread)
 #error WinSock.h has already been included; microprofile requires WinSock2
 #endif
 #include <WinSock2.h>
+#pragma comment(lib, "ws2_32.lib")
 #define MP_INVALID_SOCKET(f) (f == INVALID_SOCKET)
 #endif
 
@@ -3903,6 +3903,9 @@ uint32_t MicroProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, ui
 }
 
 #if defined(_WIN32)
+#include <psapi.h>
+#pragma comment(lib, "psapi.lib")
+
 const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)
 {
 	if(HANDLE Handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, nId))
