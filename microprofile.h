@@ -97,6 +97,11 @@
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_D3D12 1
 // 			call MicroProfileGpuInitD3D12(device, queue) on startup; Pass a pointer to Device and CommandQueue
+//			single-threaded: call MicroProfileGpuSetContext(CommandList) every frame before issuing GPU markers
+//			multi-threaded:
+//				on recording thread before using command list, call MicroProfileGpuBegin(CommandList)
+//				on recording thread after you're done with command list, call work = MicroProfileGpuEnd()
+//				when replaying, call MicroProfileGpuSubmit(work) in the same order as ExecuteCommandLists
 //
 // Limitations:
 //  GPU timestamps can only be inserted from one thread.
@@ -156,12 +161,18 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileGetEnableAllGroups() false
 #define MicroProfileSetForceMetaCounters(a)
 #define MicroProfileGetForceMetaCounters() 0
-#define MicroProfileEnableMetaCounter(c) do{}while(0)
-#define MicroProfileDisableMetaCounter(c) do{}while(0)
+#define MicroProfileEnableMetaCounter(c) do{} while(0)
+#define MicroProfileDisableMetaCounter(c) do{} while(0)
+#define MicroProfileContextSwitchTraceStart() do{} while(0)
+#define MicroProfileContextSwitchTraceStop() do{} while(0)
 #define MicroProfileDumpFile(path,type,frames) do{} while(0)
 #define MicroProfileWebServerStart() do{} while(0)
 #define MicroProfileWebServerStop() do{} while(0)
 #define MicroProfileWebServerPort() 0
+#define MicroProfileGpuSetContext(c) do{} while(0)
+#define MicroProfileGpuBegin(c) do{} while(0)
+#define MicroProfileGpuEnd() 0
+#define MicroProfileGpuSubmit(w) do{} while(0)
 
 #else
 
@@ -462,6 +473,7 @@ MICROPROFILE_API void MicroProfileGpuInitD3D11(struct ID3D11Device* pDevice);
 MICROPROFILE_API void MicroProfileGpuInitD3D12(struct ID3D12Device* pDevice, struct ID3D12CommandQueue* pCommandQueue);
 MICROPROFILE_API void MicroProfileGpuShutdown();
 
+MICROPROFILE_API void MicroProfileGpuSetContext(void* pContext);
 MICROPROFILE_API void MicroProfileGpuBegin(void* pContext);
 MICROPROFILE_API uint64_t MicroProfileGpuEnd();
 MICROPROFILE_API void MicroProfileGpuSubmit(uint64_t nWork);
@@ -2316,6 +2328,14 @@ void MicroProfileFlip()
 	}
 	if(nNewActiveBars != S.nActiveBars)
 		S.nActiveBars = nNewActiveBars;
+}
+
+void MicroProfileGpuSetContext(void* pContext)
+{
+	if(MicroProfileThreadLog* pLog = MicroProfileGetOrCreateThreadLog())
+	{
+		pLog->pContextGpu = pContext;
+	}
 }
 
 void MicroProfileGpuBegin(void* pContext)
