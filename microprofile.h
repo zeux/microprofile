@@ -958,6 +958,7 @@ struct MicroProfile
 	int64_t 					nCounterMin[MICROPROFILE_MAX_COUNTERS];	
 #endif
 
+	uint32_t					nGpuFrameTimer;
 	MicroProfileGpuTimerState 	GPU;
 };
 
@@ -1215,6 +1216,8 @@ void MicroProfileInit()
 			S.nCounterMax[i] = 0x8000000000000000;
 		}
 #endif
+
+		S.nGpuFrameTimer = (uint32_t)-1;
 
 		MicroProfileThreadLog* pGpu = MicroProfileCreateThreadLog("GPU");
 		g_MicroProfileGpuLog = pGpu;
@@ -1900,9 +1903,8 @@ void MicroProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2])
 
 void MicroProfileDumpToFile();
 
-void MicroProfileFlip()
+void MicroProfileFlipGpu()
 {
-	MICROPROFILE_SCOPE(g_MicroProfileFlip);
 	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
 
 	MicroProfileGpuSubmit(MicroProfileGpuEnd());
@@ -1916,9 +1918,15 @@ void MicroProfileFlip()
 		}
 	}
 
-	uint32_t nGpuTimer = MicroProfileGpuFlip();
+	S.nGpuFrameTimer = MicroProfileGpuFlip();
 
 	MicroProfileGpuBegin(0);
+}
+
+void MicroProfileFlipCpu()
+{
+	std::lock_guard<std::recursive_mutex> Lock(MicroProfileMutex());
+
 
 	if(S.nToggleRunning)
 	{
@@ -1976,7 +1984,7 @@ void MicroProfileFlip()
 		MicroProfileFrameState* pFrameNext = &S.Frames[nFrameNext];
 		
 		pFramePut->nFrameStartCpu = MP_TICK();
-		pFramePut->nFrameStartGpuTimer = nGpuTimer;
+		pFramePut->nFrameStartGpuTimer = S.nGpuFrameTimer;
 		if(pFrameNext->nFrameStartGpuTimer != (uint32_t)-1)
 			pFrameNext->nFrameStartGpu = MicroProfileGpuGetTimeStamp(pFrameNext->nFrameStartGpuTimer);
 
@@ -2329,6 +2337,14 @@ void MicroProfileFlip()
 	}
 	if(nNewActiveBars != S.nActiveBars)
 		S.nActiveBars = nNewActiveBars;
+}
+
+void MicroProfileFlip()
+{
+	MICROPROFILE_SCOPE(g_MicroProfileFlip);
+
+	MicroProfileFlipGpu();
+	MicroProfileFlipCpu();
 }
 
 void MicroProfileGpuSetContext(void* pContext)
