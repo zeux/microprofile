@@ -338,7 +338,7 @@ typedef uint32_t MicroProfileProcessIdType;
 #endif
 
 #ifndef MICROPROFILE_GPU_FRAME_DELAY
-#define MICROPROFILE_GPU_FRAME_DELAY 3 //must be > 0
+#define MICROPROFILE_GPU_FRAME_DELAY 4 //must be > 0
 #endif
 
 #ifndef MICROPROFILE_NAME_MAX_LEN
