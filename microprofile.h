@@ -4369,6 +4369,7 @@ uint32_t MicroProfileGpuFlip()
 uint32_t MicroProfileGpuInsertTimer(void* pContext)
 {
 	if (!S.GPU.pDevice) return (uint32_t)-1;
+	if (!pContext) return (uint32_t)-1;
 
 	ID3D12GraphicsCommandList* pCommandList = (ID3D12GraphicsCommandList*)pContext;
 	MP_ASSERT(pCommandList);
