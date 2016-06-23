@@ -99,6 +99,7 @@
 // 			call MicroProfileGpuInitD3D12(device, queue) on startup; Pass a pointer to Device and CommandQueue
 //			single-threaded: call MicroProfileGpuSetContext(CommandList) every frame before issuing GPU markers
 //			multi-threaded:
+//				#define MICROPROFILE_GPU_TIMERS_MULTITHREADED
 //				on recording thread before using command list, call MicroProfileGpuBegin(CommandList)
 //				on recording thread after you're done with command list, call work = MicroProfileGpuEnd()
 //				when replaying, call MicroProfileGpuSubmit(work) in the same order as ExecuteCommandLists
