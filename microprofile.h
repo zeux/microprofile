@@ -4183,7 +4183,7 @@ uint64_t MicroProfileTicksPerSecondGpu()
 	return S.GPU.nQueryFrequency ? S.GPU.nQueryFrequency : 1000000000ll;
 }
 
-bool MicroProfileGetGpuTickReference(int64_t* pOutCPU, int64_t* pOutGpu)
+bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 {
 	if(!S.GPU.pDeviceContext) return false;
 
@@ -4197,7 +4197,7 @@ bool MicroProfileGetGpuTickReference(int64_t* pOutCPU, int64_t* pOutGpu)
 
 	if (hr != S_OK) return false;
 
-	*pOutCPU = MP_TICK();
+	*pOutCpu = MP_TICK();
 	*pOutGpu = nResult;
 
 	return true;
@@ -4392,11 +4392,11 @@ uint64_t MicroProfileTicksPerSecondGpu()
 	return S.GPU.nQueryFrequency ? S.GPU.nQueryFrequency : 1000000000ll;
 }
 
-bool MicroProfileGetGpuTickReference(int64_t* pOutCPU, int64_t* pOutGpu)
+bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 {
 	if (!S.GPU.pCommandQueue) return false;
 
-	return SUCCEEDED(S.GPU.pCommandQueue->GetClockCalibration((uint64_t*)pOutGpu, (uint64_t*)pOutCPU));
+	return SUCCEEDED(S.GPU.pCommandQueue->GetClockCalibration((uint64_t*)pOutGpu, (uint64_t*)pOutCpu));
 }
 #elif MICROPROFILE_GPU_TIMERS_GL
 #ifndef GL_TIMESTAMP
