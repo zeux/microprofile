@@ -3126,9 +3126,8 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	// Can't just call GetGpuTickReference off main thread...
 	if(0 && MicroProfileGetGpuTickReference(&nTickReferenceCpu, &nTickReferenceGpu))
 	{
-		nTickStartGpu = (nTickStart - nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + nTickReferenceGpu;
+		nTickStartGpu = (nTickStart - nTickReferenceCpu) * (double(nTicksPerSecondGpu) / double(nTicksPerSecondCpu)) + nTickReferenceGpu;
 	}
-
 
 #if MICROPROFILE_DEBUG
 	printf("dumping %d frames\n", nNumFrames);
@@ -4449,8 +4448,7 @@ uint32_t MicroProfileGpuFlip()
 	if(!S.GPU.nTimestampBits && nFramePut > 0)
 		glEndQuery(GL_TIME_ELAPSED);
 
-	// We use microsecond-precise alignment to reduce the chance of overflow during multiplication
-	S.GPU.nTimerOffset[nFrameIndex] = MP_TICK() * (MicroProfileTicksPerSecondGpu() / 1000) / (MicroProfileTicksPerSecondCpu() / 1000);
+	S.GPU.nTimerOffset[nFrameIndex] = MP_TICK() * (double(MicroProfileTicksPerSecondGpu()) / double(MicroProfileTicksPerSecondCpu()));
 	S.GPU.nSubmitted[nFrameIndex] = nFramePut;
 	S.GPU.nFramePut.store(0);
 	S.GPU.nFrame++;

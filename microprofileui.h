@@ -1032,7 +1032,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 
 	if(UI.nTickReferenceCpu && UI.nTickReferenceGpu)
 	{
-		nBaseTicksGpu = (nBaseTicksCpu - UI.nTickReferenceCpu) * nTicksPerSecondGpu / nTicksPerSecondCpu + UI.nTickReferenceGpu;
+		nBaseTicksGpu = (nBaseTicksCpu - UI.nTickReferenceCpu) * (double(nTicksPerSecondGpu) / double(nTicksPerSecondCpu)) + UI.nTickReferenceGpu;
 	}
 
 	MicroProfileFrameState* pFrameFirst = pFrameCurrent;
