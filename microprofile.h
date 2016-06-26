@@ -4521,19 +4521,27 @@ uint64_t MicroProfileTicksPerSecondGpu()
 bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 {
 	if(!S.GPU.bInitialized) return false;
-	if(!S.GPU.nTimestampBits) return false;
 
-	int64_t nGpuTimeStamp = 0;
-	glGetInteger64v(GL_TIMESTAMP, &nGpuTimeStamp);
+	if(S.GPU.nTimestampBits)
+	{
+		int64_t nGpuTimeStamp = 0;
+		glGetInteger64v(GL_TIMESTAMP, &nGpuTimeStamp);
 
-	if(nGpuTimeStamp)
+		if(nGpuTimeStamp)
+		{
+			*pOutCpu = MP_TICK();
+			*pOutGpu = nGpuTimeStamp;
+			return true;
+		}
+
+		return false;
+	}
+	else
 	{
 		*pOutCpu = MP_TICK();
-		*pOutGpu = nGpuTimeStamp;
+		*pOutGpu = MP_TICK() * (double(MicroProfileTicksPerSecondGpu()) / double(MicroProfileTicksPerSecondCpu()));
 		return true;
 	}
-
-	return false;
 }
 #elif !MICROPROFILE_GPU_TIMERS_CUSTOM
 void MicroProfileGpuShutdown()
