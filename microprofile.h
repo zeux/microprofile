@@ -755,10 +755,12 @@ struct MicroProfileGpuTimerState
 	struct ID3D11Query* pRateQuery;
 	struct ID3D11Query* pSyncQuery;
 
+	uint64_t nFrame;
+	std::atomic<uint32_t> nFramePut;
+
+	uint32_t nSubmitted[MICROPROFILE_GPU_FRAME_DELAY];
 	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
-	uint32_t nQueryPut;
-	uint32_t nQueryGet[MICROPROFILE_GPU_FRAME_DELAY];
-	uint32_t nNextFrame;
+
 	uint32_t nRateQueryIssue;
 	uint64_t nQueryFrequency;
 };
@@ -794,13 +796,13 @@ struct MicroProfileGpuTimerState
 	bool bInitialized;
 	int32_t nTimestampBits;
 	uint32_t nQueries[MICROPROFILE_GPU_MAX_QUERIES];
-	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
 
 	uint64_t nFrame;
 	std::atomic<uint32_t> nFramePut;
 
 	uint64_t nTimerOffset[MICROPROFILE_GPU_FRAME_DELAY];
 	uint32_t nSubmitted[MICROPROFILE_GPU_FRAME_DELAY];
+	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
 };
 #else
 struct MicroProfileGpuTimerState{};
@@ -4106,23 +4108,38 @@ uint32_t MicroProfileGpuFlip()
 {
 	if (!S.GPU.pDeviceContext) return (uint32_t)-1;
 
-	uint32_t nNextFrame = S.GPU.nNextFrame;
-	uint32_t nNextNextFrame = (S.GPU.nNextFrame + 1) % MICROPROFILE_GPU_FRAME_DELAY;
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAME_DELAY;
 
-	for(uint32_t nIndex = S.GPU.nQueryGet[nNextFrame]; nIndex != S.GPU.nQueryGet[nNextNextFrame]; nIndex = (nIndex+1) % MICROPROFILE_GPU_MAX_QUERIES)
+	// Submit current frame
+	uint32_t nFrameIndex = S.GPU.nFrame % MICROPROFILE_GPU_FRAME_DELAY;
+	uint32_t nFramePut = S.GPU.nFramePut.load();
+
+	S.GPU.nSubmitted[nFrameIndex] = MicroProfileMin(nFramePut, nFrameQueries);
+	S.GPU.nFramePut.store(0);
+	S.GPU.nFrame++;
+
+	// Fetch frame results
+	if (S.GPU.nFrame >= MICROPROFILE_GPU_FRAME_DELAY)
 	{
-		uint64_t nResult = 0;
+		uint64_t nPendingFrame = S.GPU.nFrame - MICROPROFILE_GPU_FRAME_DELAY;
+		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAME_DELAY;
 
-		HRESULT hr;
-		do hr = S.GPU.pDeviceContext->GetData(S.GPU.pQueries[nIndex], &nResult, sizeof(nResult), 0);
-		while(hr == S_FALSE);
+		for(uint32_t i = 0; i < S.GPU.nSubmitted[nPendingFrameIndex]; ++i)
+		{
+			uint32_t nQueryIndex = nPendingFrameIndex * nFrameQueries + i;
+			MP_ASSERT(nQueryIndex < MICROPROFILE_GPU_MAX_QUERIES);
 
-		S.GPU.nResults[nIndex] = (hr == S_OK) ? nResult : MICROPROFILE_INVALID_TICK;
+			uint64_t nResult = 0;
+
+			HRESULT hr;
+			do hr = S.GPU.pDeviceContext->GetData(S.GPU.pQueries[nQueryIndex], &nResult, sizeof(nResult), 0);
+			while(hr == S_FALSE);
+
+			S.GPU.nResults[nQueryIndex] = (hr == S_OK) ? nResult : MICROPROFILE_INVALID_TICK;
+		}
 	}
 
-	S.GPU.nQueryGet[nNextFrame] = S.GPU.nQueryPut;
-	S.GPU.nNextFrame = nNextNextFrame;
-
+	// Update timestamp frequency
 	if(S.GPU.nRateQueryIssue == 0)
 	{
 		S.GPU.pDeviceContext->Begin(S.GPU.pRateQuery);
@@ -4150,15 +4167,16 @@ uint32_t MicroProfileGpuInsertTimer(void* pContext)
 {
 	if(!S.GPU.pDeviceContext) return (uint32_t)-1;
 
-	uint32_t nIndex = S.GPU.nQueryPut;
-	uint32_t nNextIndex = (nIndex+1)%MICROPROFILE_GPU_MAX_QUERIES;
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAME_DELAY;
 
-	if(nNextIndex == S.GPU.nQueryGet[S.GPU.nNextFrame]) return (uint32_t)-1;
+	uint32_t nIndex = S.GPU.nFramePut.fetch_add(1);
+	if(nIndex >= nFrameQueries) return (uint32_t)-1;
 
-	S.GPU.pDeviceContext->End(S.GPU.pQueries[nIndex]);
+	uint32_t nQueryIndex = (S.GPU.nFrame % MICROPROFILE_GPU_FRAME_DELAY) * nFrameQueries + nIndex;
 
-	S.GPU.nQueryPut = nNextIndex;
-	return nIndex;
+	S.GPU.pDeviceContext->End(S.GPU.pQueries[nQueryIndex]);
+
+	return nQueryIndex;
 }
 
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nIndex)
