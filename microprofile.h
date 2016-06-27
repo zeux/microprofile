@@ -92,17 +92,22 @@
 //		D3D11:
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_D3D11 1
-// 			call MicroProfileGpuInitD3D11(device) on startup; Pass a pointer to Device
+// 			call MicroProfileGpuInitD3D11(Device) on startup
 //		D3D12:
 // 			in .c file where MICROPROFILE_IMPL is defined:
 //   		#define MICROPROFILE_GPU_TIMERS_D3D12 1
-// 			call MicroProfileGpuInitD3D12(device, queue) on startup; Pass a pointer to Device and CommandQueue
+// 			call MicroProfileGpuInitD3D12(Device, CommandQueue) on startup
 //			single-threaded: call MicroProfileGpuSetContext(CommandList) every frame before issuing GPU markers
 //			multi-threaded:
 //				#define MICROPROFILE_GPU_TIMERS_MULTITHREADED 1
 //				on recording thread before using command list, call MicroProfileGpuBegin(CommandList)
 //				on recording thread after you're done with command list, call work = MicroProfileGpuEnd()
 //				when replaying, call MicroProfileGpuSubmit(work) in the same order as ExecuteCommandLists
+//		Vulkan:
+// 			in .c file where MICROPROFILE_IMPL is defined:
+//   		#define MICROPROFILE_GPU_TIMERS_VK 1
+// 			call MicroProfileGpuInitVK(Device, PhysicalDevice, Queue) on startup
+// 			the rest is the same as for D3D12
 //
 // Limitations:
 //  GPU timestamps can only be inserted from one thread.
@@ -476,6 +481,7 @@ MICROPROFILE_API uint32_t MicroProfileWebServerPort();
 MICROPROFILE_API void MicroProfileGpuInitGL();
 MICROPROFILE_API void MicroProfileGpuInitD3D11(struct ID3D11Device* pDevice);
 MICROPROFILE_API void MicroProfileGpuInitD3D12(struct ID3D12Device* pDevice, struct ID3D12CommandQueue* pCommandQueue);
+MICROPROFILE_API void MicroProfileGpuInitVK(struct VkDevice_T* pDevice, struct VkPhysicalDevice_T* pPhysicalDevice, struct VkQueue_T* pQueue);
 MICROPROFILE_API void MicroProfileGpuShutdown();
 
 MICROPROFILE_API void MicroProfileGpuSetContext(void* pContext);
@@ -795,6 +801,22 @@ struct MicroProfileGpuTimerState
 	uint64_t nTimerOffset[MICROPROFILE_GPU_FRAME_DELAY];
 	uint32_t nSubmitted[MICROPROFILE_GPU_FRAME_DELAY];
 	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
+};
+#elif MICROPROFILE_GPU_TIMERS_VK
+struct MicroProfileGpuTimerState
+{
+	struct VkDevice_T* pDevice;
+	struct VkQueue_T* pQueue;
+	struct VkQueryPool_T* pQueryPool;
+	struct VkCommandPool_T* pCommandPool;
+	struct VkCommandBuffer_T* pCommandBuffers[MICROPROFILE_GPU_FRAME_DELAY];
+
+	uint64_t nFrame;
+	std::atomic<uint32_t> nFramePut;
+
+	uint32_t nSubmitted[MICROPROFILE_GPU_FRAME_DELAY];
+	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
+	uint64_t nQueryFrequency;
 };
 #else
 struct MicroProfileGpuTimerState{};
@@ -4542,6 +4564,159 @@ bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 		*pOutGpu = MP_TICK() * (double(MicroProfileTicksPerSecondGpu()) / double(MicroProfileTicksPerSecondCpu()));
 		return true;
 	}
+}
+#elif MICROPROFILE_GPU_TIMERS_VK
+#ifndef VK_HEADER_VERSION
+#include <vulkan/vulkan.h>
+#endif
+
+void MicroProfileGpuInitVK(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, VkQueue pQueue)
+{
+	MP_ASSERT(!S.GPU.pDevice);
+
+	VkPhysicalDeviceProperties Properties;
+	vkGetPhysicalDeviceProperties(pPhysicalDevice, &Properties);
+
+	memset(&S.GPU, 0, sizeof(S.GPU));
+
+	S.GPU.pDevice = pDevice;
+	S.GPU.pQueue = pQueue;
+
+	VkQueryPoolCreateInfo queryPoolInfo = {};
+	queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+	queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+	queryPoolInfo.queryCount = MICROPROFILE_GPU_MAX_QUERIES;
+
+	VkResult res = vkCreateQueryPool(pDevice, &queryPoolInfo, nullptr, &S.GPU.pQueryPool);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	VkCommandPoolCreateInfo commandPoolInfo = {};
+	commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	commandPoolInfo.queueFamilyIndex = 0;
+
+	res = vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &S.GPU.pCommandPool);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	VkCommandBufferAllocateInfo commandBufferInfo = {};
+	commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	commandBufferInfo.commandPool = S.GPU.pCommandPool;
+	commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	commandBufferInfo.commandBufferCount = MICROPROFILE_GPU_FRAME_DELAY;
+
+	res = vkAllocateCommandBuffers(pDevice, &commandBufferInfo, S.GPU.pCommandBuffers);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	S.GPU.nQueryFrequency = 1e9 / Properties.limits.timestampPeriod;
+}
+
+void MicroProfileGpuShutdown()
+{
+	if(!S.GPU.pDevice)
+		return;
+
+	vkDestroyQueryPool(S.GPU.pDevice, S.GPU.pQueryPool, nullptr);
+	S.GPU.pQueryPool = 0;
+
+	vkDestroyCommandPool(S.GPU.pDevice, S.GPU.pCommandPool, nullptr);
+	memset(S.GPU.pCommandBuffers, 0, sizeof(S.GPU.pCommandBuffers));
+	S.GPU.pCommandPool = 0;
+
+	S.GPU.pQueue = 0;
+	S.GPU.pDevice = 0;
+}
+
+uint32_t MicroProfileGpuFlip()
+{
+	if (!S.GPU.pDevice) return (uint32_t)-1;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAME_DELAY;
+
+	// Submit current frame
+	uint32_t nFrameIndex = S.GPU.nFrame % MICROPROFILE_GPU_FRAME_DELAY;
+	uint32_t nFrameStart = nFrameIndex * nFrameQueries;
+
+	VkCommandBuffer pCommandBuffer = S.GPU.pCommandBuffers[nFrameIndex];
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	VkResult res = vkBeginCommandBuffer(pCommandBuffer, &commandBufferBeginInfo);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandBuffer);
+	uint32_t nFramePut = MicroProfileMin(S.GPU.nFramePut.load(), nFrameQueries);
+
+	res = vkEndCommandBuffer(pCommandBuffer);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pCommandBuffer;
+
+	res = vkQueueSubmit(S.GPU.pQueue, 1, &submitInfo, VK_NULL_HANDLE);
+
+	S.GPU.nSubmitted[nFrameIndex] = nFramePut;
+	S.GPU.nFramePut.store(0);
+	S.GPU.nFrame++;
+
+	// Fetch frame results
+	if (S.GPU.nFrame >= MICROPROFILE_GPU_FRAME_DELAY)
+	{
+		uint64_t nPendingFrame = S.GPU.nFrame - MICROPROFILE_GPU_FRAME_DELAY;
+		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAME_DELAY;
+
+		uint32_t nPendingFrameStart = nPendingFrameIndex * nFrameQueries;
+		uint32_t nPendingFrameCount = S.GPU.nSubmitted[nPendingFrameIndex];
+
+		if (nPendingFrameCount)
+		{
+			VkResult res = vkGetQueryPoolResults(S.GPU.pDevice, S.GPU.pQueryPool,
+				nPendingFrameStart, nPendingFrameCount,
+				nPendingFrameCount * sizeof(uint64_t), &S.GPU.nResults[nPendingFrameStart],
+				sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+			MP_ASSERT(res == VK_SUCCESS);
+		}
+	}
+
+	return nFrameTimeStamp;
+}
+
+uint32_t MicroProfileGpuInsertTimer(void* pContext)
+{
+	if (!S.GPU.pDevice) return (uint32_t)-1;
+	if (!pContext) return (uint32_t)-1;
+
+	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAME_DELAY;
+
+	uint32_t nIndex = S.GPU.nFramePut.fetch_add(1);
+	if(nIndex >= nFrameQueries) return (uint32_t)-1;
+
+	uint32_t nQueryIndex = (S.GPU.nFrame % MICROPROFILE_GPU_FRAME_DELAY) * nFrameQueries + nIndex;
+
+	vkCmdWriteTimestamp((VkCommandBuffer)pContext, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, S.GPU.pQueryPool, nQueryIndex);
+
+	return nQueryIndex;
+}
+
+uint64_t MicroProfileGpuGetTimeStamp(uint32_t nIndex)
+{
+	if (!S.GPU.pDevice) return MICROPROFILE_INVALID_TICK;
+	if (nIndex == (uint32_t)-1) return MICROPROFILE_INVALID_TICK;
+
+	return S.GPU.nResults[nIndex];
+}
+
+uint64_t MicroProfileTicksPerSecondGpu()
+{
+	return S.GPU.nQueryFrequency ? S.GPU.nQueryFrequency : 1000000000ll;
+}
+
+bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
+{
+	return false;
 }
 #elif !MICROPROFILE_GPU_TIMERS_CUSTOM
 void MicroProfileGpuShutdown()
