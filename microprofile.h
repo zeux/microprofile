@@ -4053,18 +4053,29 @@ void MicroProfileContextSwitchTraceStop()
 
 void MicroProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu)
 {
+	(void)nBaseTicksCpu;
+	(void)nBaseTicksEndCpu;
+
 	*pContextSwitchStart = 0;
 	*pContextSwitchEnd = 0;
 }
 
 uint32_t MicroProfileContextSwitchGatherThreads(uint32_t nContextSwitchStart, uint32_t nContextSwitchEnd, MicroProfileThreadInfo* Threads, uint32_t* nNumThreadsBase)
 {
+	(void)nContextSwitchStart;
+	(void)nContextSwitchEnd;
+	(void)Threads;
+
 	*nNumThreadsBase = 0;
 	return 0;
 }
 
 const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buffer, uint32_t nSize)
 {
+	(void)nId;
+	(void)Buffer;
+	(void)nSize;
+
 	return nullptr;
 }
 #endif

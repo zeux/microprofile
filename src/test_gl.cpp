@@ -7,8 +7,8 @@
 #endif
 
 #ifdef __linux__
-void glQueryCounter (GLuint id, GLenum target) {}
-void glGetQueryObjectui64v (GLuint id, GLenum pname, GLuint64 *params) {}
+void glQueryCounter (GLuint, GLenum) {}
+void glGetQueryObjectui64v (GLuint, GLenum, GLuint64 *) {}
 #endif
 
 #define MICROPROFILE_IMPL
