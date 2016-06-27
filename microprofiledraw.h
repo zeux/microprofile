@@ -221,6 +221,9 @@ void MicroProfileDrawInitGL()
 
 void MicroProfileBeginDraw(uint32_t nWidth, uint32_t nHeight, float* pfProjection)
 {
+	(void)nWidth;
+	(void)nHeight;
+
 	MicroProfileDrawContext& S = g_MicroProfileDraw;
 
 	if (!S.bInitialized)

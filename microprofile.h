@@ -1714,6 +1714,8 @@ inline void MicroProfileLogPutGpu(MicroProfileToken nToken_, uint64_t nTick, uin
 		pLog->nPutGpu.store(nPos + 1, std::memory_order_release);
 	}
 #else
+	(void)pLog;
+
 	MicroProfileLogPut(nToken_, nTick, nBegin, g_MicroProfileGpuLog);
 #endif
 }
@@ -2777,6 +2779,8 @@ void MicroProfilePrintString(MicroProfileWriteCallback CB, void* Handle, const c
 
 void MicroProfileDumpCsv(MicroProfileWriteCallback CB, void* Handle, int nMaxFrames)
 {
+	(void)nMaxFrames;
+
 	uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
 	float fToMsCPU = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondCpu());
 	float fToMsGPU = MicroProfileTickToMsMultiplier(MicroProfileTicksPerSecondGpu());
@@ -3985,7 +3989,7 @@ const char* MicroProfileGetProcessName(MicroProfileProcessIdType nId, char* Buff
 	return Buffer;
 }
 
-void* MicroProfileTraceThread(void* unused)
+void* MicroProfileTraceThread(void*)
 {
 	while(!S.bContextSwitchStop)
 	{
@@ -4507,6 +4511,8 @@ uint32_t MicroProfileGpuFlip()
 
 uint32_t MicroProfileGpuInsertTimer(void* pContext)
 {
+	(void)pContext;
+
 	if(!S.GPU.bInitialized) return (uint32_t)-1;
 
 	uint32_t nFrameQueries = MICROPROFILE_GPU_MAX_QUERIES / MICROPROFILE_GPU_FRAME_DELAY;
@@ -4760,11 +4766,15 @@ uint32_t MicroProfileGpuFlip()
 
 uint32_t MicroProfileGpuInsertTimer(void* pContext)
 {
+	(void)pContext;
+
 	return (uint32_t)-1;
 }
 
 uint64_t MicroProfileGpuGetTimeStamp(uint32_t nKey)
 {
+	(void)nKey;
+
 	return MICROPROFILE_INVALID_TICK;
 }
 
@@ -4773,8 +4783,11 @@ uint64_t MicroProfileTicksPerSecondGpu()
 	return 1000000000ll;
 }
 
-bool MicroProfileGetGpuTickReference(int64_t* pOutCPU, int64_t* pOutGpu)
+bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 {
+	(void)pOutCpu;
+	(void)pOutGpu;
+
 	return false;
 }
 #endif
