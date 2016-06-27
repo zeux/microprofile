@@ -3950,7 +3950,6 @@ void* MicroProfileTraceThread(void* unused)
 		S.bContextSwitchRunning = true;
 
 		MicroProfileContextSwitch Buffer[1024];
-		size_t nCount = 0;
 
 		while(!ferror(pFile) && !S.bContextSwitchStop)
 		{
