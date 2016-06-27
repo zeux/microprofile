@@ -1,7 +1,7 @@
 TEST_SRC=$(wildcard test_*.cpp)
 TEST_BIN=$(TEST_SRC:%.cpp=%.o)
 
-CXXFLAGS=-std=c++0x -Wall -Werror
+CXXFLAGS=-std=c++0x -Wall -Wextra -Werror
 
 ifeq ($(shell uname),Darwin)
 $(TEST_BIN): LDFLAGS+=-framework OpenGL
