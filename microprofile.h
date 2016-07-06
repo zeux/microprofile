@@ -804,14 +804,22 @@ struct MicroProfileGpuTimerState
 	uint64_t nResults[MICROPROFILE_GPU_MAX_QUERIES];
 };
 #elif MICROPROFILE_GPU_TIMERS_VK
+#if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
+#define MICROPROFILE_HANDLE_VK(object) struct object##_T*
+#define MICROPROFILE_NON_DISPATCHABLE_HANDLE_VK(object) struct object##_T*
+#else
+#define MICROPROFILE_HANDLE_VK(object) struct object##_T*
+#define MICROPROFILE_NON_DISPATCHABLE_HANDLE_VK(object) uint64_t
+#endif
+
 struct MicroProfileGpuTimerState
 {
-	struct VkDevice_T* pDevice;
-	struct VkQueue_T* pQueue;
-	struct VkQueryPool_T* pQueryPool;
-	struct VkCommandPool_T* pCommandPool;
-	struct VkCommandBuffer_T* pCommandBuffers[MICROPROFILE_GPU_FRAMES];
-	struct VkFence_T* pFences[MICROPROFILE_GPU_FRAMES];
+	MICROPROFILE_HANDLE_VK(VkDevice) pDevice;
+	MICROPROFILE_HANDLE_VK(VkQueue) pQueue;
+	MICROPROFILE_NON_DISPATCHABLE_HANDLE_VK(VkQueryPool) pQueryPool;
+	MICROPROFILE_NON_DISPATCHABLE_HANDLE_VK(VkCommandPool) pCommandPool;
+	MICROPROFILE_HANDLE_VK(VkCommandBuffer) pCommandBuffers[MICROPROFILE_GPU_FRAMES];
+	MICROPROFILE_NON_DISPATCHABLE_HANDLE_VK(VkFence) pFences[MICROPROFILE_GPU_FRAMES];
 
 	uint64_t nFrame;
 	std::atomic<uint32_t> nFramePut;
