@@ -821,6 +821,9 @@ struct MicroProfileGpuTimerState
 	MICROPROFILE_HANDLE_VK(VkCommandBuffer) pCommandBuffers[MICROPROFILE_GPU_FRAMES];
 	MICROPROFILE_NON_DISPATCHABLE_HANDLE_VK(VkFence) pFences[MICROPROFILE_GPU_FRAMES];
 
+	MICROPROFILE_HANDLE_VK(VkCommandBuffer) pReferenceCommandBuffer;
+	uint32_t nReferenceQuery;
+
 	uint64_t nFrame;
 	std::atomic<uint32_t> nFramePut;
 
@@ -4614,7 +4617,7 @@ void MicroProfileGpuInitVK(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, V
 	VkQueryPoolCreateInfo queryPoolInfo = {};
 	queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
 	queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
-	queryPoolInfo.queryCount = MICROPROFILE_GPU_MAX_QUERIES;
+	queryPoolInfo.queryCount = MICROPROFILE_GPU_MAX_QUERIES + 1; // reference query
 
 	VkResult res = vkCreateQueryPool(pDevice, &queryPoolInfo, nullptr, &S.GPU.pQueryPool);
 	MP_ASSERT(res == VK_SUCCESS);
@@ -4627,13 +4630,15 @@ void MicroProfileGpuInitVK(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, V
 	res = vkCreateCommandPool(pDevice, &commandPoolInfo, nullptr, &S.GPU.pCommandPool);
 	MP_ASSERT(res == VK_SUCCESS);
 
+	VkCommandBuffer pCommandBuffers[MICROPROFILE_GPU_FRAMES + 1] = {};
+
 	VkCommandBufferAllocateInfo commandBufferInfo = {};
 	commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferInfo.commandPool = S.GPU.pCommandPool;
 	commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	commandBufferInfo.commandBufferCount = MICROPROFILE_GPU_FRAMES;
+	commandBufferInfo.commandBufferCount = sizeof(pCommandBuffers) / sizeof(pCommandBuffers[0]);
 
-	res = vkAllocateCommandBuffers(pDevice, &commandBufferInfo, S.GPU.pCommandBuffers);
+	res = vkAllocateCommandBuffers(pDevice, &commandBufferInfo, pCommandBuffers);
 	MP_ASSERT(res == VK_SUCCESS);
 
 	VkFenceCreateInfo fenceInfo = {};
@@ -4641,9 +4646,14 @@ void MicroProfileGpuInitVK(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, V
 
 	for (uint32_t i = 0; i < MICROPROFILE_GPU_FRAMES; ++i)
 	{
+		S.GPU.pCommandBuffers[i] = pCommandBuffers[i];
+
 		res = vkCreateFence(pDevice, &fenceInfo, nullptr, &S.GPU.pFences[i]);
 		MP_ASSERT(res == VK_SUCCESS);
 	}
+
+	S.GPU.pReferenceCommandBuffer = pCommandBuffers[MICROPROFILE_GPU_FRAMES];
+	S.GPU.nReferenceQuery = MICROPROFILE_GPU_MAX_QUERIES; // reference query
 
 	S.GPU.nQueryFrequency = 1e9 / Properties.limits.timestampPeriod;
 }
@@ -4775,7 +4785,40 @@ uint64_t MicroProfileTicksPerSecondGpu()
 
 bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu)
 {
-	return false;
+	if (!S.GPU.pDevice) return false;
+
+	VkCommandBuffer pCommandBuffer = S.GPU.pReferenceCommandBuffer;
+	uint32_t nQueryIndex = S.GPU.nReferenceQuery;
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	VkResult res = vkBeginCommandBuffer(pCommandBuffer, &commandBufferBeginInfo);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	vkCmdWriteTimestamp(pCommandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, S.GPU.pQueryPool, nQueryIndex);
+
+	res = vkEndCommandBuffer(pCommandBuffer);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pCommandBuffer;
+
+	res = vkQueueSubmit(S.GPU.pQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	res = vkQueueWaitIdle(S.GPU.pQueue);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	*pOutCpu = MP_TICK();
+
+	res = vkGetQueryPoolResults(S.GPU.pDevice, S.GPU.pQueryPool, nQueryIndex, 1, sizeof(uint64_t), pOutGpu, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	return true;
 }
 #elif !MICROPROFILE_GPU_TIMERS_CUSTOM
 void MicroProfileGpuShutdown()
