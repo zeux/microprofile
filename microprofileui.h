@@ -2885,7 +2885,7 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		nX += (nLen+1) * (MICROPROFILE_TEXT_WIDTH+1);
 	}
 	uint32_t nMenu = nSelectMenu != (uint32_t)-1 ? nSelectMenu : UI.nActiveMenu;
-	UI.nActiveMenu = nMenu;
+	UI.nActiveMenu = nSelectMenu;
 	if((uint32_t)-1 != nMenu && GroupCallback[nMenu])
 	{
 		nX = nMenuX[nMenu];
@@ -2907,10 +2907,6 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		{
 			UI.nActiveMenu = nMenu;
 		}
-		else if(nSelectMenu == (uint32_t)-1)
-		{
-			UI.nActiveMenu = (uint32_t)-1;
-		}
 		MicroProfileDrawBox(nX, nY, nX + nWidth, nY + nHeight, 0xff000000|g_nMicroProfileBackColors[1]);
 		for(int i = 0; i < nNumLines; ++i)
 		{
@@ -2929,7 +2925,6 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 			nY += MICROPROFILE_TEXT_HEIGHT+1;
 		}
 	}
-
 
 	{
 		static char FrameTimeMessage[64];
