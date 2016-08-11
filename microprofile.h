@@ -3609,7 +3609,8 @@ void MicroProfileWebServerHello(int nPort)
 {
 	uint32_t nInterfaces = 0;
 
-#if defined(__APPLE__) || defined(__linux__)
+	// getifaddrs hangs on some versions of Android so disable IP address scanning
+#if (defined(__APPLE__) || defined(__linux__)) && !defined(__ANDROID__)
 	struct ifaddrs* ifal;
 	if(getifaddrs(&ifal) == 0 && ifal)
 	{
