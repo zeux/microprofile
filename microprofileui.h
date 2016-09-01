@@ -975,50 +975,29 @@ uint32_t MicroProfileWriteProcessHeader(uint32_t nY, uint32_t nProcessId)
 	return nY;
 }
 
-uint32_t MicroProfileGetFirstValidFrame(uint32_t nLogIndex)
-{
-	MicroProfile& S = *MicroProfileGet();
-
-	uint32_t nPut = S.Pool[nLogIndex]->nPut.load(std::memory_order_relaxed);
-	uint32_t nGet = S.Frames[S.nFrameCurrent].nLogStart[nLogIndex];
-	uint32_t nSize = (nGet <= nPut) ? nPut - nGet : nPut + MICROPROFILE_BUFFER_SIZE - nGet;
-
-	uint32_t nResult = S.nFrameCurrent;
-
-	for(uint32_t i = 0; i < MICROPROFILE_MAX_FRAME_HISTORY - MICROPROFILE_GPU_FRAME_DELAY; ++i)
-	{
-		uint32_t nFrame = (S.nFrameCurrent + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
-		uint32_t nLogStart = S.Frames[nFrame].nLogStart[nLogIndex];
-		uint32_t nLogEnd = S.Frames[nResult].nLogStart[nLogIndex];
-		uint32_t nFrameSize = (nLogStart <= nLogEnd) ? nLogEnd - nLogStart : nLogEnd + MICROPROFILE_BUFFER_SIZE - nLogStart;
-
-		if (nSize + nFrameSize >= MICROPROFILE_BUFFER_SIZE)
-			break;
-
-		nResult = nFrame;
-		nSize += nFrameSize;
-	}
-
-	return nResult;
-}
-
 void MicroProfileGetFrameRange(int64_t nTicksCpu, int64_t nTicksEndCpu, int32_t nLogIndex, uint32_t* nFrameBegin, uint32_t* nFrameEnd)
 {
 	MicroProfile& S = *MicroProfileGet();
 
-	uint32_t nValidFrame = MICROPROFILE_MAX_FRAME_HISTORY;
-
-	if(nLogIndex >= 0)
-		nValidFrame = MicroProfileGetFirstValidFrame(nLogIndex);
+	uint32_t nPut = (nLogIndex >= 0) ? S.Pool[nLogIndex]->nPut.load(std::memory_order_relaxed) : 0;
 
 	uint32_t nBegin = S.nFrameCurrent;
 
 	for(uint32_t i = 0; i < MICROPROFILE_MAX_FRAME_HISTORY - MICROPROFILE_GPU_FRAME_DELAY; ++i)
 	{
-		nBegin = (S.nFrameCurrent + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
+		uint32_t nFrame = (S.nFrameCurrent + MICROPROFILE_MAX_FRAME_HISTORY - i) % MICROPROFILE_MAX_FRAME_HISTORY;
+
+		if(nLogIndex >= 0)
+		{
+			uint32_t nCurrStart = S.Frames[nBegin].nLogStart[nLogIndex];
+			uint32_t nPrevStart = S.Frames[nFrame].nLogStart[nLogIndex];
+			bool bOverflow = (nPrevStart <= nCurrStart) ? (nPut >= nPrevStart && nPut < nCurrStart) : (nPut < nCurrStart || nPut >= nPrevStart);
+			if(bOverflow)
+				break;
+		}
+
+		nBegin = nFrame;
 		if(S.Frames[nBegin].nFrameStartCpu <= nTicksCpu)
-			break;
-		if(nValidFrame == nBegin)
 			break;
 	}
 
