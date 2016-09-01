@@ -975,10 +975,11 @@ uint32_t MicroProfileWriteProcessHeader(uint32_t nY, uint32_t nProcessId)
 	return nY;
 }
 
-void MicroProfileGetFrameRange(int64_t nTicksCpu, int64_t nTicksEndCpu, int32_t nLogIndex, uint32_t* nFrameBegin, uint32_t* nFrameEnd)
+void MicroProfileGetFrameRange(int64_t nTicks, int64_t nTicksEnd, int32_t nLogIndex, uint32_t* nFrameBegin, uint32_t* nFrameEnd)
 {
 	MicroProfile& S = *MicroProfileGet();
 
+	bool bGpu = (nLogIndex >= 0) ? S.Pool[nLogIndex]->nGpu != 0 : false;
 	uint32_t nPut = (nLogIndex >= 0) ? S.Pool[nLogIndex]->nPut.load(std::memory_order_relaxed) : 0;
 
 	uint32_t nBegin = S.nFrameCurrent;
@@ -997,7 +998,7 @@ void MicroProfileGetFrameRange(int64_t nTicksCpu, int64_t nTicksEndCpu, int32_t 
 		}
 
 		nBegin = nFrame;
-		if(S.Frames[nBegin].nFrameStartCpu <= nTicksCpu)
+		if((bGpu ? S.Frames[nBegin].nFrameStartGpu : S.Frames[nBegin].nFrameStartCpu) <= nTicks)
 			break;
 	}
 
@@ -1006,7 +1007,7 @@ void MicroProfileGetFrameRange(int64_t nTicksCpu, int64_t nTicksEndCpu, int32_t 
 	while (nEnd != S.nFrameCurrent)
 	{
 		nEnd = (nEnd + 1) % MICROPROFILE_MAX_FRAME_HISTORY;
-		if(S.Frames[nEnd].nFrameStartCpu >= nTicksEndCpu)
+		if((bGpu ? S.Frames[nEnd].nFrameStartGpu : S.Frames[nEnd].nFrameStartCpu) >= nTicksEnd)
 			break;
 	}
 
@@ -1152,10 +1153,16 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			if(!pLog)
 				continue;
 
-			int64_t nGapTime = MicroProfileTicksPerSecondCpu() * MICROPROFILE_GAP_TIME / 1000;
+			bool bGpu = pLog->nGpu != 0;
+			float fToMs = bGpu ? fToMsGpu : fToMsCpu;
+			int64_t nBaseTicks = bGpu ? nBaseTicksGpu : nBaseTicksCpu;
+			int64_t nBaseTicksEnd = bGpu ? nBaseTicksEndGpu : nBaseTicksEndCpu;
+			MicroProfileThreadIdType nThreadId = pLog->nThreadId;
+
+			int64_t nGapTime = (bGpu ? MicroProfileTicksPerSecondGpu() : MicroProfileTicksPerSecondCpu()) * MICROPROFILE_GAP_TIME / 1000;
 
 			uint32_t nLogFrameBegin, nLogFrameEnd;
-			MicroProfileGetFrameRange(nBaseTicksCpu - nGapTime, nBaseTicksEndCpu + nGapTime, i, &nLogFrameBegin, &nLogFrameEnd);
+			MicroProfileGetFrameRange(nBaseTicks - nGapTime, nBaseTicksEnd + nGapTime, i, &nLogFrameBegin, &nLogFrameEnd);
 
 			uint32_t nGet = S.Frames[nLogFrameBegin].nLogStart[i];
 			uint32_t nPut = nLogFrameEnd == S.nFrameCurrent ? pLog->nPut.load(std::memory_order_relaxed) : S.Frames[nLogFrameEnd].nLogStart[i];
@@ -1166,12 +1173,6 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			MicroProfileGetRange(nPut, nGet, nRange);
 
 			uint32_t nMaxStackDepth = 0;
-
-			bool bGpu = pLog->nGpu != 0;
-			float fToMs = bGpu ? fToMsGpu : fToMsCpu;
-			int64_t nBaseTicks = bGpu ? nBaseTicksGpu : nBaseTicksCpu;
-			int64_t nBaseTicksEnd = bGpu ? nBaseTicksEndGpu : nBaseTicksEndCpu;
-			MicroProfileThreadIdType nThreadId = pLog->nThreadId;
 
 			nY += 3;
 			MicroProfileWriteThreadHeader(nY, nThreadId, &pLog->ThreadName[0], nullptr);
