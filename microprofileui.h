@@ -1018,6 +1018,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	int64_t nBaseTicksCpu = nDetailedOffsetTicksCpu + nFrameStartCpu;
 	int64_t nBaseTicksGpu = MicroProfileGetGpuTickSync(nBaseTicksCpu, nDetailedOffsetTicksGpu + nFrameStartGpu);
 	int64_t nBaseTicksEndCpu = nBaseTicksCpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondCpu());
+	int64_t nBaseTicksEndGpu = nBaseTicksGpu + MicroProfileMsToTick(fDetailedRange, MicroProfileTicksPerSecondGpu());
 
 	MicroProfileFrameState* pFrameFirst = pFrameCurrent;
 	int64_t nGapTime = MicroProfileTicksPerSecondCpu() * MICROPROFILE_GAP_TIME / 1000;
@@ -1172,6 +1173,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			bool bGpu = pLog->nGpu != 0;
 			float fToMs = bGpu ? fToMsGpu : fToMsCpu;
 			int64_t nBaseTicks = bGpu ? nBaseTicksGpu : nBaseTicksCpu;
+			int64_t nBaseTicksEnd = bGpu ? nBaseTicksEndGpu : nBaseTicksEndCpu;
 			MicroProfileThreadIdType nThreadId = pLog->nThreadId;
 
 			nY += 3;
@@ -1336,6 +1338,11 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 							}
 						}
 						nStackPos--;
+
+						if(0 == nStackPos && MicroProfileLogTickDifference(nTickEnd, nBaseTicksEnd) < 0)
+						{
+							break;
+						}
 					}
 				}
 			}
