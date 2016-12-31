@@ -805,7 +805,7 @@ void MicroProfileZoomTo(int64_t nTickStart, int64_t nTickEnd, MicroProfileTokenT
 
 	float fToMs = MicroProfileTickToMsMultiplier(nFrequency);
 	UI.fDetailedOffsetTarget = MicroProfileLogTickDifference(nStart, nTickStart) * fToMs;
-	UI.fDetailedRangeTarget = MicroProfileLogTickDifference(nTickStart, nTickEnd) * fToMs;
+	UI.fDetailedRangeTarget = MicroProfileMax(MicroProfileLogTickDifference(nTickStart, nTickEnd) * fToMs, 0.01f); // clamp to 10us
 }
 
 void MicroProfileCenter(int64_t nTickCenter)
