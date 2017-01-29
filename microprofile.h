@@ -498,7 +498,7 @@ MICROPROFILE_API bool MicroProfileGetGpuTickReference(int64_t* pOutCpu, int64_t*
 #if MICROPROFILE_USE_THREAD_NAME_CALLBACK
 MICROPROFILE_API const char* MicroProfileGetThreadName();
 #else
-#define MicroProfileGetThreadName() "<Unknown>"
+#define MicroProfileGetThreadName() nullptr
 #endif
 
 #if !defined(MICROPROFILE_THREAD_NAME_FROM_ID)
@@ -1251,12 +1251,21 @@ MicroProfileThreadLog* MicroProfileCreateThreadLog(const char* pName)
 	}
 	memset(pLog, 0, sizeof(*pLog));
 	pLog->nLogIndex = nLogIndex;
-	int len = (int)strlen(pName);
-	int maxlen = sizeof(pLog->ThreadName)-1;
-	len = len < maxlen ? len : maxlen;
-	memcpy(&pLog->ThreadName[0], pName, len);
-	pLog->ThreadName[len] = '\0';
 	pLog->nThreadId = MP_GETCURRENTTHREADID();
+	int maxlen = sizeof(pLog->ThreadName) - 1;
+	int len = 0;
+	if (pName)
+	{
+		len = (int)strlen(pName);
+		len = len < maxlen ? len : maxlen;
+		memcpy(pLog->ThreadName, pName, len);
+	}
+	else
+	{
+		// cast to int to prevent errors about size differences
+		len = snprintf(pLog->ThreadName, maxlen, "Thread %u", (uint32_t)pLog->nThreadId);
+	}
+	pLog->ThreadName[len] = '\0';
 	pLog->nFreeListNext = -1;
 	pLog->nActive = 1;
 	return pLog;
