@@ -3346,7 +3346,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 #else
 void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost)
 {
-	MicroProfilePrintString("HTML output is disabled because MICROPROFILE_EMBED_HTML is 0\n");
+	MicroProfilePrintString(CB, Handle, "HTML output is disabled because MICROPROFILE_EMBED_HTML is 0\n");
 }
 #endif
 
