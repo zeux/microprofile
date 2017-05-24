@@ -3261,8 +3261,8 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 					{
 						uint32_t nEnd = pFrameNext->nLogStart[i];
 						uint32_t nStart = pFrameCurrent->nLogStart[i];
-						uint32_t nUsage = nStart < nEnd ? (nEnd - nStart) : (nEnd + MICROPROFILE_BUFFER_SIZE - nStart);
-						uint32_t nFrameSupport = (nUsage == 0) ? MICROPROFILE_BUFFER_SIZE : MICROPROFILE_BUFFER_SIZE / nUsage;
+						uint32_t nUsage = nStart <= nEnd ? (nEnd - nStart) : (nEnd + MICROPROFILE_BUFFER_SIZE - nStart);
+						uint32_t nFrameSupport = (nUsage == 0) ? MICROPROFILE_BUFFER_SIZE : (MICROPROFILE_BUFFER_SIZE / nUsage);
 						MicroProfileStringArrayFormat(&Debug, "%s", &S.Pool[i]->ThreadName[0]);
 						MicroProfileStringArrayFormat(&Debug, "%9d [%7d]", nUsage, nFrameSupport);
 					}
