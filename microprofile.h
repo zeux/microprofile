@@ -126,29 +126,27 @@ typedef uint16_t MicroProfileGroupId;
 
 #define MICROPROFILE_DECLARE(var)
 #define MICROPROFILE_DEFINE(var, group, name, color)
-#define MICROPROFILE_REGISTER_GROUP(group, color, category)
 #define MICROPROFILE_DECLARE_GPU(var)
 #define MICROPROFILE_DEFINE_GPU(var, name, color)
 #define MICROPROFILE_SCOPE(var) do{}while(0)
+#define MICROPROFILE_SCOPE_TOKEN(token) do{} while(0)
 #define MICROPROFILE_SCOPEI(group, name, color) do{}while(0)
 #define MICROPROFILE_SCOPEGPU(var) do{}while(0)
-#define MICROPROFILE_SCOPEGPUI( name, color) do{}while(0)
+#define MICROPROFILE_SCOPEGPUI(name, color) do{}while(0)
 #define MICROPROFILE_META_CPU(name, count)
 #define MICROPROFILE_META_GPU(name, count)
-#define MICROPROFILE_FORCEENABLECPUGROUP(s) do{} while(0)
-#define MICROPROFILE_FORCEDISABLECPUGROUP(s) do{} while(0)
-#define MICROPROFILE_FORCEENABLEGPUGROUP(s) do{} while(0)
-#define MICROPROFILE_FORCEDISABLEGPUGROUP(s) do{} while(0)
-#define MICROPROFILE_SCOPE_TOKEN(token) do{} while(0)
 #define MICROPROFILE_LABEL(group, name) do{}while(0)
 #define MICROPROFILE_LABELF(group, name, ...) do{}while(0)
 #define MICROPROFILE_COUNTER_ADD(name, count) do{} while(0)
 #define MICROPROFILE_COUNTER_SUB(name, count) do{} while(0)
 #define MICROPROFILE_COUNTER_SET(name, count) do{} while(0)
 #define MICROPROFILE_COUNTER_SET_LIMIT(name, count) do{} while(0)
+#define MICROPROFILE_COUNTER_CONFIG(name, type, limit, flags) do{} while(0)
 
-
-#define MICROPROFILE_COUNTER_CONFIG(name, type)
+#define MICROPROFILE_FORCEENABLECPUGROUP(s) do{} while(0)
+#define MICROPROFILE_FORCEDISABLECPUGROUP(s) do{} while(0)
+#define MICROPROFILE_FORCEENABLEGPUGROUP(s) do{} while(0)
+#define MICROPROFILE_FORCEDISABLEGPUGROUP(s) do{} while(0)
 
 #define MicroProfileGetTime(group, name) 0.f
 #define MicroProfileOnThreadCreate(foo) do{}while(0)
@@ -157,7 +155,6 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileGetAggregateFrames() 0
 #define MicroProfileGetCurrentAggregateFrames() 0
 #define MicroProfileTogglePause() do{}while(0)
-#define MicroProfileToggleAllGroups() do{} while(0)
 #define MicroProfileShutdown() do{}while(0)
 #define MicroProfileSetForceEnable(a) do{} while(0)
 #define MicroProfileGetForceEnable() false
@@ -175,6 +172,7 @@ typedef uint16_t MicroProfileGroupId;
 #define MicroProfileWebServerStart() do{} while(0)
 #define MicroProfileWebServerStop() do{} while(0)
 #define MicroProfileWebServerPort() 0
+
 #define MicroProfileGpuSetContext(c) do{} while(0)
 #define MicroProfileGpuBegin(c) do{} while(0)
 #define MicroProfileGpuEnd() 0
