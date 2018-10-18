@@ -23,7 +23,7 @@ It should be easy to adapt to support any other platforms; pull requests are wel
 
 ## Difference from upstream
 
-This library has been forked from upstream in 2015 and has diverged over time from upstream; the difference in priorities for features led to the divergence not really converging, so treat this as a permanent fork.
+This library has been forked from upstream in 2015 - back when upstream was using Bitbucket/Mercurial - and has diverged over time from upstream; the difference in priorities for features led to the divergence not really converging, so treat this as a permanent fork.
 
 The list of features that have not been backported from upstream (as of October 2018):
 
