@@ -29,6 +29,7 @@ The list of features that have not been backported from upstream (as of October 
 
 * WebSocket-based live connection that displays graphs and allows to start the frame capture
 * Timelines that can be useful for profiling long running code such as level loading
+* Support for more than 48 categories
 
 The list of features that this fork has but upstream doesn't (as of October 2018):
 
