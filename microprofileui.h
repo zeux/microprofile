@@ -174,7 +174,9 @@ MICROPROFILEUI_API void MicroProfileCustomGroupAddTimer(const char* pCustomName,
 
 #ifdef MICROPROFILEUI_IMPL
 #ifdef _WIN32
+#if !defined(_MSC_VER) || _MSC_VER < 1900 // VS2015 includes proper snprintf
 #define snprintf _snprintf
+#endif
 #endif
 #include <cstdlib>
 #include <cstdarg>
@@ -371,8 +373,8 @@ void MicroProfileInitUI()
 		UI.fDetailedOffsetTarget = UI.fDetailedOffset = 0.f;
 		UI.fDetailedRangeTarget = UI.fDetailedRange = 50.f;
 
-		UI.nOpacityBackground = 0xff<<24;
-		UI.nOpacityForeground = 0xff<<24;
+		UI.nOpacityBackground = 0xffu << 24;
+		UI.nOpacityForeground = 0xffu << 24;
 
 		UI.bShowSpikes = false;
 
@@ -942,15 +944,15 @@ void MicroProfileDrawDetailedContextSwitchBars(uint32_t nY, uint32_t nThreadId, 
 void MicroProfileWriteThreadHeader(uint32_t nY, MicroProfileThreadIdType ThreadId, const char* pNamedThread, const char* pThreadModule)
 {
 	char Buffer[512];
-	int nStrLen = 0;
 	if(pThreadModule)
 	{
-		nStrLen = snprintf(Buffer, sizeof(Buffer) - 1, "%04x: %s [%s]", (uint32_t)ThreadId, pNamedThread ? pNamedThread : "", pThreadModule);
+		snprintf(Buffer, sizeof(Buffer) - 1, "%04x: %s [%s]", (uint32_t)ThreadId, pNamedThread ? pNamedThread : "", pThreadModule);
 	}
 	else
 	{
-		nStrLen = snprintf(Buffer, sizeof(Buffer) - 1, "%04x: %s", (uint32_t)ThreadId, pNamedThread ? pNamedThread : "");
+		snprintf(Buffer, sizeof(Buffer) - 1, "%04x: %s", (uint32_t)ThreadId, pNamedThread ? pNamedThread : "");
 	}
+	int nStrLen = strlen(Buffer);
 	MicroProfileDrawTextBackground(10, nY, 0xffffff, 0x88777777, Buffer, nStrLen);
 }
 
@@ -961,15 +963,15 @@ uint32_t MicroProfileWriteProcessHeader(uint32_t nY, uint32_t nProcessId)
 
 	char Buffer[512];
 	nY += MICROPROFILE_TEXT_HEIGHT + 1;
-	int nStrLen = 0;
 	if(pProcessName)
 	{
-		nStrLen = snprintf(Buffer, sizeof(Buffer) - 1, "* %04x: %s", nProcessId, pProcessName);
+		snprintf(Buffer, sizeof(Buffer) - 1, "* %04x: %s", nProcessId, pProcessName);
 	}
 	else
 	{
-		nStrLen = snprintf(Buffer, sizeof(Buffer) - 1, "* %04x", nProcessId);
+		snprintf(Buffer, sizeof(Buffer) - 1, "* %04x", nProcessId);
 	}
+	int nStrLen = strlen(Buffer);
 	MicroProfileDrawTextBackground(0, nY, 0xffffff, 0x88777777, Buffer, nStrLen);
 	nY += MICROPROFILE_TEXT_HEIGHT + 1;
 	return nY;
@@ -978,6 +980,7 @@ uint32_t MicroProfileWriteProcessHeader(uint32_t nY, uint32_t nProcessId)
 void MicroProfileGetFrameRange(int64_t nTicks, int64_t nTicksEnd, int32_t nLogIndex, uint32_t* nFrameBegin, uint32_t* nFrameEnd)
 {
 	MicroProfile& S = *MicroProfileGet();
+	MP_ASSERT(nLogIndex < 0 || S.Pool[nLogIndex]);
 
 	bool bGpu = (nLogIndex >= 0) ? S.Pool[nLogIndex]->nGpu != 0 : false;
 	uint32_t nPut = (nLogIndex >= 0) ? S.Pool[nLogIndex]->nPut.load(std::memory_order_relaxed) : 0;
@@ -1091,7 +1094,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 				sprintf(StepLabel, "%.2fms", fStep);
 		}
 
-		uint32_t nStepLabelLength = strlen(StepLabel);
+		uint32_t nStepLabelLength = (uint32_t)strlen(StepLabel);
 		float fStepLabelOffset = (fStep*fMsToScreen-nStepLabelLength*(MICROPROFILE_TEXT_WIDTH+1))/2;
 
 		for(float f = fStart; f < fMsEnd; )
@@ -1276,7 +1279,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 							if (pLabel)
 							{
 								pName = pLabel;
-								nNameLen = strlen(pLabel);
+								nNameLen = (uint32_t)strlen(pLabel);
 							}
 						}
 
@@ -1378,7 +1381,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 
 				MicroProfileDrawDetailedContextSwitchBars(nY + 2, tt.nThreadId, nContextSwitchStart, nContextSwitchEnd, nBaseTicksCpu, nBaseY);
 
-				MicroProfileWriteThreadHeader(nY, tt.nThreadId, i < nNumThreadsBase ? &S.Pool[i]->ThreadName[0] : nullptr, nullptr);
+				MicroProfileWriteThreadHeader(nY, tt.nThreadId, i < nNumThreadsBase && S.Pool[i] ? &S.Pool[i]->ThreadName[0] : nullptr, nullptr);
 				nY += MICROPROFILE_TEXT_HEIGHT + 1;
 			}
 		}
@@ -1419,12 +1422,14 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			fMsStart += fDetailedOffset;
 			fMsEnd += fDetailedOffset;
 			char sBuffer[32];
-			uint32_t nLenStart = snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsStart);
+			snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsStart);
+			uint32_t nLenStart = strlen(sBuffer);
 			float fStartTextWidth = (float)((1+MICROPROFILE_TEXT_WIDTH) * nLenStart);
 			float fStartTextX = fXStart - fStartTextWidth - 2;
 			MicroProfileDrawBox((int)fStartTextX, nBaseY, (int)(fStartTextX + fStartTextWidth + 2), MICROPROFILE_TEXT_HEIGHT + 2 + nBaseY, 0x33000000, MicroProfileBoxTypeFlat);
 			MicroProfileDrawText((int)fStartTextX+1, nBaseY, (uint32_t)-1, sBuffer, nLenStart);
-			uint32_t nLenEnd = snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsEnd);
+			snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsEnd);
+			uint32_t nLenEnd = strlen(sBuffer);
 			MicroProfileDrawBox((int)(fXEnd+1), nBaseY, (int)(fXEnd+1+(1+MICROPROFILE_TEXT_WIDTH) * nLenEnd + 3), MICROPROFILE_TEXT_HEIGHT + 2 + nBaseY, 0x33000000, MicroProfileBoxTypeFlat);
 			MicroProfileDrawText((int)(fXEnd+2), nBaseY+1, (uint32_t)-1, sBuffer, nLenEnd);
 
@@ -1449,12 +1454,14 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 			fMsStart += fDetailedOffset;
 			fMsEnd += fDetailedOffset;
 			char sBuffer[32];
-			uint32_t nLenStart = snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsStart);
+			snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsStart);
+			uint32_t nLenStart = strlen(sBuffer);
 			float fStartTextWidth = (float)((1+MICROPROFILE_TEXT_WIDTH) * nLenStart);
 			float fStartTextX = fXStart - fStartTextWidth - 2;
 			MicroProfileDrawBox((int)fStartTextX, nBaseY, (int)(fStartTextX + fStartTextWidth + 2), MICROPROFILE_TEXT_HEIGHT + 2 + nBaseY, 0x33000000, MicroProfileBoxTypeFlat);
 			MicroProfileDrawText((int)(fStartTextX+1), nBaseY, (uint32_t)-1, sBuffer, nLenStart);
-			uint32_t nLenEnd = snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsEnd);
+			snprintf(sBuffer, sizeof(sBuffer)-1, "%.2fms", fMsEnd);
+			uint32_t nLenEnd = strlen(sBuffer);
 			MicroProfileDrawBox((int)(fXEnd+1), nBaseY, (int)(fXEnd+1+(1+MICROPROFILE_TEXT_WIDTH) * nLenEnd + 3), MICROPROFILE_TEXT_HEIGHT + 2 + nBaseY, 0x33000000, MicroProfileBoxTypeFlat);
 			MicroProfileDrawText((int)(fXEnd+2), nBaseY+1, (uint32_t)-1, sBuffer, nLenEnd);
 
@@ -1718,7 +1725,8 @@ void MicroProfileDrawBarCallCountCallback(uint32_t nTimer, uint32_t nIdx, uint32
 
 	MicroProfile& S = *MicroProfileGet();
 	char sBuffer[SBUF_MAX];
-	int nLen = snprintf(sBuffer, SBUF_MAX-1, "%5d", S.Frame[nTimer].nCount);//fix
+	snprintf(sBuffer, SBUF_MAX-1, "%5d", S.Frame[nTimer].nCount);//fix
+	int nLen = strlen(sBuffer);
 	MicroProfileDrawText(nX, nY, (uint32_t)-1, sBuffer, nLen);
 }
 
@@ -1744,7 +1752,8 @@ void MicroProfileDrawBarMetaAverageCallback(uint32_t nTimer, uint32_t nIdx, uint
 	uint64_t* pCounters = pArgs->pCounters;
 	float fRcpFrames = pArgs->fRcpFrames;
 	char sBuffer[SBUF_MAX];
-	int nLen = snprintf(sBuffer, SBUF_MAX-1, "%5.2f", pCounters[nTimer] * fRcpFrames);
+	snprintf(sBuffer, SBUF_MAX-1, "%5.2f", pCounters[nTimer] * fRcpFrames);
+	int nLen = strlen(sBuffer);
 	MicroProfileDrawText(nX - nLen * (MICROPROFILE_TEXT_WIDTH+1), nY, (uint32_t)-1, sBuffer, nLen);
 }
 
@@ -1769,6 +1778,7 @@ void MicroProfileDrawBarMetaCountCallback(uint32_t nTimer, uint32_t nIdx, uint32
 	uint64_t* pCounters = (uint64_t*)pExtra;
 	char sBuffer[SBUF_MAX];
 	int nLen = snprintf(sBuffer, SBUF_MAX-1, "%5lld", (long long)pCounters[nTimer]);
+	nLen = strlen(sBuffer);
 	MicroProfileDrawText(nX - nLen * (MICROPROFILE_TEXT_WIDTH+1), nY, (uint32_t)-1, sBuffer, nLen);	
 }
 
@@ -1867,7 +1877,8 @@ bool MicroProfileDrawGraph(uint32_t nScreenWidth, uint32_t nScreenHeight)
 		MicroProfileDrawLineHorizontal(nX, nX + MICROPROFILE_GRAPH_WIDTH, (int)fY3, 0xff000000 | g_nMicroProfileBackColors[0]);
 
 		char buf[32];
-		int nLen = snprintf(buf, sizeof(buf)-1, "%5.2fms", S.fReferenceTime);
+		snprintf(buf, sizeof(buf)-1, "%5.2fms", S.fReferenceTime);
+		int nLen = strlen(buf);
 		MicroProfileDrawText(nX+1, (int)(fY1 - (2+MICROPROFILE_TEXT_HEIGHT)), (uint32_t)-1, buf, nLen);
 	}
 
@@ -2795,7 +2806,8 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 	uint32_t 	nMenuX[MICROPROFILE_MENU_MAX] = {0};
 	uint32_t nNumMenuItems = 0;
 
-	int nLen = snprintf(buffer, 127, "MicroProfile");
+	snprintf(buffer, 127, "MicroProfile");
+	int nLen = strlen(buffer);
 	MicroProfileDrawText(nX, nY, (uint32_t)-1, buffer, nLen);
 	nX += (sizeof("MicroProfile")+2) * (MICROPROFILE_TEXT_WIDTH+1);
 	pMenuText[nNumMenuItems++] = "Mode";
@@ -2935,7 +2947,8 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 				}
 				MicroProfileDrawBox(nX, nY, nX + nWidth, nY + MICROPROFILE_TEXT_HEIGHT + 1, 0xff888888);
 			}
-			int nLen = snprintf(buffer, SBUF_SIZE-1, "%c %s", bSelected ? '*' : ' ' ,pString);
+			snprintf(buffer, SBUF_SIZE-1, "%c %s", bSelected ? '*' : ' ' ,pString);
+			int nLen = strlen(buffer);
 			MicroProfileDrawText(nX, nY, (uint32_t)-1, buffer, nLen);
 			nY += MICROPROFILE_TEXT_HEIGHT+1;
 		}
@@ -2948,7 +2961,8 @@ void MicroProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 		float fMs = fToMs * (S.nFlipTicks);
 		float fAverageMs = fToMs * (S.nFlipAggregateDisplay / nAggregateFrames);
 		float fMaxMs = fToMs * S.nFlipMaxDisplay;
-		int nLen = snprintf(FrameTimeMessage, sizeof(FrameTimeMessage)-1, "Time[%6.2f] Avg[%6.2f] Max[%6.2f]", fMs, fAverageMs, fMaxMs);
+		snprintf(FrameTimeMessage, sizeof(FrameTimeMessage)-1, "Time[%6.2f] Avg[%6.2f] Max[%6.2f]", fMs, fAverageMs, fMaxMs);
+		int nLen = strlen(FrameTimeMessage);
 		pMenuText[nNumMenuItems++] = &FrameTimeMessage[0];
 		MicroProfileDrawText(nWidth - nLen * (MICROPROFILE_TEXT_WIDTH+1), 0, -1, FrameTimeMessage, nLen);
 	}
@@ -3051,15 +3065,17 @@ void MicroProfileDrawCustom(uint32_t nWidth, uint32_t nHeight)
 			uint16_t nTimerIndex = MicroProfileGetTimerIndex(pCustom->pTimers[i]);
 			uint16_t nGroupIndex = MicroProfileGetGroupIndex(pCustom->pTimers[i]);
 			MicroProfileTimerInfo* pTimerInfo = &S.TimerInfo[nTimerIndex];
-			int nSize;
 			uint32_t nOffsetX = MICROPROFILE_CUSTOM_PADDING;
-			nSize = snprintf(Buffer, sizeof(Buffer)-1, "%6.2f", pTimeAvg[i]);
+			snprintf(Buffer, sizeof(Buffer)-1, "%6.2f", pTimeAvg[i]);
+			int nSize = strlen(Buffer);
 			MicroProfileDrawText(nOffsetX, nOffsetY, (uint32_t)-1, Buffer, nSize);
 			nOffsetX += (nSize+2) * (MICROPROFILE_TEXT_WIDTH+1);
-			nSize = snprintf(Buffer, sizeof(Buffer)-1, "%6.2f", pTimeMax[i]);
+			snprintf(Buffer, sizeof(Buffer)-1, "%6.2f", pTimeMax[i]);
+			nSize = strlen(Buffer);
 			MicroProfileDrawText(nOffsetX, nOffsetY, (uint32_t)-1, Buffer, nSize);
 			nOffsetX += (nSize+2) * (MICROPROFILE_TEXT_WIDTH+1);
-			nSize = snprintf(Buffer, sizeof(Buffer)-1, "%s:%s", S.GroupInfo[nGroupIndex].pName, pTimerInfo->pName);
+			snprintf(Buffer, sizeof(Buffer)-1, "%s:%s", S.GroupInfo[nGroupIndex].pName, pTimerInfo->pName);
+			nSize = strlen(Buffer);
 			MicroProfileDrawText(nOffsetX, nOffsetY, pTimerInfo->nColor, Buffer, nSize);
 			nOffsetX += (nSize+2) * (MICROPROFILE_TEXT_WIDTH+1);
 			nMaxOffsetX = MicroProfileMax(nMaxOffsetX, nOffsetX);
@@ -3072,7 +3088,8 @@ void MicroProfileDrawCustom(uint32_t nWidth, uint32_t nHeight)
 			float* pMs = pCustom->nFlags & MICROPROFILE_CUSTOM_BAR_SOURCE_MAX ? pTimeMax : pTimeAvg;
 			const char* pString = pCustom->nFlags & MICROPROFILE_CUSTOM_BAR_SOURCE_MAX ? "Max" : "Avg";
 			MicroProfileDrawText(nMaxOffsetX, nOffsetY, (uint32_t)-1, pString, (uint32_t)strlen(pString));
-			int nSize = snprintf(Buffer, sizeof(Buffer)-1, "%6.2fms", fReference);
+			snprintf(Buffer, sizeof(Buffer)-1, "%6.2fms", fReference);
+			int nSize = strlen(Buffer);
 			MicroProfileDrawText(nReducedWidth - (1+nSize) * (MICROPROFILE_TEXT_WIDTH+1), nOffsetY, (uint32_t)-1, Buffer, nSize);
 			for(uint32_t i = 0; i < nCount; ++i)
 			{
@@ -3086,7 +3103,8 @@ void MicroProfileDrawCustom(uint32_t nWidth, uint32_t nHeight)
 			nOffsetY += 2*(1+MICROPROFILE_TEXT_HEIGHT);
 			const char* pString = pCustom->nFlags & MICROPROFILE_CUSTOM_STACK_SOURCE_MAX ? "Max" : "Avg";
 			MicroProfileDrawText(MICROPROFILE_CUSTOM_PADDING, nOffsetY, (uint32_t)-1, pString, (uint32_t)strlen(pString));
-			int nSize = snprintf(Buffer, sizeof(Buffer)-1, "%6.2fms", fReference);
+			snprintf(Buffer, sizeof(Buffer)-1, "%6.2fms", fReference);
+			int nSize = strlen(Buffer);
 			MicroProfileDrawText(nReducedWidth - (1+nSize) * (MICROPROFILE_TEXT_WIDTH+1), nOffsetY, (uint32_t)-1, Buffer, nSize);
 			nOffsetY += (1+MICROPROFILE_TEXT_HEIGHT);
 			float fPosX = MICROPROFILE_CUSTOM_PADDING;
@@ -3255,13 +3273,14 @@ void MicroProfileDraw(uint32_t nWidth, uint32_t nHeight)
 				MicroProfileStringArrayFormat(&Debug, "%9d [%7d]", S.nContextSwitchUsage, MICROPROFILE_CONTEXT_SWITCH_BUFFER_SIZE / S.nContextSwitchUsage );
 #endif
 
-				for(int i = 0; i < MICROPROFILE_MAX_THREADS; ++i)
+				for(uint32_t i = 0; i < MICROPROFILE_MAX_THREADS; ++i)
 				{
 					if(pFrameCurrent->nLogStart[i] && S.Pool[i])
 					{
 						uint32_t nEnd = pFrameNext->nLogStart[i];
 						uint32_t nStart = pFrameCurrent->nLogStart[i];
-						uint32_t nUsage = nStart <= nEnd ? (nEnd - nStart) : (nEnd + MICROPROFILE_BUFFER_SIZE - nStart);
+						// volatile is a workaround for MSVC 2015 bug - compiler inserts cmov for the condition below despite the fact that RHS traps when nUsage==0
+						volatile uint32_t nUsage = nStart <= nEnd ? (nEnd - nStart) : (nEnd + MICROPROFILE_BUFFER_SIZE - nStart);
 						uint32_t nFrameSupport = (nUsage == 0) ? MICROPROFILE_BUFFER_SIZE : MICROPROFILE_BUFFER_SIZE / nUsage;
 						MicroProfileStringArrayFormat(&Debug, "%s", &S.Pool[i]->ThreadName[0]);
 						MicroProfileStringArrayFormat(&Debug, "%9d [%7d]", nUsage, nFrameSupport);
