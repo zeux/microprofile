@@ -298,7 +298,8 @@ struct MicroProfileUI
 	uint32_t				nModDown;
 	uint32_t 				nActiveMenu;
 
-	MicroProfileLogEntry* pDisplayMouseOver;
+	MicroProfileLogEntry*	pDisplayMouseOver;
+	uint64_t				nDisplayMouseOverTimerIndex;
 
 	int64_t					nRangeBegin;
 	int64_t					nRangeEnd;
@@ -1111,9 +1112,11 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 	}
 
 	nY += MICROPROFILE_TEXT_HEIGHT+1;
+
 	MicroProfileLogEntry* pMouseOver = UI.pDisplayMouseOver;
 	MicroProfileLogEntry* pMouseOverNext = 0;
-	uint64_t nMouseOverToken = pMouseOver ? MicroProfileLogTimerIndex(*pMouseOver) : MICROPROFILE_INVALID_TOKEN;
+	uint64_t nMouseOverToken = pMouseOver ? UI.nDisplayMouseOverTimerIndex : MICROPROFILE_INVALID_TOKEN;
+
 	float fMouseX = (float)UI.nMouseX;
 	float fMouseY = (float)UI.nMouseY;
 	uint64_t nHoverToken = MICROPROFILE_INVALID_TOKEN;
@@ -1393,6 +1396,7 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 
 
 	UI.pDisplayMouseOver = pMouseOverNext;
+	UI.nDisplayMouseOverTimerIndex = pMouseOverNext ? MicroProfileLogTimerIndex(*pMouseOverNext) : MICROPROFILE_INVALID_TOKEN;
 
 	if(!S.nRunning)
 	{
