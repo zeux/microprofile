@@ -428,6 +428,7 @@ MICROPROFILE_API void MicroProfileLeave(MicroProfileToken nToken, uint64_t nTick
 MICROPROFILE_API void MicroProfileLabel(MicroProfileToken nToken, const char* pName);
 MICROPROFILE_FORMAT(2, 3) MICROPROFILE_API void MicroProfileLabelFormat(MicroProfileToken nToken, const char* pName, ...);
 MICROPROFILE_API void MicroProfileLabelFormatV(MicroProfileToken nToken, const char* pName, va_list args);
+MICROPROFILE_API void MicroProfileLabelLiteral(MicroProfileToken nToken, const char* pName);
 inline uint16_t MicroProfileGetTimerIndex(MicroProfileToken t){ return (t&0xffff); }
 inline uint64_t MicroProfileGetGroupMask(MicroProfileToken t){ return ((t>>16)&MICROPROFILE_GROUP_MASK_ALL);}
 inline MicroProfileToken MicroProfileMakeToken(uint64_t nGroupMask, uint16_t nTimer){ return (nGroupMask<<16) | nTimer;}
@@ -930,6 +931,7 @@ struct MicroProfile
 #define MP_LOG_TICK_MASK  0x0000ffffffffffff
 #define MP_LOG_INDEX_MASK 0x1fff000000000000
 #define MP_LOG_BEGIN_MASK 0xe000000000000000
+#define MP_LOG_LABEL_LITERAL 0x5
 #define MP_LOG_GPU_EXTRA 0x4
 #define MP_LOG_LABEL 0x3
 #define MP_LOG_META 0x2
@@ -1712,15 +1714,37 @@ uint64_t MicroProfileAllocateLabel(const char* pName)
 
 void MicroProfilePutLabel(MicroProfileToken nToken_, const char* pName)
 {
-	if (MicroProfileThreadLog* pLog = MicroProfileGetThreadLog())
+	if(MicroProfileThreadLog* pLog = MicroProfileGetThreadLog())
 	{
 		uint64_t nLabel = MicroProfileAllocateLabel(pName);
 		uint64_t nGroupMask = MicroProfileGetGroupMask(nToken_);
 
-		if (nGroupMask & S.nGroupMaskGpu)
+		if(nGroupMask & S.nGroupMaskGpu)
 			MicroProfileLogPutGpu(nToken_, nLabel, MP_LOG_LABEL, pLog);
 		else
 			MicroProfileLogPut(nToken_, nLabel, MP_LOG_LABEL, pLog);
+	}
+}
+
+void MicroProfilePutLabelLiteral(MicroProfileToken nToken_, const char* pName)
+{
+	if(MicroProfileThreadLog* pLog = MicroProfileGetThreadLog())
+	{
+		uint64_t nLabel = uint64_t(uintptr_t(pName));
+		uint64_t nGroupMask = MicroProfileGetGroupMask(nToken_);
+
+		// We can only store 48 bits for each label pointer; for 32-bit platforms the entire pointer fits as is
+		// For 64-bit platforms, most platforms use 48-bit addressing.
+		// In some cases, like x64, the top 16 bits are 1 or 0 based on the bit 47.
+		// In some other cases, like AArch64 (I think?), the top 16 bits are all 0 in user space, even if bit 47 is 1.
+		// To avoid dealing with these complications, clear out the pointer if it doesn't fit in 48 bits without modifications.
+		// This will automatically safely ignore pointers that don't fit.
+		nLabel = (nLabel & MP_LOG_TICK_MASK) == nLabel ? nLabel : 0;
+
+		if(nGroupMask & S.nGroupMaskGpu)
+			MicroProfileLogPutGpu(nToken_, nLabel, MP_LOG_LABEL_LITERAL, pLog);
+		else
+			MicroProfileLogPut(nToken_, nLabel, MP_LOG_LABEL_LITERAL, pLog);
 	}
 }
 
@@ -1748,14 +1772,20 @@ void MicroProfileCounterConfig(const char* pName, uint32_t eFormat, int64_t nLim
 	S.CounterInfo[nToken].nFlags |= (nFlags & ~MICROPROFILE_COUNTER_FLAG_INTERNAL_MASK);
 }
 
-const char* MicroProfileGetLabel(uint64_t nLabel)
+const char* MicroProfileGetLabel(uint32_t eType, uint64_t nLabel)
 {
+	MP_ASSERT(eType == MP_LOG_LABEL || eType == MP_LOG_LABEL_LITERAL);
+	MP_ASSERT((nLabel & MP_LOG_TICK_MASK) == nLabel);
+
+	if(eType == MP_LOG_LABEL_LITERAL)
+		return (const char*)uintptr_t(nLabel);
+
 	char* pLabelBuffer = S.LabelBuffer.load(std::memory_order_relaxed);
 	uint64_t nLabelPut = S.nLabelPut.load(std::memory_order_relaxed);
 
 	MP_ASSERT(pLabelBuffer && nLabel < nLabelPut);
 
-	if (nLabelPut - nLabel > MICROPROFILE_LABEL_BUFFER_SIZE)
+	if(nLabelPut - nLabel > MICROPROFILE_LABEL_BUFFER_SIZE)
 		return 0;
 	else
 		return &pLabelBuffer[nLabel % MICROPROFILE_LABEL_BUFFER_SIZE];
@@ -1787,6 +1817,14 @@ void MicroProfileLabelFormatV(MicroProfileToken nToken_, const char* pName, va_l
 		buffer[sizeof(buffer)-1] = 0;
 
 		MicroProfilePutLabel(nToken_, buffer);
+	}
+}
+
+void MicroProfileLabelLiteral(MicroProfileToken nToken_, const char* pName)
+{
+	if(MicroProfileGetGroupMask(nToken_) & S.nActiveGroup)
+	{
+		MicroProfilePutLabelLiteral(nToken_, pName);
 	}
 }
 
@@ -3147,8 +3185,13 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				if(nLogType == MP_LOG_META)
 				{
-					//for meta, store the count + 8, which is the tick part
+					// for meta, store the count + 8, which is the tick part
 					nLogType = 8 + MicroProfileLogGetTick(pLog->Log[k]);
+				}
+				if(nLogType == MP_LOG_LABEL_LITERAL)
+				{
+					// for label literals, pretend that they are stored as labels; HTML dump doesn't support efficent label literal storage yet
+					nLogType = MP_LOG_LABEL;
 				}
 				MicroProfilePrintUIntComma(CB, Handle, nLogType);
 			}
@@ -3202,7 +3245,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
 				uint32_t nTimerIndex = (uint32_t)MicroProfileLogTimerIndex(pLog->Log[k]);
-				uint32_t nIndex = (nLogType == MP_LOG_LABEL) ? nLabelIndex++ : nTimerIndex;
+				uint32_t nIndex = (nLogType == MP_LOG_LABEL || nLogType == MP_LOG_LABEL_LITERAL) ? nLabelIndex++ : nTimerIndex;
 				MicroProfilePrintUIntComma(CB, Handle, nIndex);
 
 				if(nLogType == MP_LOG_ENTER)
@@ -3225,10 +3268,10 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			for(uint32_t k = nLogStart; k != nLogEnd; k = (k+1) % MICROPROFILE_BUFFER_SIZE)
 			{
 				uint32_t nLogType = MicroProfileLogType(pLog->Log[k]);
-				if(nLogType == MP_LOG_LABEL)
+				if(nLogType == MP_LOG_LABEL || nLogType == MP_LOG_LABEL_LITERAL)
 				{
 					uint64_t nLabel = MicroProfileLogGetTick(pLog->Log[k]);
-					const char* pLabelName = MicroProfileGetLabel(nLabel);
+					const char* pLabelName = MicroProfileGetLabel(nLogType, nLabel);
 
 					if(pLabelName)
 					{

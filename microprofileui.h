@@ -627,15 +627,16 @@ void MicroProfileToolTipLabel(MicroProfileStringArray* pToolTip)
 			for(uint32_t j = nStart; j < nEnd; ++j)
 			{
 				MicroProfileLogEntry LE = pLog->Log[j];
-				int nType = MicroProfileLogType(LE);
+				uint32_t nType = MicroProfileLogType(LE);
 				switch(nType)
 				{
 				case MP_LOG_LABEL:
+				case MP_LOG_LABEL_LITERAL:
 					{
 						if(nStackDepth == 1)
 						{
 							uint64_t nLabel = MicroProfileLogGetTick(LE);
-							const char* pLabelName = MicroProfileGetLabel(nLabel);
+							const char* pLabelName = MicroProfileGetLabel(nType, nLabel);
 
 							if (!bSpaced)
 							{
@@ -1275,14 +1276,19 @@ void MicroProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY,
 						const char* pName = S.TimerInfo[nTimerIndex].pName;
 						uint32_t nNameLen = S.TimerInfo[nTimerIndex].nNameLen;
 
-						if (pName[0] == '$' && pEntryEnter < pEntry && MicroProfileLogType(pEntryEnter[1 + bGpu]) == MP_LOG_LABEL)
+						if(pName[0] == '$' && pEntryEnter < pEntry)
 						{
-							const char* pLabel = MicroProfileGetLabel(MicroProfileLogGetTick(pEntryEnter[1 + bGpu]));
-
-							if (pLabel)
+							MicroProfileLogEntry e = pEntryEnter[1 + bGpu];
+							uint32_t nLogType = MicroProfileLogType(e);
+							if(nLogType == MP_LOG_LABEL || nLogType == MP_LOG_LABEL_LITERAL)
 							{
-								pName = pLabel;
-								nNameLen = (uint32_t)strlen(pLabel);
+								const char* pLabel = MicroProfileGetLabel(nLogType, MicroProfileLogGetTick(e));
+
+								if(pLabel)
+								{
+									pName = pLabel;
+									nNameLen = (uint32_t)strlen(pLabel);
+								}
 							}
 						}
 
