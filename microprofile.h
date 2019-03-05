@@ -3649,7 +3649,9 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 					{
 						//for meta, store the count + 3, which is the tick part
 						nLogType = 3 + MicroProfileLogGetTick(pLog->Log[k]);
+		MicroProfileGetMutex().unlock();
 					}
+		MicroProfileGetMutex().lock();
 					MicroProfilePrintf(CB, Handle, ",%d", nLogType);
 				}
 			}
@@ -3793,6 +3795,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			return nTimerCounter[l] > nTimerCounter[r];
 		}
 	);
+		MicroProfileOnThreadCreate("MicroProfileWebserver");
 
 	MicroProfilePrintf(CB, Handle, "\n<!--\nMarker Per Group\n");
 	for(uint32_t i = 0; i < S.nGroupCount; ++i)
@@ -3808,6 +3811,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	}
 	MicroProfilePrintf(CB, Handle, "\n-->\n");
 
+		MicroProfileOnThreadExit();
 	S.nActiveGroup = nActiveGroup;
 	S.nRunning = nRunning;
 
@@ -4101,6 +4105,14 @@ bool MicroProfileWebServerUpdate()
 						*pEnd = '\0';
 						return;
 					}
+	if (g_MicroProfileGpuLog)
+	{
+		if (g_MicroProfileGpuLog->Log)
+			delete[] g_MicroProfileGpuLog->Log;
+		if (g_MicroProfileGpuLog->LogGpu)
+			delete[] g_MicroProfileGpuLog->LogGpu;
+		delete g_MicroProfileGpuLog;
+	}
 					pEnd++;
 				}
 			};
@@ -4681,7 +4693,7 @@ int main(int argc, char* argv[])
 }
 #endif
 
-void* MicroProfileTraceThread(void* unused)
+void* MicroProfileTraceThread(void* /*unused*/)
 {
 	MicroProfileOnThreadCreate("ContextSwitchThread");
 	MicroProfileContextSwitchShutdownTrace();
@@ -4868,7 +4880,7 @@ void MicroProfileStartContextSwitchTrace(){}
 
 #if MICROPROFILE_GPU_TIMERS_D3D11
 #include <d3d11.h>
-uint32_t MicroProfileGpuInsertTimeStamp(void* pContext)
+uint32_t MicroProfileGpuInsertTimeStamp(void* /*pContext*/)
 {
 	MicroProfileD3D11Frame& Frame = S.GPU.m_QueryFrames[S.GPU.m_nQueryFrame];
 	if(Frame.m_nRateQueryStarted)
