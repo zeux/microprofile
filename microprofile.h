@@ -4693,7 +4693,7 @@ int main(int argc, char* argv[])
 }
 #endif
 
-void* MicroProfileTraceThread(void* unused)
+void* MicroProfileTraceThread(void* /*unused*/)
 {
 	MicroProfileOnThreadCreate("ContextSwitchThread");
 	MicroProfileContextSwitchShutdownTrace();
@@ -4880,7 +4880,7 @@ void MicroProfileStartContextSwitchTrace(){}
 
 #if MICROPROFILE_GPU_TIMERS_D3D11
 #include <d3d11.h>
-uint32_t MicroProfileGpuInsertTimeStamp(void* pContext)
+uint32_t MicroProfileGpuInsertTimeStamp(void* /*pContext*/)
 {
 	MicroProfileD3D11Frame& Frame = S.GPU.m_QueryFrames[S.GPU.m_nQueryFrame];
 	if(Frame.m_nRateQueryStarted)
