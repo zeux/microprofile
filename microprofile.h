@@ -3649,7 +3649,9 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 					{
 						//for meta, store the count + 3, which is the tick part
 						nLogType = 3 + MicroProfileLogGetTick(pLog->Log[k]);
+		MicroProfileGetMutex().unlock();
 					}
+		MicroProfileGetMutex().lock();
 					MicroProfilePrintf(CB, Handle, ",%d", nLogType);
 				}
 			}
@@ -3793,6 +3795,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 			return nTimerCounter[l] > nTimerCounter[r];
 		}
 	);
+		MicroProfileOnThreadCreate("MicroProfileWebserver");
 
 	MicroProfilePrintf(CB, Handle, "\n<!--\nMarker Per Group\n");
 	for(uint32_t i = 0; i < S.nGroupCount; ++i)
@@ -3808,6 +3811,7 @@ void MicroProfileDumpHtml(MicroProfileWriteCallback CB, void* Handle, int nMaxFr
 	}
 	MicroProfilePrintf(CB, Handle, "\n-->\n");
 
+		MicroProfileOnThreadExit();
 	S.nActiveGroup = nActiveGroup;
 	S.nRunning = nRunning;
 
@@ -4101,6 +4105,14 @@ bool MicroProfileWebServerUpdate()
 						*pEnd = '\0';
 						return;
 					}
+	if (g_MicroProfileGpuLog)
+	{
+		if (g_MicroProfileGpuLog->Log)
+			delete[] g_MicroProfileGpuLog->Log;
+		if (g_MicroProfileGpuLog->LogGpu)
+			delete[] g_MicroProfileGpuLog->LogGpu;
+		delete g_MicroProfileGpuLog;
+	}
 					pEnd++;
 				}
 			};
