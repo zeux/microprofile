@@ -1,5 +1,7 @@
 # microprofile [![Build Status](https://travis-ci.org/zeux/microprofile.svg?branch=master)](https://travis-ci.org/zeux/microprofile)
-This is a fork of [microprofile by Jonas Meyer](https://github.com/jonasmr/microprofile). This library has diverged from upstream and is developed independently, with no intention to merge in either direction.
+This is a fork of [microprofile by Jonas Meyer](https://github.com/jonasmr/microprofile). This library has diverged from upstream.
+
+## Using the upstream version is recommended as this fork will no longer be maintained.
 
 microprofile is an embeddable CPU/GPU profiler with an in-app and HTML visualizers.
 
