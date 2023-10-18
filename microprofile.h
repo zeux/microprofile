@@ -4814,6 +4814,29 @@ void MicroProfileGpuInitVK(VkDevice pDevice, VkPhysicalDevice pPhysicalDevice, V
 	GPU.nReferenceQuery = MICROPROFILE_GPU_MAX_QUERIES; // reference query
 
 	GPU.nQueryFrequency = 1e9 / Properties.limits.timestampPeriod;
+
+	VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+	commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	res = vkBeginCommandBuffer(pCommandBuffers[0], &commandBufferBeginInfo);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	vkCmdResetQueryPool(pCommandBuffers[0], GPU.pQueryPool, 0, MICROPROFILE_GPU_MAX_QUERIES);
+
+	res = vkEndCommandBuffer(pCommandBuffers[0]);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pCommandBuffers[0];
+
+	res = vkQueueSubmit(GPU.pQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	res = vkQueueWaitIdle(GPU.pQueue);
+	MP_ASSERT(res == VK_SUCCESS);
 }
 
 void MicroProfileGpuShutdownVK()
@@ -4867,25 +4890,11 @@ uint32_t MicroProfileGpuFlipVK()
 	uint32_t nFrameTimeStamp = MicroProfileGpuInsertTimer(pCommandBuffer);
 	uint32_t nFramePut = MicroProfileMin(GPU.nFramePut.load(), nFrameQueries);
 
-	res = vkEndCommandBuffer(pCommandBuffer);
-	MP_ASSERT(res == VK_SUCCESS);
-
-	VkSubmitInfo submitInfo = {};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &pCommandBuffer;
-
-	res = vkQueueSubmit(GPU.pQueue, 1, &submitInfo, GPU.pFences[nFrameIndex]);
-	MP_ASSERT(res == VK_SUCCESS);
-
-	GPU.nSubmitted[nFrameIndex] = nFramePut;
-	GPU.nFramePut.store(0);
-	GPU.nFrame++;
-
 	// Fetch frame results
-	if (GPU.nFrame >= MICROPROFILE_GPU_FRAMES)
+	uint32_t nNextFrame = GPU.nFrame + 1;
+	if (nNextFrame >= MICROPROFILE_GPU_FRAMES)
 	{
-		uint64_t nPendingFrame = GPU.nFrame - MICROPROFILE_GPU_FRAMES;
+		uint64_t nPendingFrame = nNextFrame - MICROPROFILE_GPU_FRAMES;
 		uint32_t nPendingFrameIndex = nPendingFrame % MICROPROFILE_GPU_FRAMES;
 
 		res = vkWaitForFences(GPU.pDevice, 1, &GPU.pFences[nPendingFrameIndex], VK_TRUE, UINT64_MAX);
@@ -4905,7 +4914,24 @@ uint32_t MicroProfileGpuFlipVK()
 				sizeof(uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
 			MP_ASSERT(res == VK_SUCCESS);
 		}
+
+		vkCmdResetQueryPool(pCommandBuffer, GPU.pQueryPool, nPendingFrameStart, nFrameQueries);
 	}
+
+	res = vkEndCommandBuffer(pCommandBuffer);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &pCommandBuffer;
+
+	res = vkQueueSubmit(GPU.pQueue, 1, &submitInfo, GPU.pFences[nFrameIndex]);
+	MP_ASSERT(res == VK_SUCCESS);
+
+	GPU.nSubmitted[nFrameIndex] = nFramePut;
+	GPU.nFramePut.store(0);
+	GPU.nFrame++;
 
 	return nFrameTimeStamp;
 }
@@ -4954,6 +4980,7 @@ bool MicroProfileGetGpuTickReferenceVK(int64_t* pOutCpu, int64_t* pOutGpu)
 	VkResult res = vkBeginCommandBuffer(pCommandBuffer, &commandBufferBeginInfo);
 	MP_ASSERT(res == VK_SUCCESS);
 
+	vkCmdResetQueryPool(pCommandBuffer, GPU.pQueryPool, nQueryIndex, 1);
 	vkCmdWriteTimestamp(pCommandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, GPU.pQueryPool, nQueryIndex);
 
 	res = vkEndCommandBuffer(pCommandBuffer);
